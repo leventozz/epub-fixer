@@ -12,63 +12,108 @@ public sealed class WordTokenizer
         ArgumentNullException.ThrowIfNull(stream);
 
         var tokens = new List<WordToken>();
+        TokenAccumulator? currentToken = null;
 
-        foreach (var segment in stream.Segments)
+        for (var segmentIndex = 0; segmentIndex < stream.Segments.Count; segmentIndex++)
         {
-            TokenizeSegment(segment, tokens);
+            var segment = stream.Segments[segmentIndex];
+            var index = 0;
+
+            while (index < segment.Text.Length)
+            {
+                if (TryDecodeRune(segment.Text, index, out var rune, out var runeLength)
+                    && Rune.IsLetter(rune))
+                {
+                    currentToken ??= new TokenAccumulator(segment.LogicalStart + index);
+                    currentToken.Append(segment, index, runeLength);
+                    index += runeLength;
+                    continue;
+                }
+
+                if (currentToken is not null
+                    && IsApostrophe(segment.Text[index])
+                    && IsFollowedByLetter(stream, segmentIndex, index + 1))
+                {
+                    currentToken.Append(segment, index, 1);
+                    index++;
+                    continue;
+                }
+
+                CompleteToken(stream, tokens, ref currentToken);
+                index += runeLength;
+            }
+
+            var boundary = GetBoundaryAfter(stream, segmentIndex);
+
+            if (boundary is null || boundary.Kind is not TextBoundaryKind.TextNode)
+            {
+                CompleteToken(stream, tokens, ref currentToken);
+            }
         }
 
         return Array.AsReadOnly(tokens.ToArray());
     }
 
-    private static void TokenizeSegment(TextSegment segment, ICollection<WordToken> tokens)
+    private static void CompleteToken(
+        LogicalTextStream stream,
+        ICollection<WordToken> tokens,
+        ref TokenAccumulator? currentToken)
     {
-        var index = 0;
-
-        while (index < segment.Text.Length)
+        if (currentToken is null)
         {
-            if (!TryDecodeRune(segment.Text, index, out var rune, out var runeLength)
-                || !Rune.IsLetter(rune))
-            {
-                index += runeLength;
-                continue;
-            }
-
-            var tokenStart = index;
-            index += runeLength;
-
-            while (index < segment.Text.Length)
-            {
-                if (TryDecodeRune(segment.Text, index, out rune, out runeLength)
-                    && Rune.IsLetter(rune))
-                {
-                    index += runeLength;
-                    continue;
-                }
-
-                if (IsApostrophe(segment.Text[index])
-                    && TryDecodeRune(segment.Text, index + 1, out var nextRune, out _)
-                    && Rune.IsLetter(nextRune))
-                {
-                    index++;
-                    continue;
-                }
-
-                break;
-            }
-
-            var tokenLength = index - tokenStart;
-            var source = segment.Source with
-            {
-                Start = segment.Source.Start + tokenStart,
-                Length = tokenLength
-            };
-
-            tokens.Add(new WordToken(
-                segment.Text.Substring(tokenStart, tokenLength),
-                segment.LogicalStart + tokenStart,
-                source));
+            return;
         }
+
+        tokens.Add(currentToken.CreateToken(stream));
+        currentToken = null;
+    }
+
+    private static bool IsFollowedByLetter(
+        LogicalTextStream stream,
+        int segmentIndex,
+        int index)
+    {
+        var segment = stream.Segments[segmentIndex];
+
+        if (index < segment.Text.Length)
+        {
+            return TryDecodeRune(segment.Text, index, out var rune, out _)
+                && Rune.IsLetter(rune);
+        }
+
+        var boundary = GetBoundaryAfter(stream, segmentIndex);
+
+        if (boundary?.Kind is not TextBoundaryKind.TextNode)
+        {
+            return false;
+        }
+
+        var nextSegment = stream.Segments[boundary.AfterSegmentIndex];
+        return TryDecodeRune(nextSegment.Text, 0, out var nextRune, out _)
+            && Rune.IsLetter(nextRune);
+    }
+
+    private static TextBoundary? GetBoundaryAfter(LogicalTextStream stream, int segmentIndex)
+    {
+        if (segmentIndex >= stream.Segments.Count - 1)
+        {
+            return null;
+        }
+
+        if (segmentIndex >= stream.Boundaries.Count)
+        {
+            throw new InvalidOperationException("The logical text stream is missing a segment boundary.");
+        }
+
+        var boundary = stream.Boundaries[segmentIndex];
+
+        if (boundary.BeforeSegmentIndex != segmentIndex
+            || boundary.AfterSegmentIndex != segmentIndex + 1)
+        {
+            throw new InvalidOperationException("The logical text stream contains a non-adjacent segment boundary.");
+        }
+
+        return boundary;
     }
 
     private static bool TryDecodeRune(
@@ -98,5 +143,57 @@ public sealed class WordTokenizer
     private static bool IsApostrophe(char character)
     {
         return character is '\'' or '’';
+    }
+
+    private sealed class TokenAccumulator(int logicalStart)
+    {
+        private readonly List<TextSourceLocation> _sources = new();
+
+        public int LogicalStart { get; } = logicalStart;
+
+        public int LogicalEnd { get; private set; } = logicalStart;
+
+        public void Append(TextSegment segment, int start, int length)
+        {
+            var sourceStart = segment.Source.Start + start;
+
+            if (_sources.Count > 0
+                && IsContiguousSource(_sources[^1], segment.Source, sourceStart))
+            {
+                var previous = _sources[^1];
+                _sources[^1] = previous with { Length = previous.Length + length };
+            }
+            else
+            {
+                _sources.Add(segment.Source with
+                {
+                    Start = sourceStart,
+                    Length = length
+                });
+            }
+
+            LogicalEnd = segment.LogicalStart + start + length;
+        }
+
+        public WordToken CreateToken(LogicalTextStream stream)
+        {
+            var length = LogicalEnd - LogicalStart;
+
+            return new WordToken(
+                stream.Text.Substring(LogicalStart, length),
+                LogicalStart,
+                Array.AsReadOnly(_sources.ToArray()));
+        }
+
+        private static bool IsContiguousSource(
+            TextSourceLocation previous,
+            TextSourceLocation current,
+            int currentStart)
+        {
+            return ReferenceEquals(previous.SourceNode, current.SourceNode)
+                && previous.DocumentPath == current.DocumentPath
+                && previous.TextNodeIndex == current.TextNodeIndex
+                && previous.Start + previous.Length == currentStart;
+        }
     }
 }

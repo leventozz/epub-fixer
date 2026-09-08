@@ -41,7 +41,7 @@ public sealed class WordTokenizerTests
     }
 
     [Fact]
-    public void Tokenize_TextNodeBoundaryEndsToken()
+    public void Tokenize_TextNodeBoundaryContinuesToken()
     {
         using var epub = CreateSingleDocumentEpub(
             "<p><span>gittim</span><span>sonra</span></p>");
@@ -51,7 +51,61 @@ public sealed class WordTokenizerTests
 
         Assert.Equal("gittimsonra", stream.Text);
         Assert.Equal(TextBoundaryKind.TextNode, Assert.Single(stream.Boundaries).Kind);
-        Assert.Equal(["gittim", "sonra"], tokens.Select(token => token.Text));
+        Assert.Equal(["gittimsonra"], tokens.Select(token => token.Text));
+        Assert.Equal(2, Assert.Single(tokens).Sources.Count);
+    }
+
+    [Fact]
+    public void Tokenize_JoinsTurkishWordAcrossInlineElementAndPreservesSources()
+    {
+        using var epub = CreateSingleDocumentEpub("<p><sup>İ</sup>nsan</p>");
+        var stream = ReadStream(epub);
+
+        var token = Assert.Single(new WordTokenizer().Tokenize(stream));
+
+        Assert.Equal("İnsan", token.Text);
+        Assert.Equal(0, token.LogicalStart);
+        Assert.Equal(5, token.Length);
+        Assert.Equal(2, token.Sources.Count);
+        Assert.Equal(["İ", "nsan"], token.Sources.Select(SourceText));
+        Assert.Equal([0, 1], token.Sources.Select(source => source.TextNodeIndex));
+        Assert.Equal([(0, 1), (0, 4)], token.Sources.Select(source => (source.Start, source.Length)));
+        Assert.NotSame(token.Sources[0].SourceNode, token.Sources[1].SourceNode);
+    }
+
+    [Fact]
+    public void Tokenize_JoinsWordAcrossMultipleInlineBoundaries()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Auer<span>sber</span>ger</p>");
+
+        var token = Assert.Single(Tokenize(epub));
+
+        Assert.Equal("Auersberger", token.Text);
+        Assert.Equal(["Auer", "sber", "ger"], token.Sources.Select(SourceText));
+        Assert.Equal([(0, 4), (0, 4), (0, 3)], token.Sources.Select(source => (source.Start, source.Length)));
+    }
+
+    [Fact]
+    public void Tokenize_WhitespaceAndPunctuationAcrossTextNodesEndTokens()
+    {
+        using var epub = CreateSingleDocumentEpub(
+            "<p><span>gittim</span> <span>sonra</span>,<span>bugün</span></p>");
+
+        var tokens = Tokenize(epub);
+
+        Assert.Equal(["gittim", "sonra", "bugün"], tokens.Select(token => token.Text));
+    }
+
+    [Fact]
+    public void Tokenize_PreservesInternalApostrophesAcrossTextNodes()
+    {
+        using var epub = CreateSingleDocumentEpub(
+            "<p>Sokağı<span>'na</span> Auersbergerler’<span>e</span></p>");
+
+        var tokens = Tokenize(epub);
+
+        Assert.Equal(["Sokağı'na", "Auersbergerler’e"], tokens.Select(token => token.Text));
+        Assert.All(tokens, token => Assert.Equal(2, token.Sources.Count));
     }
 
     [Fact]
@@ -110,13 +164,19 @@ public sealed class WordTokenizerTests
         Assert.Equal("Sokağı'na", token.Text);
         Assert.Equal(5, token.LogicalStart);
         Assert.Equal(9, token.Length);
-        Assert.Equal(segment.Source.DocumentPath, token.Source.DocumentPath);
-        Assert.Equal(segment.Source.TextNodeIndex, token.Source.TextNodeIndex);
-        Assert.Same(segment.Source.SourceNode, token.Source.SourceNode);
-        Assert.Equal((5, 9), (token.Source.Start, token.Source.Length));
-        Assert.Equal(token.Text, token.Source.SourceNode.Data.Substring(token.Source.Start, token.Source.Length));
+        var source = Assert.Single(token.Sources);
+        Assert.Equal(segment.Source.DocumentPath, source.DocumentPath);
+        Assert.Equal(segment.Source.TextNodeIndex, source.TextNodeIndex);
+        Assert.Same(segment.Source.SourceNode, source.SourceNode);
+        Assert.Equal((5, 9), (source.Start, source.Length));
+        Assert.Equal(token.Text, SourceText(source));
         Assert.Equal(originalText, stream.Text);
         Assert.Equal(originalNodeText, segment.Source.SourceNode.Data);
+    }
+
+    private static string SourceText(TextSourceLocation source)
+    {
+        return source.SourceNode.Data.Substring(source.Start, source.Length);
     }
 
     private static IReadOnlyList<EpubFixer.Core.Tokenization.Models.WordToken> Tokenize(

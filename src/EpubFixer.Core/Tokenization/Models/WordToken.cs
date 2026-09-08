@@ -5,7 +5,7 @@ namespace EpubFixer.Core.Tokenization.Models;
 public sealed record WordToken(
     string Text,
     int LogicalStart,
-    TextSourceLocation Source)
+    IReadOnlyList<TextSourceLocation> Sources)
 {
     public int Length => Text.Length;
 }
