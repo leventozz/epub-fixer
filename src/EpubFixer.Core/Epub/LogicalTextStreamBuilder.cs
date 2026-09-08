@@ -40,6 +40,7 @@ internal static class LogicalTextStreamBuilder
 
                 var source = new TextSourceLocation(
                     document.Path,
+                    current.TextNodeIndex,
                     current.Node,
                     0,
                     current.Node.Data.Length);
@@ -66,8 +67,13 @@ internal static class LogicalTextStreamBuilder
         }
 
         var candidates = EnumerateTextNodes(body)
-            .Where(node => node.Data.Length > 0 && !HasExcludedAncestor(node))
-            .Select(node => new SegmentDraft(document, node, FindNearestBlock(node)))
+            .Select((node, index) => new { Node = node, TextNodeIndex = index })
+            .Where(item => item.Node.Data.Length > 0 && !HasExcludedAncestor(item.Node))
+            .Select(item => new SegmentDraft(
+                document,
+                item.Node,
+                FindNearestBlock(item.Node),
+                item.TextNodeIndex))
             .ToArray();
 
         if (candidates.Length == 0)
@@ -164,5 +170,9 @@ internal static class LogicalTextStreamBuilder
             : TextBoundaryKind.Paragraph;
     }
 
-    private sealed record SegmentDraft(EpubContentDocument Document, IText Node, IElement? Block);
+    private sealed record SegmentDraft(
+        EpubContentDocument Document,
+        IText Node,
+        IElement? Block,
+        int TextNodeIndex);
 }

@@ -25,6 +25,8 @@ public sealed class EpubPackageReaderTests
         Assert.Single(stream.Boundaries);
         Assert.Equal(TextBoundaryKind.Paragraph, stream.Boundaries[0].Kind);
         Assert.Equal("OPS/chapter.xhtml", stream.Segments[1].Source.DocumentPath);
+        Assert.Equal(0, stream.Segments[0].Source.TextNodeIndex);
+        Assert.Equal(1, stream.Segments[1].Source.TextNodeIndex);
         Assert.Equal("si cehennemine...", stream.Segments[1].Source.SourceNode.Data);
         Assert.Equal(0, stream.Segments[1].Source.Start);
         Assert.Equal(stream.Segments[1].Text.Length, stream.Segments[1].Source.Length);

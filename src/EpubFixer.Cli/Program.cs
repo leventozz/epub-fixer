@@ -1,4 +1,7 @@
 using System.Text;
+using System.Text.Json;
+using EpubFixer.Core.Detection;
+using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Epub.Models;
 
@@ -6,7 +9,7 @@ return Run(args);
 
 static int Run(string[] arguments)
 {
-    if (!TryParseArguments(arguments, out var epubPath, out var dumpPath))
+    if (!TryParseArguments(arguments, out var options))
     {
         PrintUsage();
         return 1;
@@ -14,20 +17,29 @@ static int Run(string[] arguments)
 
     try
     {
-        if (dumpPath is not null && PathsReferToSameFile(epubPath, dumpPath))
-        {
-            throw new ArgumentException("The dump path must be different from the source EPUB path.");
-        }
+        ValidateOutputPaths(options);
 
-        var package = new EpubPackageReader().Read(epubPath);
+        var package = new EpubPackageReader().Read(options.EpubPath);
+        var candidates = new HyphenationDetector().Detect(package.LogicalText);
 
         PrintSummary(package);
+        PrintHyphenationSummary(candidates);
 
-        if (dumpPath is not null)
+        if (options.DumpPath is not null)
         {
-            File.WriteAllText(dumpPath, package.LogicalText.CreateDebugText(), new UTF8Encoding(false));
+            File.WriteAllText(
+                options.DumpPath,
+                package.LogicalText.CreateDebugText(),
+                new UTF8Encoding(false));
             Console.WriteLine();
-            Console.WriteLine($"Logical text written to: {dumpPath}");
+            Console.WriteLine($"Logical text written to: {options.DumpPath}");
+        }
+
+        if (options.HyphenReportPath is not null)
+        {
+            WriteHyphenationReport(options.HyphenReportPath, candidates);
+            Console.WriteLine();
+            Console.WriteLine($"Hyphenation report written to: {options.HyphenReportPath}");
         }
 
         return 0;
@@ -42,35 +54,77 @@ static int Run(string[] arguments)
     }
 }
 
-static bool TryParseArguments(string[] arguments, out string epubPath, out string? dumpPath)
+static bool TryParseArguments(string[] arguments, out CliOptions options)
 {
-    epubPath = string.Empty;
-    dumpPath = null;
+    options = null!;
 
-    if (arguments.Length < 2 || !string.Equals(arguments[0], "analyze", StringComparison.OrdinalIgnoreCase))
+    if (arguments.Length < 2
+        || !string.Equals(arguments[0], "analyze", StringComparison.OrdinalIgnoreCase)
+        || string.IsNullOrWhiteSpace(arguments[1]))
     {
         return false;
     }
 
-    epubPath = arguments[1];
+    string? dumpPath = null;
+    string? hyphenReportPath = null;
 
-    if (string.IsNullOrWhiteSpace(epubPath))
+    for (var index = 2; index < arguments.Length; index += 2)
     {
-        return false;
+        if (index + 1 >= arguments.Length || string.IsNullOrWhiteSpace(arguments[index + 1]))
+        {
+            return false;
+        }
+
+        var option = arguments[index];
+        var value = arguments[index + 1];
+
+        if (string.Equals(option, "--dump-text", StringComparison.OrdinalIgnoreCase))
+        {
+            if (dumpPath is not null)
+            {
+                return false;
+            }
+
+            dumpPath = value;
+        }
+        else if (string.Equals(option, "--hyphen-report", StringComparison.OrdinalIgnoreCase))
+        {
+            if (hyphenReportPath is not null)
+            {
+                return false;
+            }
+
+            hyphenReportPath = value;
+        }
+        else
+        {
+            return false;
+        }
     }
 
-    if (arguments.Length == 2)
+    options = new CliOptions(arguments[1], dumpPath, hyphenReportPath);
+    return true;
+}
+
+static void ValidateOutputPaths(CliOptions options)
+{
+    if (options.DumpPath is not null && PathsReferToSameFile(options.EpubPath, options.DumpPath))
     {
-        return true;
+        throw new ArgumentException("The dump path must be different from the source EPUB path.");
     }
 
-    if (arguments.Length == 4 && string.Equals(arguments[2], "--dump-text", StringComparison.OrdinalIgnoreCase))
+    if (options.HyphenReportPath is not null
+        && PathsReferToSameFile(options.EpubPath, options.HyphenReportPath))
     {
-        dumpPath = arguments[3];
-        return !string.IsNullOrWhiteSpace(dumpPath);
+        throw new ArgumentException("The report path must be different from the source EPUB path.");
     }
 
-    return false;
+    if (options.DumpPath is not null
+        && options.HyphenReportPath is not null
+        && PathsReferToSameFile(options.DumpPath, options.HyphenReportPath))
+    {
+        throw new ArgumentException("The dump and report paths must be different.");
+    }
 }
 
 static void PrintSummary(EpubPackage package)
@@ -101,9 +155,138 @@ static void PrintSummary(EpubPackage package)
     }
 }
 
+static void PrintHyphenationSummary(IReadOnlyList<HyphenationCandidate> candidates)
+{
+    Console.WriteLine();
+    Console.WriteLine($"Hyphenation candidates: {candidates.Count}");
+    Console.WriteLine();
+    Console.WriteLine($"  Inline: {CountCandidates(candidates, HyphenationDetectionKind.Inline)}");
+    Console.WriteLine($"  Text node boundary: {CountCandidates(candidates, HyphenationDetectionKind.TextNodeBoundary)}");
+    Console.WriteLine($"  Paragraph boundary: {CountCandidates(candidates, HyphenationDetectionKind.ParagraphBoundary)}");
+    Console.WriteLine($"  Document boundary: {CountCandidates(candidates, HyphenationDetectionKind.DocumentBoundary)}");
+
+    var aggregates = candidates
+        .GroupBy(candidate => new CandidateKey(
+            candidate.LeftPart,
+            candidate.RightPart,
+            candidate.UnhyphenatedText))
+        .Select(group => new CandidateAggregate(group.Key, group.Count()))
+        .OrderByDescending(aggregate => aggregate.Count)
+        .ThenBy(aggregate => aggregate.Key.LeftPart, StringComparer.Ordinal)
+        .ThenBy(aggregate => aggregate.Key.RightPart, StringComparer.Ordinal)
+        .Take(15)
+        .ToArray();
+
+    if (aggregates.Length > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine("Most frequent candidates:");
+
+        foreach (var aggregate in aggregates)
+        {
+            Console.WriteLine(
+                $"  {aggregate.Key.LeftPart}-{aggregate.Key.RightPart} -> "
+                + $"{aggregate.Key.UnhyphenatedText}   {aggregate.Count}x");
+        }
+    }
+
+    if (candidates.Count > 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine("Sample occurrences:");
+
+        foreach (var candidate in candidates.Take(10))
+        {
+            PrintCandidate(candidate);
+        }
+    }
+}
+
+static void PrintCandidate(HyphenationCandidate candidate)
+{
+    Console.WriteLine();
+    Console.WriteLine($"[{FormatDetectionKind(candidate.DetectionKind)}]");
+
+    var original = candidate.DetectionKind == HyphenationDetectionKind.Inline
+        ? $"{candidate.LeftPart}-{candidate.RightPart}"
+        : $"{candidate.LeftPart}- + {candidate.RightPart}";
+
+    Console.WriteLine($"{original} -> {candidate.UnhyphenatedText}");
+    Console.WriteLine("Source:");
+    Console.WriteLine($"  {candidate.LeftSource.DocumentPath}");
+
+    if (!string.Equals(
+            candidate.LeftSource.DocumentPath,
+            candidate.RightSource.DocumentPath,
+            StringComparison.Ordinal))
+    {
+        Console.WriteLine($"  {candidate.RightSource.DocumentPath}");
+    }
+}
+
+static void WriteHyphenationReport(
+    string reportPath,
+    IReadOnlyList<HyphenationCandidate> candidates)
+{
+    var report = new
+    {
+        candidateCount = candidates.Count,
+        counts = new
+        {
+            inline = CountCandidates(candidates, HyphenationDetectionKind.Inline),
+            textNodeBoundary = CountCandidates(candidates, HyphenationDetectionKind.TextNodeBoundary),
+            paragraphBoundary = CountCandidates(candidates, HyphenationDetectionKind.ParagraphBoundary),
+            documentBoundary = CountCandidates(candidates, HyphenationDetectionKind.DocumentBoundary)
+        },
+        occurrences = candidates.Select(candidate => new
+        {
+            leftPart = candidate.LeftPart,
+            rightPart = candidate.RightPart,
+            unhyphenatedText = candidate.UnhyphenatedText,
+            detectionKind = FormatDetectionKind(candidate.DetectionKind),
+            leftSource = CreatePortableSource(candidate.LeftSource),
+            hyphenSource = CreatePortableSource(candidate.HyphenSource),
+            rightSource = CreatePortableSource(candidate.RightSource)
+        }).ToArray()
+    };
+
+    var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+    File.WriteAllText(reportPath, json, new UTF8Encoding(false));
+}
+
+static object CreatePortableSource(TextSourceLocation source)
+{
+    return new
+    {
+        documentPath = source.DocumentPath,
+        textNodeIndex = source.TextNodeIndex,
+        start = source.Start,
+        length = source.Length
+    };
+}
+
 static int CountBoundaries(LogicalTextStream stream, TextBoundaryKind kind)
 {
     return stream.Boundaries.Count(boundary => boundary.Kind == kind);
+}
+
+static int CountCandidates(
+    IReadOnlyList<HyphenationCandidate> candidates,
+    HyphenationDetectionKind kind)
+{
+    return candidates.Count(candidate => candidate.DetectionKind == kind);
+}
+
+static string FormatDetectionKind(HyphenationDetectionKind kind)
+{
+    return kind switch
+    {
+        HyphenationDetectionKind.Inline => "Inline",
+        HyphenationDetectionKind.TextNodeBoundary => "TextNodeBoundary",
+        HyphenationDetectionKind.ParagraphBoundary => "ParagraphBoundary",
+        HyphenationDetectionKind.DocumentBoundary => "DocumentBoundary",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+    };
 }
 
 static bool PathsReferToSameFile(string firstPath, string secondPath)
@@ -117,5 +300,19 @@ static bool PathsReferToSameFile(string firstPath, string secondPath)
 
 static void PrintUsage()
 {
-    Console.Error.WriteLine("Usage: epubfixer analyze <book.epub> [--dump-text <output.txt>]");
+    Console.Error.WriteLine(
+        "Usage: epubfixer analyze <book.epub> "
+        + "[--dump-text <output.txt>] [--hyphen-report <hyphens.json>]");
 }
+
+internal sealed record CliOptions(
+    string EpubPath,
+    string? DumpPath,
+    string? HyphenReportPath);
+
+internal sealed record CandidateKey(
+    string LeftPart,
+    string RightPart,
+    string UnhyphenatedText);
+
+internal sealed record CandidateAggregate(CandidateKey Key, int Count);
