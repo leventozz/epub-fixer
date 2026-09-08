@@ -1,9 +1,11 @@
 using System.Text;
-using System.Text.Json;
 using EpubFixer.Core.Detection;
 using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Epub.Models;
+using EpubFixer.Core.Evidence;
+using EpubFixer.Core.Evidence.Models;
+using EpubFixer.Core.Lexicon;
 
 return Run(args);
 
@@ -21,9 +23,13 @@ static int Run(string[] arguments)
 
         var package = new EpubPackageReader().Read(options.EpubPath);
         var candidates = new HyphenationDetector().Detect(package.LogicalText);
+        var lexicon = new BookLexiconBuilder().Build(package.LogicalText);
+        var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon);
+        var evidenceSummary = HyphenationEvidenceReporting.CreateSummary(evidence);
 
         PrintSummary(package);
         PrintHyphenationSummary(candidates);
+        HyphenationEvidenceReporting.Print(Console.Out, evidenceSummary);
 
         if (options.DumpPath is not null)
         {
@@ -37,7 +43,7 @@ static int Run(string[] arguments)
 
         if (options.HyphenReportPath is not null)
         {
-            WriteHyphenationReport(options.HyphenReportPath, candidates);
+            WriteHyphenationReport(options.HyphenReportPath, evidence, evidenceSummary);
             Console.WriteLine();
             Console.WriteLine($"Hyphenation report written to: {options.HyphenReportPath}");
         }
@@ -226,43 +232,11 @@ static void PrintCandidate(HyphenationCandidate candidate)
 
 static void WriteHyphenationReport(
     string reportPath,
-    IReadOnlyList<HyphenationCandidate> candidates)
+    IReadOnlyList<HyphenationEvidence> evidence,
+    HyphenationEvidenceSummary summary)
 {
-    var report = new
-    {
-        candidateCount = candidates.Count,
-        counts = new
-        {
-            inline = CountCandidates(candidates, HyphenationDetectionKind.Inline),
-            textNodeBoundary = CountCandidates(candidates, HyphenationDetectionKind.TextNodeBoundary),
-            paragraphBoundary = CountCandidates(candidates, HyphenationDetectionKind.ParagraphBoundary),
-            documentBoundary = CountCandidates(candidates, HyphenationDetectionKind.DocumentBoundary)
-        },
-        occurrences = candidates.Select(candidate => new
-        {
-            leftPart = candidate.LeftPart,
-            rightPart = candidate.RightPart,
-            unhyphenatedText = candidate.UnhyphenatedText,
-            detectionKind = FormatDetectionKind(candidate.DetectionKind),
-            leftSource = CreatePortableSource(candidate.LeftSource),
-            hyphenSource = CreatePortableSource(candidate.HyphenSource),
-            rightSource = CreatePortableSource(candidate.RightSource)
-        }).ToArray()
-    };
-
-    var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+    var json = HyphenationEvidenceReporting.SerializeJson(evidence, summary);
     File.WriteAllText(reportPath, json, new UTF8Encoding(false));
-}
-
-static object CreatePortableSource(TextSourceLocation source)
-{
-    return new
-    {
-        documentPath = source.DocumentPath,
-        textNodeIndex = source.TextNodeIndex,
-        start = source.Start,
-        length = source.Length
-    };
 }
 
 static int CountBoundaries(LogicalTextStream stream, TextBoundaryKind kind)
