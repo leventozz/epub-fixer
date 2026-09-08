@@ -1,6 +1,8 @@
 using System.Text.Json;
 using AngleSharp.Html.Parser;
+using EpubFixer.Core.Detection;
 using EpubFixer.Core.Detection.Models;
+using EpubFixer.Core.Epub;
 using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Evidence.Models;
 
@@ -117,6 +119,127 @@ public sealed class HyphenationEvidenceReportingTests
         Assert.DoesNotContain("AngleSharp", json, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void CreateAnalysis_AggregatesKindsAndSourceDocumentsAndSortsDeterministically()
+    {
+        using var epub = TemporaryEpub.Create(
+            [
+                new TestDocument(
+                    "a",
+                    "a.xhtml",
+                    Xhtml("<p>Auersber-ger</p><p>Auersber-</p><p>ger</p>")),
+                new TestDocument(
+                    "b",
+                    "b.xhtml",
+                    Xhtml("<p>Auersber-ger Jo-ana</p>"))
+            ],
+            [new TestSpineItem("a"), new TestSpineItem("b")]);
+        var stream = new EpubPackageReader().Read(epub.Path).LogicalText;
+        var evidence = new HyphenationDetector()
+            .Detect(stream)
+            .Select(candidate => new HyphenationEvidence(
+                candidate,
+                candidate.UnhyphenatedText == "Joana" ? 20 : 10,
+                true))
+            .ToArray();
+
+        var analysis = HyphenationEvidenceReporting.CreateAnalysis(evidence, stream);
+
+        var highBucket = analysis.Buckets[0];
+        Assert.Equal(2, highBucket.TotalUniqueTransformations);
+        Assert.Equal(4, highBucket.TotalCandidateOccurrences);
+        Assert.Equal("Joana", highBucket.Transformations[0].Key.UnhyphenatedText);
+
+        var auersberger = highBucket.Transformations[1];
+        Assert.Equal(3, auersberger.CandidateOccurrenceCount);
+        Assert.Equal(
+            [
+                new HyphenationDetectionKindCount(HyphenationDetectionKind.Inline, 2),
+                new HyphenationDetectionKindCount(HyphenationDetectionKind.ParagraphBoundary, 1)
+            ],
+            auersberger.DetectionKinds);
+        Assert.Equal(["OPS/a.xhtml", "OPS/b.xhtml"], auersberger.SourceDocumentPaths);
+    }
+
+    [Fact]
+    public void CreateAnalysis_ReportsAllHighBucketsAndLimitsLowerBucketsToThirty()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>source</p>"))],
+            [new TestSpineItem("chapter")]);
+        var stream = new EpubPackageReader().Read(epub.Path).LogicalText;
+        var source = Assert.Single(stream.Segments).Source with { Start = 0, Length = 1 };
+        var evidence = new List<HyphenationEvidence>();
+
+        foreach (var lexiconCount in new[] { 10, 5, 2, 1, 0 })
+        {
+            for (var index = 0; index < 31; index++)
+            {
+                var left = $"Left{lexiconCount:D2}{index:D2}";
+                var candidate = new HyphenationCandidate(
+                    left,
+                    "Right",
+                    left + "Right",
+                    HyphenationDetectionKind.Inline,
+                    source,
+                    source,
+                    source);
+                evidence.Add(new HyphenationEvidence(candidate, lexiconCount, lexiconCount > 0));
+            }
+        }
+
+        var analysis = HyphenationEvidenceReporting.CreateAnalysis(evidence, stream);
+
+        Assert.Equal(155, analysis.UniqueTransformationCount);
+        Assert.Equal(31, analysis.Buckets[0].Transformations.Count);
+        Assert.Equal(31, analysis.Buckets[1].Transformations.Count);
+        Assert.Equal(30, analysis.Buckets[2].Transformations.Count);
+        Assert.Equal(30, analysis.Buckets[3].Transformations.Count);
+        Assert.Equal(30, analysis.Buckets[4].Transformations.Count);
+        Assert.All(analysis.Buckets, bucket => Assert.Equal(31, bucket.TotalUniqueTransformations));
+    }
+
+    [Fact]
+    public void CreateAnalysis_FormatsInlineParagraphAndDocumentBoundaryContexts()
+    {
+        using var epub = TemporaryEpub.Create(
+            [
+                new TestDocument(
+                    "a",
+                    "a.xhtml",
+                    Xhtml(
+                        "<p>sıfır bir iki üç dört beş altı Auersber-ger yedi sekiz dokuz on onbir oniki onüç.</p>"
+                        + "<p>önce bir iki üç dört beş Webern-</p><p>halefi sonra bir iki üç dört beş altı yedi.</p>"
+                        + "<p>belge önce bir iki üç dört kes-</p>")),
+                new TestDocument(
+                    "b",
+                    "b.xhtml",
+                    Xhtml("<p>kin belge sonra bir iki üç dört beş.</p>"))
+            ],
+            [new TestSpineItem("a"), new TestSpineItem("b")]);
+        var stream = new EpubPackageReader().Read(epub.Path).LogicalText;
+        var evidence = new HyphenationDetector()
+            .Detect(stream)
+            .Select(candidate => new HyphenationEvidence(candidate, 0, false))
+            .ToArray();
+
+        var analysis = HyphenationEvidenceReporting.CreateAnalysis(evidence, stream);
+        var transformations = analysis.Buckets[4].Transformations;
+        var inline = Assert.Single(transformations, item => item.Key.UnhyphenatedText == "Auersberger");
+        var paragraph = Assert.Single(transformations, item => item.Key.UnhyphenatedText == "Webernhalefi");
+        var document = Assert.Single(transformations, item => item.Key.UnhyphenatedText == "keskin");
+
+        Assert.Contains("… bir iki üç dört beş altı [Auersber-ger]", inline.FirstOccurrenceContext);
+        Assert.Contains("[Webern- ⟨ParagraphBoundary⟩ halefi]", paragraph.FirstOccurrenceContext);
+        Assert.Contains("[kes- ⟨DocumentBoundary⟩ kin]", document.FirstOccurrenceContext);
+
+        var markdown = HyphenationEvidenceReporting.SerializeMarkdown(analysis);
+        Assert.Contains("CandidateOccurrences", markdown);
+        Assert.Contains("SourceDocuments", markdown);
+        Assert.Contains("ParagraphBoundary", markdown);
+        Assert.Contains("DocumentBoundary", markdown);
+    }
+
     private static HyphenationEvidence CreateEvidence(
         string leftPart,
         string rightPart,
@@ -152,5 +275,17 @@ public sealed class HyphenationEvidenceReportingTests
         Assert.Equal(rightPart, item.Key.RightPart);
         Assert.Equal(occurrenceCount, item.UnhyphenatedOccurrenceCount);
         Assert.Equal(candidateOccurrences, item.CandidateOccurrences);
+    }
+
+    private static string Xhtml(string body)
+    {
+        return $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <!DOCTYPE html>
+            <html xmlns="http://www.w3.org/1999/xhtml">
+              <head><title>Test</title></head>
+              <body>{body}</body>
+            </html>
+            """;
     }
 }
