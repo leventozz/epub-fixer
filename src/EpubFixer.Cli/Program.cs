@@ -14,6 +14,7 @@ using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Fix.Models;
 using EpubFixer.Core.Morphology;
+using EpubFixer.Core.Ocr;
 using EpubFixer.TrMorph;
 
 return Run(args);
@@ -41,6 +42,13 @@ static int Run(string[] arguments)
         }
 
     var package = new EpubPackageReader().Read(options.EpubPath);
+    if (options.OcrReportPath is not null)
+    {
+        using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
+        var ocrReport = new OcrAnalysisService().Analyze(options.EpubPath, ocrAnalyzer);
+        File.WriteAllText(options.OcrReportPath, OcrAnalysisReporting.SerializeMarkdown(ocrReport), new UTF8Encoding(false));
+        Console.WriteLine($"OCR report written to: {options.OcrReportPath}");
+    }
     var originalPipeline = AnalyzeHyphenation(package.LogicalText);
     var candidates = originalPipeline.Candidates;
     var lexicon = originalPipeline.Lexicon;
@@ -184,6 +192,7 @@ static void ValidateOutputPaths(CliOptions options)
         options.HyphenAnalysisReportPath,
         options.PostFixLexiconReportPath,
         options.TrMorphReportPath,
+        options.OcrReportPath,
         options.OutputEpubPath
     }.Where(path => path is not null).Cast<string>().ToArray();
 
@@ -581,6 +590,7 @@ static void PrintUsage()
         + "[--dump-text <output.txt>] [--hyphen-report <hyphens.json>] "
         + "[--hyphen-analysis-report <analysis.md>] "
         + "[--post-fix-lexicon-report <post-fix.md>] "
+        + "[--ocr-report <ocr.md>] "
         + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
     Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub>");
 }
@@ -594,6 +604,7 @@ internal sealed record CliOptions(
     string? HyphenAnalysisReportPath,
     string? PostFixLexiconReportPath,
     string? TrMorphReportPath,
+    string? OcrReportPath,
     string? GroundTruthPath,
     bool ApplyInline,
     bool ApplyParagraph)
@@ -626,6 +637,7 @@ internal sealed record CliOptions(
                 null,
                 null,
                 null,
+                null,
                 false,
                 false);
             return true;
@@ -641,6 +653,7 @@ internal sealed record CliOptions(
         string? hyphenAnalysisReportPath = null;
         string? postFixLexiconReportPath = null;
         string? trMorphReportPath = null;
+        string? ocrReportPath = null;
         string? groundTruthPath = null;
         var applyInline = false;
         var applyParagraph = false;
@@ -724,6 +737,11 @@ internal sealed record CliOptions(
                 if (trMorphReportPath is not null) return false;
                 trMorphReportPath = value;
             }
+            else if (string.Equals(option, "--ocr-report", StringComparison.OrdinalIgnoreCase))
+            {
+                if (ocrReportPath is not null) return false;
+                ocrReportPath = value;
+            }
             else if (string.Equals(option, "--ground-truth", StringComparison.OrdinalIgnoreCase))
             {
                 if (groundTruthPath is not null) return false;
@@ -748,6 +766,7 @@ internal sealed record CliOptions(
             hyphenAnalysisReportPath,
             postFixLexiconReportPath,
             trMorphReportPath,
+            ocrReportPath,
             groundTruthPath,
             applyInline,
             applyParagraph);
