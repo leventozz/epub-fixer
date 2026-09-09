@@ -137,7 +137,12 @@ static int Run(string[] arguments)
                     analyzer);
                 File.WriteAllText(
                     options.TrMorphReportPath,
-                    TrMorphReport.Serialize(morphology, protectedOccurrences, analyzer),
+                    TrMorphReport.Serialize(
+                        morphology,
+                        protectedOccurrences,
+                        analyzer,
+                        originalPipeline.Decisions.Count(
+                            item => item.DecisionKind == HyphenationDecisionKind.AutoFixCandidate)),
                     new UTF8Encoding(false));
                 Console.WriteLine();
                 Console.WriteLine($"TRmorph report written to: {options.TrMorphReportPath}");

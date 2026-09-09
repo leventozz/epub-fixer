@@ -23,7 +23,12 @@ public sealed class HyphenationDecisionEvaluator
                     ? HyphenationDecisionKind.AutoFixCandidate
                     : HyphenationDecisionKind.Deferred;
 
-            decisions[index] = new HyphenationDecision(item, decisionKind);
+            decisions[index] = new HyphenationDecision(
+                item,
+                decisionKind,
+                decisionKind == HyphenationDecisionKind.AutoFixCandidate
+                    ? HyphenationDecisionReason.StrongBookLexicon
+                    : null);
         }
 
         return Array.AsReadOnly(decisions);

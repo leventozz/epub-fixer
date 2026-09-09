@@ -24,7 +24,10 @@ public sealed class HyphenationMorphologyAnalyzer
                 context.HasAdjacentHyphen,
                 context.HasAdjacentSuspiciousCharacter,
                 clean,
-                analyzer.IsValidWord(item.Candidate.LeftPart + item.Candidate.RightPart));
+                analyzer.IsValidWord(item.Candidate.LeftPart + item.Candidate.RightPart))
+            {
+                Evidence = item
+            };
         }
 
         return Array.AsReadOnly(result);

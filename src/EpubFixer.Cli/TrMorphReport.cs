@@ -1,5 +1,8 @@
 using System.Text;
 using System.Text.Json;
+using EpubFixer.Core.Decision;
+using EpubFixer.Core.Decision.Models;
+using EpubFixer.Core.Evidence.Models;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Morphology.Models;
 
@@ -46,11 +49,17 @@ internal static class TrMorphReport
     public static string Serialize(
         IReadOnlyList<HyphenationMorphologyEvidence> evidence,
         IReadOnlyList<ProtectedMorphologyOccurrence> protectedOccurrences,
-        ITurkishMorphologyAnalyzer analyzer)
+        ITurkishMorphologyAnalyzer analyzer,
+        int originalV1AutoFixCandidateCount)
     {
         var builder = new StringBuilder();
         var target = evidence.Where(item => item.LexiconCount < 10 && item.IsClean).ToArray();
         var targetValid = target.Count(item => item.TRmorphValid);
+        var sourceEvidence = evidence.Select(item => item.Evidence
+            ?? throw new InvalidOperationException("TRmorph evidence is missing source evidence.")).ToArray();
+        var decisions = new HyphenationV2DecisionEvaluator().Evaluate(sourceEvidence, evidence);
+        var v2AutoFix = decisions.Count(item => item.DecisionKind == HyphenationDecisionKind.AutoFixCandidate);
+        var v2Deferred = decisions.Count - v2AutoFix;
         builder.AppendLine("# TRmorph Hyphenation V2 Evidence");
         builder.AppendLine();
         builder.AppendLine($"Remaining candidates: {evidence.Count}");
@@ -60,6 +69,35 @@ internal static class TrMorphReport
         builder.AppendLine($"TRmorph invalid: {evidence.Count(item => !item.TRmorphValid)}");
         builder.AppendLine($"Clean + LexiconCount < 10 TRmorph valid: {targetValid}");
         builder.AppendLine($"Clean + LexiconCount < 10 TRmorph invalid: {target.Length - targetValid}");
+        builder.AppendLine();
+        builder.AppendLine("## V1/V2 decisions");
+        builder.AppendLine();
+        builder.AppendLine($"V1 AutoFixCandidate (original EPUB): {originalV1AutoFixCandidateCount}");
+        builder.AppendLine($"V1 remaining candidates: {evidence.Count}");
+        builder.AppendLine($"V2 AutoFixCandidate: {v2AutoFix}");
+        builder.AppendLine($"V2 Deferred: {v2Deferred}");
+        builder.AppendLine();
+        builder.AppendLine("| Original | JoinedForm | LexiconCount | RightFragmentLetterCount | IsClean | TRmorphValid | Decision | Reason |");
+        builder.AppendLine("| --- | --- | ---: | ---: | --- | --- | --- | --- |");
+        for (var index = 0; index < decisions.Count; index++)
+        {
+            var decision = decisions[index];
+            var item = evidence[index];
+            builder.AppendLine(
+                $"| {item.Original} | {item.JoinedForm} | {item.LexiconCount} | "
+                + $"{item.RightFragmentLetterCount} | {item.IsClean} | {item.TRmorphValid} | "
+                + $"{decision.DecisionKind} | {decision.Reason?.ToString() ?? "—"} |");
+        }
+        builder.AppendLine();
+        builder.AppendLine("## Single-letter right-fragment vetoes");
+        builder.AppendLine();
+        foreach (var item in evidence.Where(item => item.LexiconCount < 10
+            && item.IsClean
+            && item.TRmorphValid
+            && item.RightFragmentLetterCount < 2))
+        {
+            builder.AppendLine($"- {item.Original} -> {item.JoinedForm} (right letters: {item.RightFragmentLetterCount})");
+        }
         builder.AppendLine();
 
         builder.AppendLine("## All remaining candidate evidence");
