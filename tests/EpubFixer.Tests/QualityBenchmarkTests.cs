@@ -114,6 +114,47 @@ public sealed class QualityBenchmarkTests
     }
 
     [Fact]
+    public void Load_RejectsDuplicateIds()
+    {
+        var json = CreateGroundTruthJson(
+            CreateOccurrenceJson("duplicate-id", start: 10),
+            CreateOccurrenceJson("duplicate-id", start: 30));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("id must be unique", exception.Message);
+    }
+
+    [Fact]
+    public void Load_RejectsDuplicateExactOccurrencesWithDifferentIds()
+    {
+        var json = CreateGroundTruthJson(
+            CreateOccurrenceJson("error-1", start: 10),
+            CreateOccurrenceJson("error-2", start: 10));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("duplicates an exact source occurrence", exception.Message);
+    }
+
+    [Fact]
+    public void Load_RejectsStructurallyInvalidSourceSpan()
+    {
+        var json = CreateGroundTruthJson(
+            CreateOccurrenceJson("error-1", start: 10, length: 0));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("length > 0", exception.Message);
+    }
+
+    [Fact]
     public void ProductionAssemblies_DoNotReferenceQualityBenchmarks()
     {
         var productionAssemblies = new[]
@@ -154,6 +195,38 @@ public sealed class QualityBenchmarkTests
           ]
         }
         """;
+
+    private static string CreateGroundTruthJson(params string[] occurrences)
+    {
+        return $$"""
+            {
+              "schemaVersion": 1,
+              "knownErrors": [
+                {{string.Join(",", occurrences)}}
+              ]
+            }
+            """;
+    }
+
+    private static string CreateOccurrenceJson(string id, int start, int length = 12)
+    {
+        return $$"""
+            {
+              "id": "{{id}}",
+              "documentPath": "main-3.xhtml",
+              "original": "Auersber-ger",
+              "expected": "Auersberger",
+              "sourceSpans": [
+                {
+                  "documentPath": "main-3.xhtml",
+                  "textNodeIndex": 70,
+                  "start": {{start}},
+                  "length": {{length}}
+                }
+              ]
+            }
+            """;
+    }
 }
 
 internal sealed class TemporaryQualityBenchmarkDataset : IDisposable

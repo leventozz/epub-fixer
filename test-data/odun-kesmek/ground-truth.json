@@ -2,21 +2,35 @@
   "schemaVersion": 1,
   "knownErrors": [
     {
-      "id": "odun-kesmek-main-3-tn70-480-auersber-ger",
+      "id": "odun-kesmek-auto-0001",
       "documentPath": "main-3.xhtml",
-      "original": "Auersber-ger",
+      "original": "Auers-berger",
       "expected": "Auersberger",
       "sourceSpans": [
         {
           "documentPath": "main-3.xhtml",
-          "textNodeIndex": 70,
-          "start": 480,
+          "textNodeIndex": 64,
+          "start": 670,
           "length": 12
         }
       ]
     },
     {
-      "id": "odun-kesmek-main-3-tn68-2035-jo-ana",
+      "id": "odun-kesmek-auto-0002",
+      "documentPath": "main-3.xhtml",
+      "original": "Vi-yana",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 66,
+          "start": 238,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0003",
       "documentPath": "main-3.xhtml",
       "original": "Jo-ana",
       "expected": "Joana",
@@ -30,7 +44,299 @@
       ]
     },
     {
-      "id": "odun-kesmek-main-3-tn108-2252-kol-tukta",
+      "id": "odun-kesmek-auto-0004",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 70,
+          "start": 480,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0005",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersberger-ler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 72,
+          "start": 1654,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0006",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-bergerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 74,
+          "start": 932,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0007",
+      "documentPath": "main-3.xhtml",
+      "original": "Soka-ğı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 76,
+          "start": 485,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0008",
+      "documentPath": "main-3.xhtml",
+      "original": "Soka-ğı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 76,
+          "start": 1290,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0009",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 78,
+          "start": 988,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0010",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 78,
+          "start": 2104,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0011",
+      "documentPath": "main-3.xhtml",
+      "original": "Ti-yatrosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 92,
+          "start": 374,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0012",
+      "documentPath": "main-3.xhtml",
+      "original": "Ti-yatrosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 92,
+          "start": 1803,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0013",
+      "documentPath": "main-3.xhtml",
+      "original": "Ti-yatrosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 92,
+          "start": 2307,
+          "length": 3
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 94,
+          "start": 0,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0014",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 94,
+          "start": 1807,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0015",
+      "documentPath": "main-3.xhtml",
+      "original": "Viya-na",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 96,
+          "start": 1245,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0016",
+      "documentPath": "main-3.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 98,
+          "start": 1142,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0017",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 100,
+          "start": 979,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0018",
+      "documentPath": "main-3.xhtml",
+      "original": "Soka-ğı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 100,
+          "start": 1483,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0019",
+      "documentPath": "main-3.xhtml",
+      "original": "oyun-cusunun",
+      "expected": "oyuncusunun",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 100,
+          "start": 2298,
+          "length": 5
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 102,
+          "start": 0,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0020",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 106,
+          "start": 1731,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0021",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-bergerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 108,
+          "start": 56,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0022",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 108,
+          "start": 597,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0023",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersberger-ler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 108,
+          "start": 652,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0024",
       "documentPath": "main-3.xhtml",
       "original": "kol-tukta",
       "expected": "koltukta",
@@ -46,6 +352,1838 @@
           "textNodeIndex": 110,
           "start": 0,
           "length": 5
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0025",
+      "documentPath": "main-3.xhtml",
+      "original": "Au-ersbergerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 114,
+          "start": 1424,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0026",
+      "documentPath": "main-3.xhtml",
+      "original": "Bill-roth",
+      "expected": "Billroth",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 114,
+          "start": 1793,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0027",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 116,
+          "start": 438,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0028",
+      "documentPath": "main-3.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 118,
+          "start": 2219,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0029",
+      "documentPath": "main-3.xhtml",
+      "original": "Viya-na",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 120,
+          "start": 1155,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0030",
+      "documentPath": "main-3.xhtml",
+      "original": "Viya-na",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 120,
+          "start": 2279,
+          "length": 5
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 122,
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0031",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 122,
+          "start": 2235,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0032",
+      "documentPath": "main-3.xhtml",
+      "original": "Örde-ği",
+      "expected": "Ördeği",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 126,
+          "start": 598,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0033",
+      "documentPath": "main-3.xhtml",
+      "original": "Örde-ği",
+      "expected": "Ördeği",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 126,
+          "start": 915,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0034",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 126,
+          "start": 1221,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0035",
+      "documentPath": "main-3.xhtml",
+      "original": "ken-dimi",
+      "expected": "kendimi",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 132,
+          "start": 2367,
+          "length": 4
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 134,
+          "start": 0,
+          "length": 4
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0036",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersberger-ler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 134,
+          "start": 50,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0037",
+      "documentPath": "main-3.xhtml",
+      "original": "Au-ersbergerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 134,
+          "start": 124,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0038",
+      "documentPath": "main-3.xhtml",
+      "original": "Soka-ğı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 138,
+          "start": 295,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0039",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 138,
+          "start": 467,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0040",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 138,
+          "start": 1070,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0041",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 138,
+          "start": 1499,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0042",
+      "documentPath": "main-3.xhtml",
+      "original": "Au-ersbergerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 148,
+          "start": 498,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0043",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 148,
+          "start": 1358,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0044",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 148,
+          "start": 1620,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0045",
+      "documentPath": "main-3.xhtml",
+      "original": "Viya-na",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 154,
+          "start": 1168,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0046",
+      "documentPath": "main-3.xhtml",
+      "original": "Viya-na",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 158,
+          "start": 1482,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0047",
+      "documentPath": "main-3.xhtml",
+      "original": "gör-düm",
+      "expected": "gördüm",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 160,
+          "start": 2318,
+          "length": 4
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 162,
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0048",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 162,
+          "start": 1409,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0049",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 164,
+          "start": 55,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0050",
+      "documentPath": "main-3.xhtml",
+      "original": "So-kağı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 164,
+          "start": 1242,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0051",
+      "documentPath": "main-3.xhtml",
+      "original": "Viya-na",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 170,
+          "start": 1076,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0052",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 170,
+          "start": 2062,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0053",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 172,
+          "start": 2256,
+          "length": 9
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 174,
+          "start": 0,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0054",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 174,
+          "start": 356,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0055",
+      "documentPath": "main-3.xhtml",
+      "original": "Ör-deği",
+      "expected": "Ördeği",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 174,
+          "start": 1221,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0056",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 174,
+          "start": 2286,
+          "length": 9
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 176,
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0057",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 176,
+          "start": 1004,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0058",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 178,
+          "start": 617,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0059",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 178,
+          "start": 1099,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0060",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 178,
+          "start": 1227,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0061",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 182,
+          "start": 1502,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0062",
+      "documentPath": "main-3.xhtml",
+      "original": "Vi-yana",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 190,
+          "start": 74,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0063",
+      "documentPath": "main-3.xhtml",
+      "original": "Se-bastian",
+      "expected": "Sebastian",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 192,
+          "start": 2219,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0064",
+      "documentPath": "main-3.xhtml",
+      "original": "Sebas-tian",
+      "expected": "Sebastian",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 194,
+          "start": 352,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0065",
+      "documentPath": "main-3.xhtml",
+      "original": "nef-ret",
+      "expected": "nefret",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 196,
+          "start": 2362,
+          "length": 4
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 198,
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0066",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersberger-ler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 200,
+          "start": 1452,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0067",
+      "documentPath": "main-3.xhtml",
+      "original": "So-kağı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 200,
+          "start": 2207,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0068",
+      "documentPath": "main-3.xhtml",
+      "original": "So-kağı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 202,
+          "start": 2174,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0069",
+      "documentPath": "main-3.xhtml",
+      "original": "yüzün-den",
+      "expected": "yüzünden",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 206,
+          "start": 1791,
+          "length": 6
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 208,
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0070",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 210,
+          "start": 1461,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0071",
+      "documentPath": "main-3.xhtml",
+      "original": "Ma-ria",
+      "expected": "Maria",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 216,
+          "start": 374,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0072",
+      "documentPath": "main-3.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 216,
+          "start": 757,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0073",
+      "documentPath": "main-3.xhtml",
+      "original": "so-nunda",
+      "expected": "sonunda",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 216,
+          "start": 2346,
+          "length": 3
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 218,
+          "start": 0,
+          "length": 5
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0074",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 232,
+          "start": 820,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0075",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 240,
+          "start": 109,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0076",
+      "documentPath": "main-3.xhtml",
+      "original": "Bill-roth",
+      "expected": "Billroth",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 244,
+          "start": 1052,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0077",
+      "documentPath": "main-3.xhtml",
+      "original": "Jean-nie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 244,
+          "start": 1801,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0078",
+      "documentPath": "main-3.xhtml",
+      "original": "Ör-deği",
+      "expected": "Ördeği",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 246,
+          "start": 1430,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0079",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 1,
+          "start": 881,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0080",
+      "documentPath": "main-4.xhtml",
+      "original": "Ek-dal",
+      "expected": "Ekdal",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 1,
+          "start": 1322,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0081",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyatro-su",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 7,
+          "start": 319,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0082",
+      "documentPath": "main-4.xhtml",
+      "original": "Ek-dal",
+      "expected": "Ekdal",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 7,
+          "start": 749,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0083",
+      "documentPath": "main-4.xhtml",
+      "original": "Je-annie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 11,
+          "start": 126,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0084",
+      "documentPath": "main-4.xhtml",
+      "original": "Örde-ği",
+      "expected": "Ördeği",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 13,
+          "start": 92,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0085",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 13,
+          "start": 590,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0086",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyatro-su",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 19,
+          "start": 1295,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0087",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 29,
+          "start": 382,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0088",
+      "documentPath": "main-4.xhtml",
+      "original": "Ti-yatrosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 29,
+          "start": 1431,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0089",
+      "documentPath": "main-4.xhtml",
+      "original": "Ti-yatrosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 31,
+          "start": 375,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0090",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyatro-su",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 31,
+          "start": 1130,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0091",
+      "documentPath": "main-4.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 37,
+          "start": 554,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0092",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 39,
+          "start": 2175,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0093",
+      "documentPath": "main-4.xhtml",
+      "original": "Ek-dal",
+      "expected": "Ekdal",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 41,
+          "start": 124,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0094",
+      "documentPath": "main-4.xhtml",
+      "original": "oldu-ğunu",
+      "expected": "olduğunu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 47,
+          "start": 1326,
+          "length": 5
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 49,
+          "start": 0,
+          "length": 4
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0095",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyatro-su",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 49,
+          "start": 238,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0096",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 49,
+          "start": 791,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0097",
+      "documentPath": "main-4.xhtml",
+      "original": "Örde-ği",
+      "expected": "Ördeği",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 49,
+          "start": 1464,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0098",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyat-rosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 55,
+          "start": 1738,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0099",
+      "documentPath": "main-4.xhtml",
+      "original": "yal-nız",
+      "expected": "yalnız",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 57,
+          "start": 2349,
+          "length": 4
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 59,
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0100",
+      "documentPath": "main-4.xhtml",
+      "original": "Bill-roth",
+      "expected": "Billroth",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 59,
+          "start": 245,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0101",
+      "documentPath": "main-4.xhtml",
+      "original": "Je-annie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 59,
+          "start": 1341,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0102",
+      "documentPath": "main-4.xhtml",
+      "original": "Jean-nie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 61,
+          "start": 816,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0103",
+      "documentPath": "main-4.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 65,
+          "start": 1935,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0104",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 65,
+          "start": 2119,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0105",
+      "documentPath": "main-4.xhtml",
+      "original": "Auers-bergerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 67,
+          "start": 366,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0106",
+      "documentPath": "main-4.xhtml",
+      "original": "Jean-nie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 71,
+          "start": 1532,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0107",
+      "documentPath": "main-4.xhtml",
+      "original": "Jean-nie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 73,
+          "start": 117,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0108",
+      "documentPath": "main-4.xhtml",
+      "original": "yüzü-ne",
+      "expected": "yüzüne",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 73,
+          "start": 2314,
+          "length": 5
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 75,
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0109",
+      "documentPath": "main-4.xhtml",
+      "original": "Virgi-nia",
+      "expected": "Virginia",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 75,
+          "start": 54,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0110",
+      "documentPath": "main-4.xhtml",
+      "original": "Sebasti-an",
+      "expected": "Sebastian",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 79,
+          "start": 377,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0111",
+      "documentPath": "main-4.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 81,
+          "start": 545,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0112",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-gerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 89,
+          "start": 1630,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0113",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 93,
+          "start": 853,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0114",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 93,
+          "start": 2028,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0115",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyatro-su",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 95,
+          "start": 1858,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0116",
+      "documentPath": "main-4.xhtml",
+      "original": "Auers-bergerler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 97,
+          "start": 836,
+          "length": 15
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0117",
+      "documentPath": "main-4.xhtml",
+      "original": "ba-şında",
+      "expected": "başında",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 97,
+          "start": 2285,
+          "length": 3
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 99,
+          "start": 0,
+          "length": 5
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0118",
+      "documentPath": "main-4.xhtml",
+      "original": "Viya-na",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 105,
+          "start": 1450,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0119",
+      "documentPath": "main-4.xhtml",
+      "original": "Schre-ker",
+      "expected": "Schreker",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 107,
+          "start": 431,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0120",
+      "documentPath": "main-4.xhtml",
+      "original": "ol-sun",
+      "expected": "olsun",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 107,
+          "start": 2313,
+          "length": 3
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 109,
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0121",
+      "documentPath": "main-4.xhtml",
+      "original": "Schre-ker",
+      "expected": "Schreker",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 111,
+          "start": 170,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0122",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 113,
+          "start": 609,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0123",
+      "documentPath": "main-4.xhtml",
+      "original": "Vi-yana",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 123,
+          "start": 621,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0124",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyat-rosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 129,
+          "start": 2194,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0125",
+      "documentPath": "main-4.xhtml",
+      "original": "Vi-yana",
+      "expected": "Viyana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 135,
+          "start": 370,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0126",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 137,
+          "start": 488,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0127",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 137,
+          "start": 685,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0128",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 137,
+          "start": 869,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0129",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 139,
+          "start": 1156,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0130",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyat-rosu",
+      "expected": "Tiyatrosu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 143,
+          "start": 908,
+          "length": 10
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0131",
+      "documentPath": "main-4.xhtml",
+      "original": "gerçe-ği",
+      "expected": "gerçeği",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 145,
+          "start": 99,
+          "length": 6
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 147,
+          "start": 0,
+          "length": 2
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0132",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 147,
+          "start": 2040,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0133",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 149,
+          "start": 2247,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0134",
+      "documentPath": "main-4.xhtml",
+      "original": "Jean-nie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 155,
+          "start": 1434,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0135",
+      "documentPath": "main-4.xhtml",
+      "original": "Bill-roth",
+      "expected": "Billroth",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 157,
+          "start": 1791,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0136",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 159,
+          "start": 1617,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0137",
+      "documentPath": "main-4.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 159,
+          "start": 2363,
+          "length": 6
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 161,
+          "start": 0,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0138",
+      "documentPath": "main-4.xhtml",
+      "original": "Jean-nie",
+      "expected": "Jeannie",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 165,
+          "start": 761,
+          "length": 8
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0139",
+      "documentPath": "main-4.xhtml",
+      "original": "So-kağı",
+      "expected": "Sokağı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 167,
+          "start": 180,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0140",
+      "documentPath": "main-4.xhtml",
+      "original": "Schre-ker",
+      "expected": "Schreker",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 167,
+          "start": 428,
+          "length": 9
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0141",
+      "documentPath": "main-4.xhtml",
+      "original": "ge-len",
+      "expected": "gelen",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 167,
+          "start": 2304,
+          "length": 3
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 169,
+          "start": 0,
+          "length": 3
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0142",
+      "documentPath": "main-4.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 169,
+          "start": 57,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0143",
+      "documentPath": "main-4.xhtml",
+      "original": "Auers-berger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 169,
+          "start": 572,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0144",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 169,
+          "start": 1239,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0145",
+      "documentPath": "main-4.xhtml",
+      "original": "Au-ersberger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 169,
+          "start": 1534,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0146",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 173,
+          "start": 2009,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0147",
+      "documentPath": "main-4.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 173,
+          "start": 2191,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-auto-0148",
+      "documentPath": "main-4.xhtml",
+      "original": "Auersberger-ler",
+      "expected": "Auersbergerler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 175,
+          "start": 920,
+          "length": 15
         }
       ]
     }

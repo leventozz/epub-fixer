@@ -39,4 +39,44 @@ public sealed class CliOptionsTests
             ["analyze", "book.epub", "--dump-text", "--apply-inline"],
             out _));
     }
+
+    [Fact]
+    public void TryParse_AcceptsApplyParagraphWithApplyInline()
+    {
+        var parsed = CliOptions.TryParse(
+            ["analyze", "book.epub", "--apply-paragraph", "--apply-inline"],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.True(options.ApplyInline);
+        Assert.True(options.ApplyParagraph);
+    }
+
+    [Fact]
+    public void TryParse_AcceptsStandaloneApplyParagraph()
+    {
+        var parsed = CliOptions.TryParse(
+            ["analyze", "book.epub", "--apply-paragraph"],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.False(options.ApplyInline);
+        Assert.True(options.ApplyParagraph);
+    }
+
+    [Fact]
+    public void TryParse_RejectsDuplicateApplyParagraphFlag()
+    {
+        Assert.False(CliOptions.TryParse(
+            ["analyze", "book.epub", "--apply-paragraph", "--apply-paragraph"],
+            out _));
+    }
+
+    [Fact]
+    public void TryParse_RejectsMissingValuedOptionArgumentBeforeParagraphFlag()
+    {
+        Assert.False(CliOptions.TryParse(
+            ["analyze", "book.epub", "--dump-text", "--apply-paragraph"],
+            out _));
+    }
 }

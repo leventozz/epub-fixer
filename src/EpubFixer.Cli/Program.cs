@@ -78,7 +78,37 @@ static int Run(string[] arguments)
                 $"Hyphenation analysis report written to: {options.HyphenAnalysisReportPath}");
         }
 
-        if (options.ApplyInline)
+        if (options.ApplyParagraph)
+        {
+            var inlinePlans = correctionPlans
+                .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline)
+                .ToArray();
+            var inlineApplyResult = new HyphenationCorrectionApplier().Apply(inlinePlans);
+            var afterInlineStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+            var afterInlinePipeline = AnalyzeHyphenation(afterInlineStream);
+            var crossParagraphPlans = afterInlinePipeline.Plans
+                .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.CrossParagraph)
+                .ToArray();
+            var crossParagraphApplyResult =
+                new CrossParagraphHyphenationCorrectionApplier().Apply(crossParagraphPlans);
+            var afterCrossParagraphStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+            var afterCrossParagraphPipeline = AnalyzeHyphenation(afterCrossParagraphStream);
+            var remainingOriginalAutoFixOccurrences =
+                CountRemainingOriginalAutoFixOccurrences(
+                    decisions,
+                    afterCrossParagraphPipeline.Candidates);
+
+            PrintParagraphApplySummary(
+                inlineApplyResult,
+                crossParagraphPlans,
+                crossParagraphApplyResult,
+                candidates,
+                afterInlinePipeline.Candidates,
+                afterCrossParagraphPipeline.Candidates,
+                afterCrossParagraphPipeline.Decisions,
+                remainingOriginalAutoFixOccurrences);
+        }
+        else if (options.ApplyInline)
         {
             var applyResult = new HyphenationCorrectionApplier().Apply(correctionPlans);
             var rebuiltLogicalText = LogicalTextStreamBuilder.Build(package.SpineDocuments);
@@ -247,6 +277,75 @@ static void PrintInlineApplySummary(
         + remainingPlannedInlineCandidates);
 }
 
+static HyphenationPipelineResult AnalyzeHyphenation(LogicalTextStream logicalText)
+{
+    var candidates = new HyphenationDetector().Detect(logicalText);
+    var lexicon = new BookLexiconBuilder().Build(logicalText);
+    var evidence = new HyphenationEvidenceEvaluator().Evaluate(
+        candidates,
+        lexicon,
+        logicalText);
+    var decisions = new HyphenationDecisionEvaluator().Evaluate(evidence);
+    var plans = new HyphenationCorrectionPlanner().Plan(decisions);
+
+    return new HyphenationPipelineResult(candidates, decisions, plans);
+}
+
+static int CountRemainingOriginalAutoFixOccurrences(
+    IReadOnlyList<HyphenationDecision> originalDecisions,
+    IReadOnlyList<HyphenationCandidate> afterCandidates)
+{
+    var originalCandidates = originalDecisions
+        .Where(decision => decision.DecisionKind == HyphenationDecisionKind.AutoFixCandidate)
+        .Select(decision => decision.Evidence.Candidate)
+        .ToArray();
+
+    return afterCandidates.Count(candidate => originalCandidates.Any(original =>
+        ReferenceEquals(
+            original.HyphenSource.SourceNode,
+            candidate.HyphenSource.SourceNode)
+        && string.Equals(original.LeftPart, candidate.LeftPart, StringComparison.Ordinal)
+        && string.Equals(original.RightPart, candidate.RightPart, StringComparison.Ordinal)
+        && string.Equals(
+            original.UnhyphenatedText,
+            candidate.UnhyphenatedText,
+            StringComparison.Ordinal)));
+}
+
+static void PrintParagraphApplySummary(
+    HyphenationCorrectionApplyResult inlineApplyResult,
+    IReadOnlyList<HyphenationCorrectionPlan> crossParagraphPlans,
+    HyphenationCorrectionApplyResult crossParagraphApplyResult,
+    IReadOnlyList<HyphenationCandidate> originalCandidates,
+    IReadOnlyList<HyphenationCandidate> afterInlineCandidates,
+    IReadOnlyList<HyphenationCandidate> afterCrossParagraphCandidates,
+    IReadOnlyList<HyphenationDecision> finalDecisions,
+    int remainingOriginalAutoFixOccurrences)
+{
+    var finalAutoFixCandidateCount = finalDecisions.Count(
+        decision => decision.DecisionKind == HyphenationDecisionKind.AutoFixCandidate);
+
+    Console.WriteLine();
+    Console.WriteLine("Cross-paragraph correction apply");
+    Console.WriteLine();
+    Console.WriteLine($"Inline applied: {inlineApplyResult.AppliedCount}");
+    Console.WriteLine($"CrossParagraph plans: {crossParagraphPlans.Count}");
+    Console.WriteLine($"CrossParagraph applied: {crossParagraphApplyResult.AppliedCount}");
+    Console.WriteLine($"CrossParagraph skipped: {crossParagraphApplyResult.SkippedCount}");
+    Console.WriteLine();
+    Console.WriteLine($"Original candidates: {originalCandidates.Count}");
+    Console.WriteLine($"After inline apply: {afterInlineCandidates.Count}");
+    Console.WriteLine(
+        $"After cross-paragraph apply: {afterCrossParagraphCandidates.Count}");
+    Console.WriteLine($"Final AutoFixCandidate: {finalAutoFixCandidateCount}");
+    Console.WriteLine(
+        "Remaining original AutoFixCandidate occurrences: "
+        + remainingOriginalAutoFixOccurrences);
+    Console.WriteLine();
+    Console.WriteLine("After cross-paragraph apply:");
+    PrintCandidateCounts(afterCrossParagraphCandidates);
+}
+
 static void PrintCandidateCounts(IReadOnlyList<HyphenationCandidate> candidates)
 {
     Console.WriteLine($"  Total candidates: {candidates.Count}");
@@ -342,6 +441,7 @@ static void PrintUsage()
     Console.Error.WriteLine(
         "Usage: epubfixer analyze <book.epub> "
         + "[--apply-inline] "
+        + "[--apply-paragraph] "
         + "[--dump-text <output.txt>] [--hyphen-report <hyphens.json>] "
         + "[--hyphen-analysis-report <analysis.md>]");
 }
@@ -351,7 +451,8 @@ internal sealed record CliOptions(
     string? DumpPath,
     string? HyphenReportPath,
     string? HyphenAnalysisReportPath,
-    bool ApplyInline)
+    bool ApplyInline,
+    bool ApplyParagraph)
 {
     public static bool TryParse(string[] arguments, out CliOptions options)
     {
@@ -368,6 +469,7 @@ internal sealed record CliOptions(
         string? hyphenReportPath = null;
         string? hyphenAnalysisReportPath = null;
         var applyInline = false;
+        var applyParagraph = false;
         var index = 2;
 
         while (index < arguments.Length)
@@ -382,6 +484,18 @@ internal sealed record CliOptions(
                 }
 
                 applyInline = true;
+                index++;
+                continue;
+            }
+
+            if (string.Equals(option, "--apply-paragraph", StringComparison.OrdinalIgnoreCase))
+            {
+                if (applyParagraph)
+                {
+                    return false;
+                }
+
+                applyParagraph = true;
                 index++;
                 continue;
             }
@@ -435,7 +549,8 @@ internal sealed record CliOptions(
             dumpPath,
             hyphenReportPath,
             hyphenAnalysisReportPath,
-            applyInline);
+            applyInline,
+            applyParagraph);
         return true;
     }
 }
@@ -446,3 +561,8 @@ internal sealed record CandidateKey(
     string UnhyphenatedText);
 
 internal sealed record CandidateAggregate(CandidateKey Key, int Count);
+
+internal sealed record HyphenationPipelineResult(
+    IReadOnlyList<HyphenationCandidate> Candidates,
+    IReadOnlyList<HyphenationDecision> Decisions,
+    IReadOnlyList<HyphenationCorrectionPlan> Plans);

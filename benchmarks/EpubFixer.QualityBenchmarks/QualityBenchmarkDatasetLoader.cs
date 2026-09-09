@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text;
 using EpubFixer.QualityBenchmarks.Models;
 
 namespace EpubFixer.QualityBenchmarks;
@@ -91,6 +92,7 @@ public sealed class QualityBenchmarkDatasetLoader
         }
 
         var ids = new HashSet<string>(StringComparer.Ordinal);
+        var occurrenceLocations = new HashSet<string>(StringComparer.Ordinal);
 
         for (var index = 0; index < groundTruth.KnownErrors.Count; index++)
         {
@@ -141,7 +143,33 @@ public sealed class QualityBenchmarkDatasetLoader
                         $"{spanPrefix} requires textNodeIndex and start >= 0, and length > 0");
                 }
             }
+
+            if (!occurrenceLocations.Add(CreateOccurrenceLocationKey(occurrence)))
+            {
+                throw InvalidGroundTruth(
+                    groundTruthPath,
+                    $"{fieldPrefix} duplicates an exact source occurrence");
+            }
         }
+    }
+
+    private static string CreateOccurrenceLocationKey(KnownErrorOccurrence occurrence)
+    {
+        var builder = new StringBuilder(occurrence.DocumentPath);
+
+        foreach (var span in occurrence.SourceSpans)
+        {
+            builder.Append('\0');
+            builder.Append(span.DocumentPath);
+            builder.Append('\0');
+            builder.Append(span.TextNodeIndex);
+            builder.Append('\0');
+            builder.Append(span.Start);
+            builder.Append('\0');
+            builder.Append(span.Length);
+        }
+
+        return builder.ToString();
     }
 
     private static void RequireText(string? value, string field, string groundTruthPath)
