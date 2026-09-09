@@ -33,6 +33,12 @@ public sealed record QualityBenchmarkResult(
 
     public int Deferred { get; init; }
 
+    public IReadOnlyList<KnownErrorCorrectionFailure> CorrectionFailures { get; init; } = [];
+
+    public int ProtectedChanged { get; init; }
+
+    public IReadOnlyList<ProtectedOccurrenceChange> ProtectedChanges { get; init; } = [];
+
     public int UnexpectedTextChanges { get; init; }
 
     public int NonTextChanges { get; init; }
@@ -41,3 +47,12 @@ public sealed record QualityBenchmarkResult(
 public sealed record ProtectedOccurrenceViolation(
     ProtectedOccurrence Occurrence,
     HyphenationDecisionKind DecisionKind);
+
+public sealed record KnownErrorCorrectionFailure(
+    KnownErrorOccurrence Occurrence,
+    string Classification,
+    string ObservedText);
+
+public sealed record ProtectedOccurrenceChange(
+    ProtectedOccurrence Occurrence,
+    string ObservedText);

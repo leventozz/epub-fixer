@@ -10,6 +10,7 @@ using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Evidence.Models;
 using EpubFixer.Core.Lexicon;
+using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Fix.Models;
 
@@ -36,15 +37,13 @@ static int Run(string[] arguments)
             return 0;
         }
 
-        var package = new EpubPackageReader().Read(options.EpubPath);
-        var candidates = new HyphenationDetector().Detect(package.LogicalText);
-        var lexicon = new BookLexiconBuilder().Build(package.LogicalText);
-        var evidence = new HyphenationEvidenceEvaluator().Evaluate(
-            candidates,
-            lexicon,
-            package.LogicalText);
-        var evidenceSummary = HyphenationEvidenceReporting.CreateSummary(evidence);
-        var decisions = new HyphenationDecisionEvaluator().Evaluate(evidence);
+    var package = new EpubPackageReader().Read(options.EpubPath);
+    var originalPipeline = AnalyzeHyphenation(package.LogicalText);
+    var candidates = originalPipeline.Candidates;
+    var lexicon = originalPipeline.Lexicon;
+    var evidence = originalPipeline.Evidence;
+    var evidenceSummary = HyphenationEvidenceReporting.CreateSummary(evidence);
+    var decisions = originalPipeline.Decisions;
         var decisionSummary = HyphenationDecisionReporting.CreateSummary(decisions);
         var correctionPlans = new HyphenationCorrectionPlanner().Plan(decisions);
         var correctionSummary = HyphenationCorrectionReporting.CreateSummary(
@@ -89,35 +88,40 @@ static int Run(string[] arguments)
                 $"Hyphenation analysis report written to: {options.HyphenAnalysisReportPath}");
         }
 
-        if (options.ApplyParagraph)
+        if (options.ApplyParagraph || options.PostFixLexiconReportPath is not null)
         {
-            var inlinePlans = correctionPlans
-                .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline)
-                .ToArray();
-            var inlineApplyResult = new HyphenationCorrectionApplier().Apply(inlinePlans);
-            var afterInlineStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-            var afterInlinePipeline = AnalyzeHyphenation(afterInlineStream);
-            var crossParagraphPlans = afterInlinePipeline.Plans
-                .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.CrossParagraph)
-                .ToArray();
-            var crossParagraphApplyResult =
-                new CrossParagraphHyphenationCorrectionApplier().Apply(crossParagraphPlans);
-            var afterCrossParagraphStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-            var afterCrossParagraphPipeline = AnalyzeHyphenation(afterCrossParagraphStream);
+            var postFix = RunPostFixAnalysis(package, originalPipeline);
+            var inlinePlans = postFix.InlinePlans;
+            var inlineApplyResult = postFix.InlineApplyResult;
+            var crossParagraphPlans = postFix.CrossParagraphPlans;
+            var crossParagraphApplyResult = postFix.CrossParagraphApplyResult;
+            var afterInlinePipeline = postFix.AfterInline;
+            var afterCrossParagraphPipeline = postFix.Final;
             var remainingOriginalAutoFixOccurrences =
                 CountRemainingOriginalAutoFixOccurrences(
                     decisions,
                     afterCrossParagraphPipeline.Candidates);
 
-            PrintParagraphApplySummary(
-                inlineApplyResult,
-                crossParagraphPlans,
-                crossParagraphApplyResult,
-                candidates,
-                afterInlinePipeline.Candidates,
-                afterCrossParagraphPipeline.Candidates,
-                afterCrossParagraphPipeline.Decisions,
-                remainingOriginalAutoFixOccurrences);
+            if (options.ApplyParagraph)
+            {
+                PrintParagraphApplySummary(
+                    inlineApplyResult,
+                    crossParagraphPlans,
+                    crossParagraphApplyResult,
+                    candidates,
+                    afterInlinePipeline.Candidates,
+                    afterCrossParagraphPipeline.Candidates,
+                    afterCrossParagraphPipeline.Decisions,
+                    remainingOriginalAutoFixOccurrences);
+            }
+
+            if (options.PostFixLexiconReportPath is not null)
+            {
+                WritePostFixLexiconReport(options.PostFixLexiconReportPath, postFix);
+                Console.WriteLine();
+                Console.WriteLine(
+                    $"Post-fix lexicon report written to: {options.PostFixLexiconReportPath}");
+            }
         }
         else if (options.ApplyInline)
         {
@@ -151,6 +155,7 @@ static void ValidateOutputPaths(CliOptions options)
         options.DumpPath,
         options.HyphenReportPath,
         options.HyphenAnalysisReportPath,
+        options.PostFixLexiconReportPath,
         options.OutputEpubPath
     }.Where(path => path is not null).Cast<string>().ToArray();
 
@@ -345,7 +350,45 @@ static HyphenationPipelineResult AnalyzeHyphenation(LogicalTextStream logicalTex
     var decisions = new HyphenationDecisionEvaluator().Evaluate(evidence);
     var plans = new HyphenationCorrectionPlanner().Plan(decisions);
 
-    return new HyphenationPipelineResult(candidates, decisions, plans);
+    return new HyphenationPipelineResult(logicalText, lexicon, evidence, candidates, decisions, plans);
+}
+
+static PostFixLexiconAnalysisResult RunPostFixAnalysis(
+    EpubPackage package,
+    HyphenationPipelineResult original)
+{
+    var inlinePlans = original.Plans
+        .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline)
+        .ToArray();
+    var inlineApplyResult = new HyphenationCorrectionApplier().Apply(inlinePlans);
+    var afterInline = AnalyzeHyphenation(
+        LogicalTextStreamBuilder.Build(package.SpineDocuments));
+    var crossParagraphPlans = afterInline.Plans
+        .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.CrossParagraph)
+        .ToArray();
+    var crossParagraphApplyResult =
+        new CrossParagraphHyphenationCorrectionApplier().Apply(crossParagraphPlans);
+    var final = AnalyzeHyphenation(
+        LogicalTextStreamBuilder.Build(package.SpineDocuments));
+
+    return new PostFixLexiconAnalysisResult(
+        original,
+        inlinePlans,
+        inlineApplyResult,
+        afterInline,
+        crossParagraphPlans,
+        crossParagraphApplyResult,
+        final);
+}
+
+static void WritePostFixLexiconReport(
+    string reportPath,
+    PostFixLexiconAnalysisResult analysis)
+{
+    File.WriteAllText(
+        reportPath,
+        PostFixLexiconReporting.SerializeMarkdown(analysis),
+        new UTF8Encoding(false));
 }
 
 static int CountRemainingOriginalAutoFixOccurrences(
@@ -500,7 +543,8 @@ static void PrintUsage()
         + "[--apply-inline] "
         + "[--apply-paragraph] "
         + "[--dump-text <output.txt>] [--hyphen-report <hyphens.json>] "
-        + "[--hyphen-analysis-report <analysis.md>]");
+        + "[--hyphen-analysis-report <analysis.md>] "
+        + "[--post-fix-lexicon-report <post-fix.md>]");
     Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub>");
 }
 
@@ -511,6 +555,7 @@ internal sealed record CliOptions(
     string? DumpPath,
     string? HyphenReportPath,
     string? HyphenAnalysisReportPath,
+    string? PostFixLexiconReportPath,
     bool ApplyInline,
     bool ApplyParagraph)
 {
@@ -539,6 +584,7 @@ internal sealed record CliOptions(
                 null,
                 null,
                 null,
+                null,
                 false,
                 false);
             return true;
@@ -552,6 +598,7 @@ internal sealed record CliOptions(
         string? dumpPath = null;
         string? hyphenReportPath = null;
         string? hyphenAnalysisReportPath = null;
+        string? postFixLexiconReportPath = null;
         var applyInline = false;
         var applyParagraph = false;
         var index = 2;
@@ -620,6 +667,15 @@ internal sealed record CliOptions(
 
                 hyphenAnalysisReportPath = value;
             }
+            else if (string.Equals(option, "--post-fix-lexicon-report", StringComparison.OrdinalIgnoreCase))
+            {
+                if (postFixLexiconReportPath is not null)
+                {
+                    return false;
+                }
+
+                postFixLexiconReportPath = value;
+            }
             else
             {
                 return false;
@@ -635,6 +691,7 @@ internal sealed record CliOptions(
             dumpPath,
             hyphenReportPath,
             hyphenAnalysisReportPath,
+            postFixLexiconReportPath,
             applyInline,
             applyParagraph);
         return true;
@@ -655,6 +712,18 @@ internal sealed record CandidateKey(
 internal sealed record CandidateAggregate(CandidateKey Key, int Count);
 
 internal sealed record HyphenationPipelineResult(
+    LogicalTextStream LogicalText,
+    BookLexicon Lexicon,
+    IReadOnlyList<HyphenationEvidence> Evidence,
     IReadOnlyList<HyphenationCandidate> Candidates,
     IReadOnlyList<HyphenationDecision> Decisions,
     IReadOnlyList<HyphenationCorrectionPlan> Plans);
+
+internal sealed record PostFixLexiconAnalysisResult(
+    HyphenationPipelineResult Original,
+    IReadOnlyList<HyphenationCorrectionPlan> InlinePlans,
+    HyphenationCorrectionApplyResult InlineApplyResult,
+    HyphenationPipelineResult AfterInline,
+    IReadOnlyList<HyphenationCorrectionPlan> CrossParagraphPlans,
+    HyphenationCorrectionApplyResult CrossParagraphApplyResult,
+    HyphenationPipelineResult Final);

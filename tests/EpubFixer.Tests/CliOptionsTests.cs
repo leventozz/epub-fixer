@@ -77,6 +77,18 @@ public sealed class CliOptionsTests
     }
 
     [Fact]
+    public void TryParse_AcceptsPostFixLexiconReport()
+    {
+        var parsed = CliOptions.TryParse(
+            ["analyze", "book.epub", "--post-fix-lexicon-report", "post-fix.md"],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.Equal("post-fix.md", options.PostFixLexiconReportPath);
+        Assert.False(options.ApplyParagraph);
+    }
+
+    [Fact]
     public void TryParse_AcceptsStandaloneApplyParagraph()
     {
         var parsed = CliOptions.TryParse(

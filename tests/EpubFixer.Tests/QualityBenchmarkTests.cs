@@ -27,6 +27,23 @@ public sealed class QualityBenchmarkTests
     }
 
     [Fact]
+    public void Runner_AppliesFreshInlineAndCrossParagraphPlansInMemory()
+    {
+        var datasetPath = LocateRepositoryPath("test-data", "odun-kesmek");
+        var dataset = new QualityBenchmarkDatasetLoader().Load(datasetPath);
+
+        var result = new QualityBenchmarkRunner().Run(dataset);
+
+        Assert.Equal(148, result.KnownErrors);
+        Assert.Equal(148, result.Detected);
+        Assert.Equal(148, result.CorrectlyFixed);
+        Assert.Equal(0, result.WronglyFixed);
+        Assert.Equal(0, result.Deferred);
+        Assert.Equal(9, result.ProtectedOccurrences);
+        Assert.Equal(0, result.ProtectedChanged);
+    }
+
+    [Fact]
     public void Load_PreservesSeparateOccurrencesWithTheSameOriginalText()
     {
         const string json = """
@@ -380,6 +397,26 @@ public sealed class QualityBenchmarkTests
               ]
             }
             """;
+    }
+
+    private static string LocateRepositoryPath(params string[] parts)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory);
+             directory is not null;
+             directory = directory.Parent)
+        {
+            var candidate = directory.FullName;
+            foreach (var part in parts)
+            {
+                candidate = Path.Combine(candidate, part);
+            }
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new DirectoryNotFoundException(string.Join(Path.DirectorySeparatorChar, parts));
     }
 }
 

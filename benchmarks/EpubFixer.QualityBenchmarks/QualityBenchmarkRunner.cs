@@ -1,5 +1,7 @@
 using EpubFixer.Core.Decision;
 using EpubFixer.Core.Detection;
+using EpubFixer.Core.Correction;
+using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Lexicon;
@@ -25,6 +27,13 @@ public sealed class QualityBenchmarkRunner
             package.LogicalText);
         var decisions = new HyphenationDecisionEvaluator().Evaluate(evidence);
 
+        var knownTrackers = QualityBenchmarkOccurrenceTracker.CreateKnown(
+            dataset.GroundTruth.KnownErrors,
+            package.LogicalText);
+        var protectedTrackers = QualityBenchmarkOccurrenceTracker.CreateProtected(
+            dataset.GroundTruth.ProtectedOccurrences,
+            package.LogicalText);
+
         var detectionResult = new QualityBenchmarkMatcher().Match(
             dataset.GroundTruth.KnownErrors,
             candidates);
@@ -34,6 +43,38 @@ public sealed class QualityBenchmarkRunner
         var knownDecisionResult = new QualityBenchmarkKnownDecisionEvaluator().Evaluate(
             dataset.GroundTruth.KnownErrors,
             decisions);
+
+        var originalPlans = new HyphenationCorrectionPlanner().Plan(decisions);
+        var inlinePlans = originalPlans
+            .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline)
+            .ToArray();
+        _ = new HyphenationCorrectionApplier().Apply(inlinePlans);
+
+        var afterInlineStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+        var afterInlineCandidates = new HyphenationDetector().Detect(afterInlineStream);
+        var afterInlineLexicon = new BookLexiconBuilder().Build(afterInlineStream);
+        var afterInlineEvidence = new HyphenationEvidenceEvaluator().Evaluate(
+            afterInlineCandidates,
+            afterInlineLexicon,
+            afterInlineStream);
+        var afterInlineDecisions = new HyphenationDecisionEvaluator().Evaluate(afterInlineEvidence);
+        var freshCrossParagraphPlans = new HyphenationCorrectionPlanner()
+            .Plan(afterInlineDecisions)
+            .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.CrossParagraph)
+            .ToArray();
+        _ = new CrossParagraphHyphenationCorrectionApplier().Apply(freshCrossParagraphPlans);
+
+        var correctionResult = new QualityBenchmarkCorrectionEvaluator().Evaluate(
+            dataset.GroundTruth.KnownErrors,
+            knownTrackers);
+        var protectedMutationResult = new QualityBenchmarkProtectedMutationEvaluator().Evaluate(
+            dataset.GroundTruth.ProtectedOccurrences,
+            protectedTrackers);
+
+        foreach (var tracker in knownTrackers.Concat(protectedTrackers))
+        {
+            tracker.Detach();
+        }
 
         return detectionResult with
         {
@@ -45,7 +86,13 @@ public sealed class QualityBenchmarkRunner
             KnownAutoFixCandidates = knownDecisionResult.KnownAutoFixCandidates,
             KnownDeferred = knownDecisionResult.KnownDeferred,
             AutoFixCoverage = knownDecisionResult.AutoFixCoverage,
-            KnownDeferredOccurrences = knownDecisionResult.DeferredOccurrences
+            KnownDeferredOccurrences = knownDecisionResult.DeferredOccurrences,
+            CorrectlyFixed = correctionResult.CorrectlyFixed,
+            WronglyFixed = correctionResult.WronglyFixed,
+            Deferred = correctionResult.Deferred,
+            CorrectionFailures = correctionResult.Failures,
+            ProtectedChanged = protectedMutationResult.ProtectedChanged,
+            ProtectedChanges = protectedMutationResult.Changes
         };
     }
 }

@@ -64,6 +64,18 @@ public sealed class BookLexiconBuilderTests
         Assert.False(lexicon.Contains("JOANA"));
     }
 
+    [Fact]
+    public void Entries_ExposesReadOnlyExactCounts()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Joana Joana Viyana</p>");
+
+        var lexicon = BuildLexicon(epub);
+
+        Assert.Equal(2, lexicon.Entries["Joana"]);
+        Assert.Equal(1, lexicon.Entries["Viyana"]);
+        Assert.Equal(["Joana", "Viyana"], lexicon.Entries.Keys.OrderBy(item => item));
+    }
+
     private static BookLexicon BuildLexicon(TemporaryEpub epub)
     {
         var stream = ReadStream(epub);

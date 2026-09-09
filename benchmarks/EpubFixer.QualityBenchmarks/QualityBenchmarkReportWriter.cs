@@ -44,10 +44,38 @@ public static class QualityBenchmarkReportWriter
         }
 
         writer.WriteLine();
+        writer.WriteLine("Correction:");
+        writer.WriteLine($"  Correctly fixed: {result.CorrectlyFixed}");
+        writer.WriteLine($"  Wrongly fixed: {result.WronglyFixed}");
+        writer.WriteLine($"  Deferred/still incorrect: {result.Deferred}");
+
+        foreach (var failure in result.CorrectionFailures)
+        {
+            writer.WriteLine();
+            writer.WriteLine("KNOWN ERROR STILL INCORRECT");
+            writer.WriteLine($"id: {failure.Occurrence.Id}");
+            writer.WriteLine($"document: {failure.Occurrence.DocumentPath}");
+            writer.WriteLine($"original: {failure.Occurrence.Original}");
+            writer.WriteLine($"expected: {failure.Occurrence.Expected}");
+            writer.WriteLine($"observed: {failure.ObservedText}");
+            writer.WriteLine($"classification: {failure.Classification}");
+        }
+
+        writer.WriteLine();
         writer.WriteLine($"Protected occurrences: {result.ProtectedOccurrences}");
         writer.WriteLine($"Protected safe: {result.ProtectedSafe}");
         writer.WriteLine($"Protected violated: {result.ProtectedViolated}");
         writer.WriteLine($"Protection rate: {FormatRate(result.ProtectionRate)}");
+        writer.WriteLine($"Protected changed: {result.ProtectedChanged}");
+
+        foreach (var change in result.ProtectedChanges)
+        {
+            writer.WriteLine();
+            writer.WriteLine("PROTECTED CHANGED");
+            writer.WriteLine($"id: {change.Occurrence.Id}");
+            writer.WriteLine($"original: {change.Occurrence.Original}");
+            writer.WriteLine($"observed: {change.ObservedText}");
+        }
 
         foreach (var violation in result.ProtectedViolations)
         {
