@@ -14,8 +14,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\benchmarks\EpubFixer.QualityBenchmarks\EpubFixer.QualityBenchmarks.csproj" />
     <ProjectReference Include="..\..\src\EpubFixer.Cli\EpubFixer.Cli.csproj" />
     <ProjectReference Include="..\..\src\EpubFixer.Core\EpubFixer.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\test-data\Odun Kesmek_recognized.epub"
+          Link="test-data\Odun Kesmek_recognized.epub"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

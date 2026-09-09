@@ -4,7 +4,7 @@ using EpubFixer.Core.Epub.Models;
 
 namespace EpubFixer.Core.Epub;
 
-internal static class LogicalTextStreamBuilder
+public static class LogicalTextStreamBuilder
 {
     private static readonly HashSet<string> BlockElementNames = new(StringComparer.OrdinalIgnoreCase)
     {

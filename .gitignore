@@ -362,4 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /reports
-/test-data
+/test-data/**
+!/test-data/*/
+!/test-data/*/ground-truth.json

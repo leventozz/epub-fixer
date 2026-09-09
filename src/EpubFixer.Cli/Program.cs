@@ -1,5 +1,6 @@
 using System.Text;
 using EpubFixer.Core.Correction;
+using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Decision;
 using EpubFixer.Core.Decision.Models;
 using EpubFixer.Core.Detection;
@@ -14,7 +15,7 @@ return Run(args);
 
 static int Run(string[] arguments)
 {
-    if (!TryParseArguments(arguments, out var options))
+    if (!CliOptions.TryParse(arguments, out var options))
     {
         PrintUsage();
         return 1;
@@ -77,6 +78,19 @@ static int Run(string[] arguments)
                 $"Hyphenation analysis report written to: {options.HyphenAnalysisReportPath}");
         }
 
+        if (options.ApplyInline)
+        {
+            var applyResult = new HyphenationCorrectionApplier().Apply(correctionPlans);
+            var rebuiltLogicalText = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+            var rebuiltCandidates = new HyphenationDetector().Detect(rebuiltLogicalText);
+
+            PrintInlineApplySummary(
+                correctionPlans,
+                applyResult,
+                candidates,
+                rebuiltCandidates);
+        }
+
         return 0;
     }
     catch (Exception exception) when (exception is ArgumentException
@@ -87,72 +101,6 @@ static int Run(string[] arguments)
         Console.Error.WriteLine($"Error: {exception.Message}");
         return 2;
     }
-}
-
-static bool TryParseArguments(string[] arguments, out CliOptions options)
-{
-    options = null!;
-
-    if (arguments.Length < 2
-        || !string.Equals(arguments[0], "analyze", StringComparison.OrdinalIgnoreCase)
-        || string.IsNullOrWhiteSpace(arguments[1]))
-    {
-        return false;
-    }
-
-    string? dumpPath = null;
-    string? hyphenReportPath = null;
-    string? hyphenAnalysisReportPath = null;
-
-    for (var index = 2; index < arguments.Length; index += 2)
-    {
-        if (index + 1 >= arguments.Length || string.IsNullOrWhiteSpace(arguments[index + 1]))
-        {
-            return false;
-        }
-
-        var option = arguments[index];
-        var value = arguments[index + 1];
-
-        if (string.Equals(option, "--dump-text", StringComparison.OrdinalIgnoreCase))
-        {
-            if (dumpPath is not null)
-            {
-                return false;
-            }
-
-            dumpPath = value;
-        }
-        else if (string.Equals(option, "--hyphen-report", StringComparison.OrdinalIgnoreCase))
-        {
-            if (hyphenReportPath is not null)
-            {
-                return false;
-            }
-
-            hyphenReportPath = value;
-        }
-        else if (string.Equals(option, "--hyphen-analysis-report", StringComparison.OrdinalIgnoreCase))
-        {
-            if (hyphenAnalysisReportPath is not null)
-            {
-                return false;
-            }
-
-            hyphenAnalysisReportPath = value;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    options = new CliOptions(
-        arguments[1],
-        dumpPath,
-        hyphenReportPath,
-        hyphenAnalysisReportPath);
-    return true;
 }
 
 static void ValidateOutputPaths(CliOptions options)
@@ -259,6 +207,58 @@ static void PrintHyphenationSummary(IReadOnlyList<HyphenationCandidate> candidat
     }
 }
 
+static void PrintInlineApplySummary(
+    IReadOnlyList<HyphenationCorrectionPlan> plans,
+    HyphenationCorrectionApplyResult applyResult,
+    IReadOnlyList<HyphenationCandidate> beforeCandidates,
+    IReadOnlyList<HyphenationCandidate> afterCandidates)
+{
+    var inlinePlans = plans
+        .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline)
+        .ToArray();
+    var plannedTransformations = inlinePlans
+        .Select(plan => new CandidateKey(
+            plan.Decision.Evidence.Candidate.LeftPart,
+            plan.Decision.Evidence.Candidate.RightPart,
+            plan.UnhyphenatedText))
+        .ToHashSet();
+    var remainingPlannedInlineCandidates = afterCandidates.Count(candidate =>
+        candidate.DetectionKind == HyphenationDetectionKind.Inline
+        && plannedTransformations.Contains(new CandidateKey(
+            candidate.LeftPart,
+            candidate.RightPart,
+            candidate.UnhyphenatedText)));
+
+    Console.WriteLine();
+    Console.WriteLine("Inline correction apply");
+    Console.WriteLine();
+    Console.WriteLine($"Inline plans: {inlinePlans.Length}");
+    Console.WriteLine($"Applied inline corrections: {applyResult.AppliedCount}");
+    Console.WriteLine($"Skipped plans: {applyResult.SkippedCount}");
+    Console.WriteLine();
+    Console.WriteLine("Before inline apply:");
+    PrintCandidateCounts(beforeCandidates);
+    Console.WriteLine();
+    Console.WriteLine("After inline apply:");
+    PrintCandidateCounts(afterCandidates);
+    Console.WriteLine();
+    Console.WriteLine(
+        "Remaining AutoFixCandidate inline transformations: "
+        + remainingPlannedInlineCandidates);
+}
+
+static void PrintCandidateCounts(IReadOnlyList<HyphenationCandidate> candidates)
+{
+    Console.WriteLine($"  Total candidates: {candidates.Count}");
+    Console.WriteLine($"  Inline: {CountCandidates(candidates, HyphenationDetectionKind.Inline)}");
+    Console.WriteLine(
+        $"  Text node boundary: {CountCandidates(candidates, HyphenationDetectionKind.TextNodeBoundary)}");
+    Console.WriteLine(
+        $"  Paragraph boundary: {CountCandidates(candidates, HyphenationDetectionKind.ParagraphBoundary)}");
+    Console.WriteLine(
+        $"  Document boundary: {CountCandidates(candidates, HyphenationDetectionKind.DocumentBoundary)}");
+}
+
 static void PrintCandidate(HyphenationCandidate candidate)
 {
     Console.WriteLine();
@@ -341,6 +341,7 @@ static void PrintUsage()
 {
     Console.Error.WriteLine(
         "Usage: epubfixer analyze <book.epub> "
+        + "[--apply-inline] "
         + "[--dump-text <output.txt>] [--hyphen-report <hyphens.json>] "
         + "[--hyphen-analysis-report <analysis.md>]");
 }
@@ -349,7 +350,95 @@ internal sealed record CliOptions(
     string EpubPath,
     string? DumpPath,
     string? HyphenReportPath,
-    string? HyphenAnalysisReportPath);
+    string? HyphenAnalysisReportPath,
+    bool ApplyInline)
+{
+    public static bool TryParse(string[] arguments, out CliOptions options)
+    {
+        options = null!;
+
+        if (arguments.Length < 2
+            || !string.Equals(arguments[0], "analyze", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(arguments[1]))
+        {
+            return false;
+        }
+
+        string? dumpPath = null;
+        string? hyphenReportPath = null;
+        string? hyphenAnalysisReportPath = null;
+        var applyInline = false;
+        var index = 2;
+
+        while (index < arguments.Length)
+        {
+            var option = arguments[index];
+
+            if (string.Equals(option, "--apply-inline", StringComparison.OrdinalIgnoreCase))
+            {
+                if (applyInline)
+                {
+                    return false;
+                }
+
+                applyInline = true;
+                index++;
+                continue;
+            }
+
+            if (index + 1 >= arguments.Length
+                || string.IsNullOrWhiteSpace(arguments[index + 1])
+                || arguments[index + 1].StartsWith("--", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            var value = arguments[index + 1];
+
+            if (string.Equals(option, "--dump-text", StringComparison.OrdinalIgnoreCase))
+            {
+                if (dumpPath is not null)
+                {
+                    return false;
+                }
+
+                dumpPath = value;
+            }
+            else if (string.Equals(option, "--hyphen-report", StringComparison.OrdinalIgnoreCase))
+            {
+                if (hyphenReportPath is not null)
+                {
+                    return false;
+                }
+
+                hyphenReportPath = value;
+            }
+            else if (string.Equals(option, "--hyphen-analysis-report", StringComparison.OrdinalIgnoreCase))
+            {
+                if (hyphenAnalysisReportPath is not null)
+                {
+                    return false;
+                }
+
+                hyphenAnalysisReportPath = value;
+            }
+            else
+            {
+                return false;
+            }
+
+            index += 2;
+        }
+
+        options = new CliOptions(
+            arguments[1],
+            dumpPath,
+            hyphenReportPath,
+            hyphenAnalysisReportPath,
+            applyInline);
+        return true;
+    }
+}
 
 internal sealed record CandidateKey(
     string LeftPart,

@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "knownErrors": [
+    {
+      "id": "odun-kesmek-main-3-tn70-480-auersber-ger",
+      "documentPath": "main-3.xhtml",
+      "original": "Auersber-ger",
+      "expected": "Auersberger",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 70,
+          "start": 480,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-main-3-tn68-2035-jo-ana",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-ana",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 68,
+          "start": 2035,
+          "length": 6
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-main-3-tn108-2252-kol-tukta",
+      "documentPath": "main-3.xhtml",
+      "original": "kol-tukta",
+      "expected": "koltukta",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 108,
+          "start": 2252,
+          "length": 4
+        },
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 110,
+          "start": 0,
+          "length": 5
+        }
+      ]
+    }
+  ]
+}
