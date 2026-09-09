@@ -151,13 +151,91 @@ public sealed class QualityBenchmarkDatasetLoader
                     $"{fieldPrefix} duplicates an exact source occurrence");
             }
         }
+
+        if (groundTruth.ProtectedOccurrences is null)
+        {
+            throw InvalidGroundTruth(groundTruthPath, "protectedOccurrences must not be null");
+        }
+
+        for (var index = 0; index < groundTruth.ProtectedOccurrences.Count; index++)
+        {
+            var occurrence = groundTruth.ProtectedOccurrences[index];
+            var fieldPrefix = $"protectedOccurrences[{index}]";
+
+            if (occurrence is null)
+            {
+                throw InvalidGroundTruth(groundTruthPath, $"{fieldPrefix} must not be null");
+            }
+
+            RequireText(occurrence.Id, $"{fieldPrefix}.id", groundTruthPath);
+
+            if (!ids.Add(occurrence.Id))
+            {
+                throw InvalidGroundTruth(
+                    groundTruthPath,
+                    $"{fieldPrefix}.id must be unique; duplicate value '{occurrence.Id}'");
+            }
+
+            RequireText(occurrence.DocumentPath, $"{fieldPrefix}.documentPath", groundTruthPath);
+            RequireText(occurrence.Original, $"{fieldPrefix}.original", groundTruthPath);
+
+            if (occurrence.SourceSpans is null || occurrence.SourceSpans.Count == 0)
+            {
+                throw InvalidGroundTruth(
+                    groundTruthPath,
+                    $"{fieldPrefix}.sourceSpans must contain at least one span");
+            }
+
+            for (var spanIndex = 0; spanIndex < occurrence.SourceSpans.Count; spanIndex++)
+            {
+                var span = occurrence.SourceSpans[spanIndex];
+                var spanPrefix = $"{fieldPrefix}.sourceSpans[{spanIndex}]";
+
+                if (span is null)
+                {
+                    throw InvalidGroundTruth(groundTruthPath, $"{spanPrefix} must not be null");
+                }
+
+                RequireText(span.DocumentPath, $"{spanPrefix}.documentPath", groundTruthPath);
+
+                if (span.TextNodeIndex < 0 || span.Start < 0 || span.Length <= 0)
+                {
+                    throw InvalidGroundTruth(
+                        groundTruthPath,
+                        $"{spanPrefix} requires textNodeIndex and start >= 0, and length > 0");
+                }
+            }
+
+            if (!occurrenceLocations.Add(CreateOccurrenceLocationKey(occurrence)))
+            {
+                throw InvalidGroundTruth(
+                    groundTruthPath,
+                    $"{fieldPrefix} duplicates an exact source occurrence");
+            }
+        }
     }
 
     private static string CreateOccurrenceLocationKey(KnownErrorOccurrence occurrence)
     {
-        var builder = new StringBuilder(occurrence.DocumentPath);
+        return CreateOccurrenceLocationKey(
+            occurrence.DocumentPath,
+            occurrence.SourceSpans);
+    }
 
-        foreach (var span in occurrence.SourceSpans)
+    private static string CreateOccurrenceLocationKey(ProtectedOccurrence occurrence)
+    {
+        return CreateOccurrenceLocationKey(
+            occurrence.DocumentPath,
+            occurrence.SourceSpans);
+    }
+
+    private static string CreateOccurrenceLocationKey(
+        string documentPath,
+        IReadOnlyList<GroundTruthSourceSpan> sourceSpans)
+    {
+        var builder = new StringBuilder(documentPath);
+
+        foreach (var span in sourceSpans)
         {
             builder.Append('\0');
             builder.Append(span.DocumentPath);

@@ -91,12 +91,106 @@ public sealed class QualityBenchmarkGroundTruthValidatorTests
         Assert.Contains("source text does not equal original", exception.Message);
     }
 
+    [Fact]
+    public void Validate_AcceptsProtectedOccurrence()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Sankt-Pölten</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var occurrence = CreateProtectedOccurrence("protected-1", candidate);
+
+        Validate(occurrence, stream);
+    }
+
+    [Fact]
+    public void Validate_RejectsProtectedOccurrenceWithUnknownTextNode()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Sankt-Pölten</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var occurrence = CreateProtectedOccurrence("protected-1", candidate);
+        var span = occurrence.SourceSpans[0] with { TextNodeIndex = 999 };
+
+        var exception = Assert.Throws<InvalidDataException>(() => Validate(
+            occurrence with { SourceSpans = [span] },
+            stream));
+
+        Assert.Contains("does not resolve to a logical text source", exception.Message);
+        Assert.Contains("protectedOccurrences[0]", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_RejectsProtectedOccurrenceOutsideTextNode()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Sankt-Pölten</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var occurrence = CreateProtectedOccurrence("protected-1", candidate);
+        var span = occurrence.SourceSpans[0] with { Length = 1000 };
+
+        var exception = Assert.Throws<InvalidDataException>(() => Validate(
+            occurrence with { SourceSpans = [span] },
+            stream));
+
+        Assert.Contains("outside the referenced text node", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_RejectsNonCanonicalProtectedOccurrenceSpans()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Sankt-Pölten</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var occurrence = CreateProtectedOccurrence("protected-1", candidate);
+        var span = occurrence.SourceSpans[0];
+
+        var exception = Assert.Throws<InvalidDataException>(() => Validate(
+            occurrence with
+            {
+                SourceSpans =
+                [
+                    span with { Length = 6 },
+                    span with { Start = span.Start + 5, Length = span.Length - 5 }
+                ]
+            },
+            stream));
+
+        Assert.Contains("canonical, non-overlapping", exception.Message);
+    }
+
+    [Fact]
+    public void Validate_RejectsProtectedOccurrenceSourceTextMismatch()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Sankt-Pölten</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var occurrence = CreateProtectedOccurrence("protected-1", candidate);
+
+        var exception = Assert.Throws<InvalidDataException>(() => Validate(
+            occurrence with { Original = "Maria-Zeller" },
+            stream));
+
+        Assert.Contains("source text does not equal original", exception.Message);
+    }
+
     private static void Validate(
         KnownErrorOccurrence occurrence,
         LogicalTextStream stream)
     {
         new QualityBenchmarkGroundTruthValidator().Validate(
             new GroundTruthDocument(1, [occurrence]),
+            stream);
+    }
+
+    private static void Validate(
+        ProtectedOccurrence occurrence,
+        LogicalTextStream stream)
+    {
+        new QualityBenchmarkGroundTruthValidator().Validate(
+            new GroundTruthDocument(1, [])
+            {
+                ProtectedOccurrences = [occurrence]
+            },
             stream);
     }
 
@@ -143,6 +237,19 @@ public sealed class QualityBenchmarkGroundTruthValidatorTests
             candidate.LeftPart + "-" + candidate.RightPart,
             candidate.UnhyphenatedText,
             spans.AsReadOnly());
+    }
+
+    private static ProtectedOccurrence CreateProtectedOccurrence(
+        string id,
+        HyphenationCandidate candidate)
+    {
+        var knownError = CreateOccurrence(id, candidate);
+
+        return new ProtectedOccurrence(
+            knownError.Id,
+            knownError.DocumentPath,
+            knownError.Original,
+            knownError.SourceSpans);
     }
 
     private static LogicalTextStream ReadStream(TemporaryEpub epub)

@@ -15,7 +15,8 @@ internal sealed class TemporaryEpub : IDisposable
     public static TemporaryEpub Create(
         IReadOnlyList<TestDocument> documentsInArchiveOrder,
         IReadOnlyList<TestSpineItem> spine,
-        IReadOnlyDictionary<string, string>? hrefOverrides = null)
+        IReadOnlyDictionary<string, string>? hrefOverrides = null,
+        IReadOnlyDictionary<string, byte[]>? additionalEntries = null)
     {
         var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"epubfixer-{Guid.NewGuid():N}.epub");
 
@@ -29,6 +30,11 @@ internal sealed class TemporaryEpub : IDisposable
             foreach (var document in documentsInArchiveOrder)
             {
                 WriteEntry(archive, $"OPS/{document.Href}", document.Content);
+            }
+
+            foreach (var resource in additionalEntries ?? new Dictionary<string, byte[]>())
+            {
+                WriteEntry(archive, resource.Key, resource.Value);
             }
         }
 
@@ -76,6 +82,14 @@ internal sealed class TemporaryEpub : IDisposable
         using var stream = entry.Open();
         using var writer = new StreamWriter(stream, new UTF8Encoding(false));
         writer.Write(content);
+    }
+
+    private static void WriteEntry(ZipArchive archive, string path, byte[] content)
+    {
+        var entry = archive.CreateEntry(path, CompressionLevel.Optimal);
+
+        using var stream = entry.Open();
+        stream.Write(content);
     }
 
     private const string ContainerXml = """

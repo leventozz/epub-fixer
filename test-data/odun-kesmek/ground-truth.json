@@ -2187,5 +2187,124 @@
         }
       ]
     }
+  ],
+  "protectedOccurrences": [
+    {
+      "id": "odun-kesmek-protected-0001",
+      "documentPath": "main.xhtml",
+      "original": "Mayıs-Haziran",
+      "sourceSpans": [
+        {
+          "documentPath": "main.xhtml",
+          "textNodeIndex": 11,
+          "start": 21,
+          "length": 13
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0002",
+      "documentPath": "main-3.xhtml",
+      "original": "Kağıthane-İstanbul",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 17,
+          "start": 33,
+          "length": 18
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0003",
+      "documentPath": "main-3.xhtml",
+      "original": "e-posta",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 19,
+          "start": 27,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0004",
+      "documentPath": "main-3.xhtml",
+      "original": "e-posta",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 54,
+          "start": 1,
+          "length": 7
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0005",
+      "documentPath": "main-3.xhtml",
+      "original": "Sankt-Pölten",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 118,
+          "start": 1553,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0006",
+      "documentPath": "main-3.xhtml",
+      "original": "Maria-Zeller",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 118,
+          "start": 1611,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0007",
+      "documentPath": "main-3.xhtml",
+      "original": "Sankt-Pölten",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 118,
+          "start": 2001,
+          "length": 12
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0008",
+      "documentPath": "main-3.xhtml",
+      "original": "garip-komik",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 166,
+          "start": 1651,
+          "length": 11
+        }
+      ]
+    },
+    {
+      "id": "odun-kesmek-protected-0009",
+      "documentPath": "main-3.xhtml",
+      "original": "garip-komik",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 176,
+          "start": 2115,
+          "length": 11
+        }
+      ]
+    }
   ]
 }

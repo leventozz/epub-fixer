@@ -22,29 +22,53 @@ public sealed class QualityBenchmarkGroundTruthValidator
              occurrenceIndex < groundTruth.KnownErrors.Count;
              occurrenceIndex++)
         {
-            ValidateOccurrence(groundTruth.KnownErrors[occurrenceIndex], occurrenceIndex, sources);
+            var occurrence = groundTruth.KnownErrors[occurrenceIndex];
+            ValidateOccurrence(
+                occurrence.Id,
+                occurrence.DocumentPath,
+                occurrence.Original,
+                occurrence.SourceSpans,
+                $"knownErrors[{occurrenceIndex}]",
+                sources);
+        }
+
+        for (var occurrenceIndex = 0;
+             occurrenceIndex < groundTruth.ProtectedOccurrences.Count;
+             occurrenceIndex++)
+        {
+            var occurrence = groundTruth.ProtectedOccurrences[occurrenceIndex];
+            ValidateOccurrence(
+                occurrence.Id,
+                occurrence.DocumentPath,
+                occurrence.Original,
+                occurrence.SourceSpans,
+                $"protectedOccurrences[{occurrenceIndex}]",
+                sources);
         }
     }
 
     private static void ValidateOccurrence(
-        KnownErrorOccurrence occurrence,
-        int occurrenceIndex,
+        string occurrenceId,
+        string occurrenceDocumentPath,
+        string occurrenceOriginal,
+        IReadOnlyList<GroundTruthSourceSpan> sourceSpans,
+        string fieldPrefix,
         IReadOnlyDictionary<SourceKey, SourceSegment> sources)
     {
         var original = new StringBuilder();
         var previousSourceOrder = -1;
         var containsOccurrenceDocument = false;
 
-        for (var spanIndex = 0; spanIndex < occurrence.SourceSpans.Count; spanIndex++)
+        for (var spanIndex = 0; spanIndex < sourceSpans.Count; spanIndex++)
         {
-            var span = occurrence.SourceSpans[spanIndex];
-            var field = $"knownErrors[{occurrenceIndex}].sourceSpans[{spanIndex}]";
+            var span = sourceSpans[spanIndex];
+            var field = $"{fieldPrefix}.sourceSpans[{spanIndex}]";
             var key = new SourceKey(span.DocumentPath, span.TextNodeIndex);
 
             if (!sources.TryGetValue(key, out var source))
             {
                 throw InvalidSourceSpan(
-                    occurrence,
+                    occurrenceId,
                     field,
                     "documentPath/textNodeIndex does not resolve to a logical text source");
             }
@@ -52,7 +76,7 @@ public sealed class QualityBenchmarkGroundTruthValidator
             if (source.Order <= previousSourceOrder)
             {
                 throw InvalidSourceSpan(
-                    occurrence,
+                    occurrenceId,
                     field,
                     "spans must be canonical, non-overlapping, and in logical source order");
             }
@@ -64,7 +88,7 @@ public sealed class QualityBenchmarkGroundTruthValidator
             if (span.Start < sourceStart || spanEnd > sourceEnd)
             {
                 throw InvalidSourceSpan(
-                    occurrence,
+                    occurrenceId,
                     field,
                     "start/length is outside the referenced text node");
             }
@@ -75,7 +99,7 @@ public sealed class QualityBenchmarkGroundTruthValidator
                 span.Length);
             previousSourceOrder = source.Order;
             containsOccurrenceDocument |= string.Equals(
-                occurrence.DocumentPath,
+                occurrenceDocumentPath,
                 span.DocumentPath,
                 StringComparison.Ordinal);
         }
@@ -83,27 +107,27 @@ public sealed class QualityBenchmarkGroundTruthValidator
         if (!containsOccurrenceDocument)
         {
             throw InvalidSourceSpan(
-                occurrence,
-                $"knownErrors[{occurrenceIndex}].documentPath",
+                occurrenceId,
+                $"{fieldPrefix}.documentPath",
                 "does not identify any source span document");
         }
 
-        if (!string.Equals(original.ToString(), occurrence.Original, StringComparison.Ordinal))
+        if (!string.Equals(original.ToString(), occurrenceOriginal, StringComparison.Ordinal))
         {
             throw InvalidSourceSpan(
-                occurrence,
-                $"knownErrors[{occurrenceIndex}].sourceSpans",
+                occurrenceId,
+                $"{fieldPrefix}.sourceSpans",
                 "referenced source text does not equal original");
         }
     }
 
     private static InvalidDataException InvalidSourceSpan(
-        KnownErrorOccurrence occurrence,
+        string occurrenceId,
         string field,
         string detail)
     {
         return new InvalidDataException(
-            $"Ground truth source span is invalid for '{occurrence.Id}' ({field}: {detail}).");
+            $"Ground truth source span is invalid for '{occurrenceId}' ({field}: {detail}).");
     }
 
     private sealed record SourceKey(string DocumentPath, int TextNodeIndex);

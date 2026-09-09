@@ -10,6 +10,8 @@ using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Evidence.Models;
 using EpubFixer.Core.Lexicon;
+using EpubFixer.Core.Fix;
+using EpubFixer.Core.Fix.Models;
 
 return Run(args);
 
@@ -24,6 +26,15 @@ static int Run(string[] arguments)
     try
     {
         ValidateOutputPaths(options);
+
+        if (options.Command == CliCommand.Fix)
+        {
+            var result = new EpubFixService().Fix(
+                options.EpubPath,
+                options.OutputEpubPath!);
+            PrintFixSummary(result);
+            return 0;
+        }
 
         var package = new EpubPackageReader().Read(options.EpubPath);
         var candidates = new HyphenationDetector().Detect(package.LogicalText);
@@ -139,7 +150,8 @@ static void ValidateOutputPaths(CliOptions options)
     {
         options.DumpPath,
         options.HyphenReportPath,
-        options.HyphenAnalysisReportPath
+        options.HyphenAnalysisReportPath,
+        options.OutputEpubPath
     }.Where(path => path is not null).Cast<string>().ToArray();
 
     foreach (var outputPath in outputPaths)
@@ -160,6 +172,51 @@ static void ValidateOutputPaths(CliOptions options)
             }
         }
     }
+}
+
+static void PrintFixSummary(EpubFixResult result)
+{
+    var skipped = result.InlineApplyResult.SkippedCount
+        + result.CrossParagraphApplyResult.SkippedCount;
+    var totalApplied = result.InlineApplyResult.AppliedCount
+        + result.CrossParagraphApplyResult.AppliedCount;
+
+    Console.WriteLine($"Input:  {result.InputPath}");
+    Console.WriteLine($"Output: {result.OutputPath}");
+    Console.WriteLine();
+    Console.WriteLine("Hyphenation:");
+    Console.WriteLine($"  Original candidates: {result.OriginalCandidateCount}");
+    Console.WriteLine($"  Original AutoFix candidates: {result.OriginalAutoFixCandidateCount}");
+    Console.WriteLine($"  Inline applied: {result.InlineApplyResult.AppliedCount}");
+    Console.WriteLine($"  CrossParagraph applied: {result.CrossParagraphApplyResult.AppliedCount}");
+    Console.WriteLine($"  Skipped: {skipped}");
+    Console.WriteLine();
+    Console.WriteLine($"Total applied corrections: {totalApplied}");
+    Console.WriteLine();
+    Console.WriteLine($"Remaining candidates: {result.RemainingCandidateCount}");
+    Console.WriteLine($"Remaining AutoFix candidates: {result.RemainingAutoFixCandidateCount}");
+    Console.WriteLine();
+    Console.WriteLine($"Input SHA-256:  {result.InputSha256}");
+    Console.WriteLine($"Output SHA-256: {result.OutputSha256}");
+    Console.WriteLine();
+    Console.WriteLine(
+        $"Resource integrity: {result.Integrity.EntryCount} entries; "
+        + $"{result.Integrity.UntouchedEntryCount} untouched entries byte-identical.");
+    Console.WriteLine(
+        "Modified XHTML: "
+        + (result.Integrity.ModifiedDocumentPaths.Count == 0
+            ? "none"
+            : string.Join(", ", result.Integrity.ModifiedDocumentPaths)));
+
+    foreach (var diagnostic in result.WriteResult.DocumentDiagnostics)
+    {
+        Console.WriteLine(
+            $"  {diagnostic.Path}: {diagnostic.OriginalByteCount} -> "
+            + $"{diagnostic.OutputByteCount} bytes");
+    }
+
+    Console.WriteLine("Read-back validation: successful.");
+    Console.WriteLine("Output written successfully.");
 }
 
 static void PrintSummary(EpubPackage package)
@@ -444,10 +501,13 @@ static void PrintUsage()
         + "[--apply-paragraph] "
         + "[--dump-text <output.txt>] [--hyphen-report <hyphens.json>] "
         + "[--hyphen-analysis-report <analysis.md>]");
+    Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub>");
 }
 
 internal sealed record CliOptions(
+    CliCommand Command,
     string EpubPath,
+    string? OutputEpubPath,
     string? DumpPath,
     string? HyphenReportPath,
     string? HyphenAnalysisReportPath,
@@ -458,9 +518,33 @@ internal sealed record CliOptions(
     {
         options = null!;
 
-        if (arguments.Length < 2
-            || !string.Equals(arguments[0], "analyze", StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(arguments[1]))
+        if (arguments.Length < 2 || string.IsNullOrWhiteSpace(arguments[1]))
+        {
+            return false;
+        }
+
+        if (string.Equals(arguments[0], "fix", StringComparison.OrdinalIgnoreCase))
+        {
+            if (arguments.Length != 4
+                || !string.Equals(arguments[2], "-o", StringComparison.OrdinalIgnoreCase)
+                || string.IsNullOrWhiteSpace(arguments[3]))
+            {
+                return false;
+            }
+
+            options = new CliOptions(
+                CliCommand.Fix,
+                arguments[1],
+                arguments[3],
+                null,
+                null,
+                null,
+                false,
+                false);
+            return true;
+        }
+
+        if (!string.Equals(arguments[0], "analyze", StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
@@ -545,7 +629,9 @@ internal sealed record CliOptions(
         }
 
         options = new CliOptions(
+            CliCommand.Analyze,
             arguments[1],
+            null,
             dumpPath,
             hyphenReportPath,
             hyphenAnalysisReportPath,
@@ -553,6 +639,12 @@ internal sealed record CliOptions(
             applyParagraph);
         return true;
     }
+}
+
+internal enum CliCommand
+{
+    Analyze,
+    Fix
 }
 
 internal sealed record CandidateKey(

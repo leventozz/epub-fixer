@@ -3,6 +3,30 @@ namespace EpubFixer.Tests;
 public sealed class CliOptionsTests
 {
     [Fact]
+    public void TryParse_AcceptsFixWithRequiredOutput()
+    {
+        var parsed = CliOptions.TryParse(
+            ["fix", "book.epub", "-o", "book.fixed.epub"],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.Equal(CliCommand.Fix, options.Command);
+        Assert.Equal("book.epub", options.EpubPath);
+        Assert.Equal("book.fixed.epub", options.OutputEpubPath);
+    }
+
+    [Theory]
+    [InlineData("fix", "book.epub")]
+    [InlineData("fix", "book.epub", "-o")]
+    [InlineData("fix", "book.epub", "-o", "a.epub", "-o", "b.epub")]
+    [InlineData("fix", "book.epub", "--apply-inline", "book.fixed.epub")]
+    [InlineData("analyze", "book.epub", "-o", "book.fixed.epub")]
+    public void TryParse_RejectsInvalidFixSyntax(params string[] arguments)
+    {
+        Assert.False(CliOptions.TryParse(arguments, out _));
+    }
+
+    [Fact]
     public void TryParse_AcceptsApplyInlineAmongValuedOptions()
     {
         var parsed = CliOptions.TryParse(

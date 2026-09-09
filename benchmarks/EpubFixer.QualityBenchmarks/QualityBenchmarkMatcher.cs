@@ -60,7 +60,7 @@ public sealed class QualityBenchmarkMatcher
         return -1;
     }
 
-    private static bool IsMatch(
+    internal static bool IsMatch(
         KnownErrorOccurrence knownError,
         HyphenationCandidate candidate)
     {
@@ -98,7 +98,7 @@ public sealed class QualityBenchmarkMatcher
         return true;
     }
 
-    private static IReadOnlyList<GroundTruthSourceSpan> CreateCanonicalSourceSpans(
+    internal static IReadOnlyList<GroundTruthSourceSpan> CreateCanonicalSourceSpans(
         HyphenationCandidate candidate)
     {
         var locations = new[]

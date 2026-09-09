@@ -14,6 +14,7 @@ public sealed class CrossParagraphHyphenationCorrectionApplier
 
         var appliedCount = 0;
         var skippedCount = 0;
+        var affectedParagraphs = new HashSet<IElement>(ReferenceEqualityComparer.Instance);
 
         foreach (var plan in plans)
         {
@@ -36,10 +37,45 @@ public sealed class CrossParagraphHyphenationCorrectionApplier
             }
 
             edit.RightParagraph.Remove();
+            affectedParagraphs.Add(edit.LeftParagraph);
             appliedCount++;
         }
 
+        // Moving the right paragraph's children can leave adjacent text nodes at
+        // the join. An XHTML round-trip coalesces those nodes, so normalize them
+        // after every plan has consumed its original source locations.
+        foreach (var paragraph in affectedParagraphs.Where(paragraph => paragraph.Parent is not null))
+        {
+            MergeAdjacentTextNodes(paragraph);
+        }
+
         return new HyphenationCorrectionApplyResult(appliedCount, skippedCount);
+    }
+
+    private static void MergeAdjacentTextNodes(INode parent)
+    {
+        IText? previousText = null;
+
+        foreach (var child in parent.ChildNodes.ToArray())
+        {
+            if (child is IText text)
+            {
+                if (previousText is null)
+                {
+                    previousText = text;
+                }
+                else
+                {
+                    previousText.Append(text.Data);
+                    text.Remove();
+                }
+
+                continue;
+            }
+
+            previousText = null;
+            MergeAdjacentTextNodes(child);
+        }
     }
 
     private static bool TryCreateEdit(

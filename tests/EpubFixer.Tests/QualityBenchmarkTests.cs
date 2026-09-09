@@ -23,6 +23,7 @@ public sealed class QualityBenchmarkTests
         Assert.Equal(70, span.TextNodeIndex);
         Assert.Equal(480, span.Start);
         Assert.Equal(12, span.Length);
+        Assert.Empty(result.GroundTruth.ProtectedOccurrences);
     }
 
     [Fact]
@@ -62,6 +63,119 @@ public sealed class QualityBenchmarkTests
         Assert.Equal(2, occurrences.Count);
         Assert.Equal(["error-1", "error-2"], occurrences.Select(item => item.Id));
         Assert.Equal([480, 2104], occurrences.Select(item => item.SourceSpans[0].Start));
+    }
+
+    [Fact]
+    public void Load_ParsesSeparateProtectedOccurrencesWithTheSameOriginalText()
+    {
+        var json = CreateGroundTruthJsonWithProtected(
+            [],
+            CreateProtectedOccurrenceJson("protected-1", start: 27),
+            CreateProtectedOccurrenceJson("protected-2", start: 81));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var occurrences = new QualityBenchmarkDatasetLoader()
+            .Load(dataset.Path)
+            .GroundTruth.ProtectedOccurrences;
+
+        Assert.Equal(2, occurrences.Count);
+        Assert.Equal(["protected-1", "protected-2"], occurrences.Select(item => item.Id));
+        Assert.All(occurrences, item => Assert.Equal("e-posta", item.Original));
+        Assert.Equal([27, 81], occurrences.Select(item => item.SourceSpans[0].Start));
+    }
+
+    [Fact]
+    public void Load_RejectsExplicitlyNullProtectedOccurrences()
+    {
+        const string json = """
+            {
+              "schemaVersion": 1,
+              "knownErrors": [],
+              "protectedOccurrences": null
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("protectedOccurrences must not be null", exception.Message);
+    }
+
+    [Fact]
+    public void Load_RejectsDuplicateProtectedIds()
+    {
+        var json = CreateGroundTruthJsonWithProtected(
+            [],
+            CreateProtectedOccurrenceJson("duplicate-id", start: 27),
+            CreateProtectedOccurrenceJson("duplicate-id", start: 81));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("id must be unique", exception.Message);
+    }
+
+    [Fact]
+    public void Load_RejectsProtectedIdDuplicatedByKnownError()
+    {
+        var json = CreateGroundTruthJsonWithProtected(
+            [CreateOccurrenceJson("duplicate-id", start: 10)],
+            CreateProtectedOccurrenceJson("duplicate-id", start: 27));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("id must be unique", exception.Message);
+    }
+
+    [Fact]
+    public void Load_RejectsDuplicateExactProtectedOccurrences()
+    {
+        var json = CreateGroundTruthJsonWithProtected(
+            [],
+            CreateProtectedOccurrenceJson("protected-1", start: 27),
+            CreateProtectedOccurrenceJson("protected-2", start: 27));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("duplicates an exact source occurrence", exception.Message);
+    }
+
+    [Fact]
+    public void Load_RejectsProtectedOccurrenceAtKnownErrorLocation()
+    {
+        var json = CreateGroundTruthJsonWithProtected(
+            [CreateOccurrenceJson("error-1", start: 10)],
+            CreateProtectedOccurrenceJson(
+                "protected-1",
+                start: 10,
+                length: 12,
+                original: "Auersber-ger"));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("duplicates an exact source occurrence", exception.Message);
+    }
+
+    [Fact]
+    public void Load_RejectsStructurallyInvalidProtectedSourceSpan()
+    {
+        var json = CreateGroundTruthJsonWithProtected(
+            [],
+            CreateProtectedOccurrenceJson("protected-1", start: 27, length: 0));
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("length > 0", exception.Message);
     }
 
     [Fact]
@@ -216,6 +330,46 @@ public sealed class QualityBenchmarkTests
               "documentPath": "main-3.xhtml",
               "original": "Auersber-ger",
               "expected": "Auersberger",
+              "sourceSpans": [
+                {
+                  "documentPath": "main-3.xhtml",
+                  "textNodeIndex": 70,
+                  "start": {{start}},
+                  "length": {{length}}
+                }
+              ]
+            }
+            """;
+    }
+
+    private static string CreateGroundTruthJsonWithProtected(
+        IReadOnlyList<string> knownErrors,
+        params string[] protectedOccurrences)
+    {
+        return $$"""
+            {
+              "schemaVersion": 1,
+              "knownErrors": [
+                {{string.Join(",", knownErrors)}}
+              ],
+              "protectedOccurrences": [
+                {{string.Join(",", protectedOccurrences)}}
+              ]
+            }
+            """;
+    }
+
+    private static string CreateProtectedOccurrenceJson(
+        string id,
+        int start,
+        int length = 7,
+        string original = "e-posta")
+    {
+        return $$"""
+            {
+              "id": "{{id}}",
+              "documentPath": "main-3.xhtml",
+              "original": "{{original}}",
               "sourceSpans": [
                 {
                   "documentPath": "main-3.xhtml",

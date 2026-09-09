@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
 using EpubFixer.Core.Epub.Models;
 
@@ -11,6 +12,9 @@ public sealed class EpubPackageReader
 {
     private const string ContainerPath = "META-INF/container.xml";
     private const string XhtmlMediaType = "application/xhtml+xml";
+    private static readonly Regex XmlDeclarationPattern = new(
+        @"^\uFEFF?\s*(<\?xml\s+[^?]*\?>)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     public EpubPackage Read(string epubPath)
     {
@@ -115,13 +119,25 @@ public sealed class EpubPackageReader
 
             using var entryStream = entry.Open();
             using var reader = new StreamReader(entryStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            var document = parser.ParseDocument(reader.ReadToEnd());
+            var source = reader.ReadToEnd();
+            var document = parser.ParseDocument(source);
             var isLinear = !string.Equals((string?)itemReference.Attribute("linear"), "no", StringComparison.OrdinalIgnoreCase);
 
-            documents.Add(new EpubContentDocument(documentPath, documents.Count, isLinear, document));
+            documents.Add(new EpubContentDocument(
+                documentPath,
+                documents.Count,
+                isLinear,
+                document,
+                GetXmlDeclaration(source)));
         }
 
         return Array.AsReadOnly(documents.ToArray());
+    }
+
+    private static string? GetXmlDeclaration(string source)
+    {
+        var match = XmlDeclarationPattern.Match(source);
+        return match.Success ? match.Groups[1].Value : null;
     }
 
     private static XDocument ReadXml(ZipArchiveEntry entry, string path)
