@@ -97,6 +97,24 @@ public sealed class OcrAnomalyDetectorTests
     }
 
     [Fact]
+    public void Analyze_SuppressesRareInBookForApostropheBaseFamilyOnly()
+    {
+        var report = Analyze("Eiles Eiles'e Eiles'le ınetre",
+            ["Eiles", "Eiles'e", "Eiles'le", "ınetre"]);
+
+        Assert.DoesNotContain(report.Candidates, item => item.Candidate.Text.StartsWith("Eiles", StringComparison.Ordinal));
+        Assert.Equal(3, report.RareInBookSuppressedOccurrences.Count);
+        Assert.All(report.RareInBookSuppressedOccurrences, item =>
+        {
+            Assert.Equal("Eiles", item.BaseForm);
+            Assert.Equal(3, item.BaseFormFrequency);
+            Assert.DoesNotContain(OcrDetectionReason.RareInBook, item.DetectionReasons);
+        });
+        Assert.Contains(report.Candidates, item => item.Candidate.Text == "ınetre"
+            && item.DetectionReasons.Contains(OcrDetectionReason.RareInBook));
+    }
+
+    [Fact]
     public void Analyze_HyphenOnlyOccurrenceCanRemainAsFragmentEvidenceOnly()
     {
         var candidate = Assert.Single(Analyze("ço-nıktu", ["nıktu"]).Candidates);

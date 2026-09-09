@@ -9,4 +9,11 @@ public sealed record OcrCorrectionCandidate(
     int GenerationCost,
     bool TrMorphValid,
     int BookFrequency,
-    int ProposalRank);
+    int ProposalRank,
+    IReadOnlyList<OcrWordCandidate> ConsumedSources,
+    int StructuralTransformationCount,
+    bool IsPartialStructuralRepair)
+{
+    public int SourceSpanCount => ConsumedSources.Count;
+    public bool ConsumesMultipleOccurrences => SourceSpanCount > 1;
+}

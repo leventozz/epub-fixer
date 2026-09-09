@@ -42,6 +42,27 @@ public sealed class BookLexiconBuilderTests
     }
 
     [Fact]
+    public void Build_AggregatesOnlyCaseSensitiveApostropheBaseFamilies()
+    {
+        using var epub = CreateSingleDocumentEpub(
+            "<p>Eiles Eiles'e Eiles’le eiles eiles'e onlar onların onlara</p>");
+
+        var lexicon = BuildLexicon(epub);
+
+        Assert.Equal("Eiles", lexicon.GetBaseForm("Eiles'e"));
+        Assert.Equal("Eiles", lexicon.GetBaseForm("Eiles’le"));
+        Assert.Equal(3, lexicon.GetBaseFormCount("Eiles"));
+        Assert.Equal(3, lexicon.GetBaseFormCount("Eiles'in"));
+        Assert.Equal(2, lexicon.GetBaseFormCount("eiles"));
+        Assert.Equal(1, lexicon.GetBaseFormCount("onlar"));
+        Assert.Equal(1, lexicon.GetBaseFormCount("onların"));
+        Assert.Equal(1, lexicon.GetBaseFormCount("onlara"));
+        Assert.Equal(2, lexicon.UniqueApostropheBaseForms);
+        Assert.Equal(1, lexicon.GetCount("Eiles"));
+        Assert.Equal(1, lexicon.GetCount("Eiles'e"));
+    }
+
+    [Fact]
     public void Build_DoesNotCreateUnhyphenatedEntry()
     {
         using var epub = CreateSingleDocumentEpub("<p>Auersber-ger</p>");

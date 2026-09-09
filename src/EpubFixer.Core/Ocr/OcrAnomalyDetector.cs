@@ -83,31 +83,42 @@ public sealed class OcrAnomalyDetector
         }
 
         var evidence = new List<OcrWordEvidence>();
+        var rareSuppressed = new List<OcrWordEvidence>();
         var invalidTotal = 0;
         foreach (var draft in candidates.Values.OrderBy(item => item.Start))
         {
             var candidate = CreateCandidate(stream, draft.Start, draft.Length);
             var frequency = lexicon.GetCount(candidate.Text);
+            var baseForm = lexicon.GetBaseForm(candidate.Text);
+            var baseFormFrequency = lexicon.GetBaseFormCount(candidate.Text);
             var valid = IsMorphologyInput(candidate.Text) && analyzer.IsValidWord(candidate.Text);
             if (!valid) invalidTotal++;
             var reasons = draft.Reasons.ToHashSet();
             if (!valid) reasons.Add(OcrDetectionReason.MorphologyInvalid);
-            if (frequency == 1) reasons.Add(OcrDetectionReason.RareInBook);
+            var suppressRareInBook = frequency == 1 && baseFormFrequency > 1;
+            if (frequency == 1 && !suppressRareInBook) reasons.Add(OcrDetectionReason.RareInBook);
 
             var structural = reasons.Any(reason => reason is not OcrDetectionReason.MorphologyInvalid and not OcrDetectionReason.RareInBook);
             if (!structural && !(reasons.Contains(OcrDetectionReason.MorphologyInvalid) && reasons.Contains(OcrDetectionReason.RareInBook)))
+            {
+                if (suppressRareInBook && reasons.Contains(OcrDetectionReason.MorphologyInvalid))
+                    rareSuppressed.Add(new OcrWordEvidence(candidate, frequency, baseForm, baseFormFrequency,
+                        valid, reasons.OrderBy(item => item).ToArray(), OcrConfidence.EvidenceOnly));
                 continue;
+            }
 
             var confidence = structural
                 ? reasons.Any(reason => reason is OcrDetectionReason.SuspiciousCharacter or OcrDetectionReason.EmbeddedDigit)
                     ? OcrConfidence.High
                     : OcrConfidence.Medium
                 : OcrConfidence.EvidenceOnly;
-            evidence.Add(new OcrWordEvidence(candidate, frequency, valid, reasons.OrderBy(item => item).ToArray(), confidence));
+            evidence.Add(new OcrWordEvidence(candidate, frequency, baseForm, baseFormFrequency,
+                valid, reasons.OrderBy(item => item).ToArray(), confidence));
         }
 
         var strongInvalid = evidence.Count(item => !item.TrMorphValid && item.Confidence == OcrConfidence.High);
-        return new OcrAnalysisReport(examined.Count, invalidTotal, strongInvalid, evidence);
+        return new OcrAnalysisReport(examined.Count, invalidTotal, strongInvalid, evidence,
+            rareSuppressed, lexicon.UniqueApostropheBaseForms);
     }
 
     private static bool IsMorphologyInput(string text) => text.EnumerateRunes().Any(Rune.IsLetter);

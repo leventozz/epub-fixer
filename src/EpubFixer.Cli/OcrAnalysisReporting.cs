@@ -15,6 +15,8 @@ internal static class OcrAnalysisReporting
         builder.AppendLine($"- Evidence-only candidates: {report.Candidates.Count(item => item.Confidence == OcrConfidence.EvidenceOnly)}");
         builder.AppendLine($"- TRmorph invalid total: {report.TrMorphInvalidTotal}");
         builder.AppendLine($"- TRmorph invalid + strong OCR evidence: {report.TrMorphInvalidWithStrongEvidence}");
+        builder.AppendLine($"- EvidenceOnly suppressed from RareInBook by BaseFormFrequency: {report.RareInBookSuppressedOccurrences.Count}");
+        builder.AppendLine($"- Unique apostrophe base forms: {report.UniqueApostropheBaseForms}");
         builder.AppendLine();
         builder.AppendLine("Reason counts overlap: one occurrence may carry multiple reasons, so reason totals do not need to equal candidate total.");
         builder.AppendLine();
@@ -25,13 +27,13 @@ internal static class OcrAnalysisReporting
         builder.AppendLine();
         builder.AppendLine("## First 200 occurrences");
         builder.AppendLine();
-        builder.AppendLine("| # | Text / fragment | Document | Frequency | TRmorph valid | Confidence | Reasons | Logical occurrence context |");
-        builder.AppendLine("|---:|---|---|---:|:---:|---|---|---|");
+        builder.AppendLine("| # | Text / fragment | Document | Frequency | BaseForm | BaseFormFrequency | TRmorph valid | Confidence | Reasons | Logical occurrence context |");
+        builder.AppendLine("|---:|---|---|---:|---|---:|:---:|---|---|---|");
         foreach (var (item, index) in report.Candidates.Take(200).Select((item, index) => (item, index + 1)))
         {
             var c = item.Candidate;
             var context = $"{c.ContextBefore}⟦{c.Text}⟧{c.ContextAfter}";
-            builder.AppendLine($"| {index} | {Cell(c.Text)} | {Cell(c.Document)} | {item.BookFrequency} | {item.TrMorphValid} | {item.Confidence} | {Cell(string.Join(", ", item.DetectionReasons))} | {Cell(context)} |");
+            builder.AppendLine($"| {index} | {Cell(c.Text)} | {Cell(c.Document)} | {item.BookFrequency} | {Cell(item.BaseForm)} | {item.BaseFormFrequency} | {item.TrMorphValid} | {item.Confidence} | {Cell(string.Join(", ", item.DetectionReasons))} | {Cell(context)} |");
         }
         return builder.ToString();
     }

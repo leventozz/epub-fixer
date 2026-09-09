@@ -33,7 +33,7 @@ public sealed class OcrAnalysisService
         var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
         var analysis = new OcrAnomalyDetector().Analyze(stream, analyzer);
         var lexicon = new BookLexiconBuilder().Build(stream);
-        return new OcrCorrectionCandidateGenerator().Generate(analysis, lexicon, analyzer);
+        return new OcrCorrectionCandidateGenerator().Generate(analysis, stream, lexicon, analyzer);
     }
 
     private static void ApplyExistingHyphenation(EpubFixer.Core.Epub.Models.EpubPackage package, ITurkishMorphologyAnalyzer analyzer)

@@ -7,5 +7,6 @@ public enum OcrCorrectionGenerationReason
     GlyphSubstitution,
     FragmentJoin,
     HyphenRemoval,
-    BookLexiconNeighbor
+    BookLexiconNeighbor,
+    AdjacentFragmentComposition
 }
