@@ -15,6 +15,7 @@ using EpubFixer.Core.Fix;
 using EpubFixer.Core.Fix.Models;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr;
+using EpubFixer.Core.Ocr.Models;
 using EpubFixer.TrMorph;
 
 return Run(args);
@@ -42,10 +43,23 @@ static int Run(string[] arguments)
         }
 
     var package = new EpubPackageReader().Read(options.EpubPath);
-    if (options.OcrReportPath is not null)
+    OcrCorrectionAnalysisReport? correctionReport = null;
+    if (options.OcrCorrectionReportPath is not null)
     {
         using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
-        var ocrReport = new OcrAnalysisService().Analyze(options.EpubPath, ocrAnalyzer);
+        correctionReport = new OcrAnalysisService().AnalyzeCorrections(options.EpubPath, ocrAnalyzer);
+        File.WriteAllText(options.OcrCorrectionReportPath, OcrCorrectionAnalysisReporting.SerializeMarkdown(correctionReport), new UTF8Encoding(false));
+        Console.WriteLine($"OCR correction report written to: {options.OcrCorrectionReportPath}");
+    }
+    if (options.OcrReportPath is not null)
+    {
+        OcrAnalysisReport ocrReport;
+        if (correctionReport is not null) ocrReport = correctionReport.SourceAnalysis;
+        else
+        {
+            using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
+            ocrReport = new OcrAnalysisService().Analyze(options.EpubPath, ocrAnalyzer);
+        }
         File.WriteAllText(options.OcrReportPath, OcrAnalysisReporting.SerializeMarkdown(ocrReport), new UTF8Encoding(false));
         Console.WriteLine($"OCR report written to: {options.OcrReportPath}");
     }
@@ -193,6 +207,7 @@ static void ValidateOutputPaths(CliOptions options)
         options.PostFixLexiconReportPath,
         options.TrMorphReportPath,
         options.OcrReportPath,
+        options.OcrCorrectionReportPath,
         options.OutputEpubPath
     }.Where(path => path is not null).Cast<string>().ToArray();
 
@@ -591,6 +606,7 @@ static void PrintUsage()
         + "[--hyphen-analysis-report <analysis.md>] "
         + "[--post-fix-lexicon-report <post-fix.md>] "
         + "[--ocr-report <ocr.md>] "
+        + "[--ocr-correction-report <ocr-candidates.md>] "
         + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
     Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub>");
 }
@@ -605,6 +621,7 @@ internal sealed record CliOptions(
     string? PostFixLexiconReportPath,
     string? TrMorphReportPath,
     string? OcrReportPath,
+    string? OcrCorrectionReportPath,
     string? GroundTruthPath,
     bool ApplyInline,
     bool ApplyParagraph)
@@ -638,6 +655,7 @@ internal sealed record CliOptions(
                 null,
                 null,
                 null,
+                null,
                 false,
                 false);
             return true;
@@ -653,7 +671,8 @@ internal sealed record CliOptions(
         string? hyphenAnalysisReportPath = null;
         string? postFixLexiconReportPath = null;
         string? trMorphReportPath = null;
-        string? ocrReportPath = null;
+    string? ocrReportPath = null;
+        string? ocrCorrectionReportPath = null;
         string? groundTruthPath = null;
         var applyInline = false;
         var applyParagraph = false;
@@ -742,6 +761,11 @@ internal sealed record CliOptions(
                 if (ocrReportPath is not null) return false;
                 ocrReportPath = value;
             }
+            else if (string.Equals(option, "--ocr-correction-report", StringComparison.OrdinalIgnoreCase))
+            {
+                if (ocrCorrectionReportPath is not null) return false;
+                ocrCorrectionReportPath = value;
+            }
             else if (string.Equals(option, "--ground-truth", StringComparison.OrdinalIgnoreCase))
             {
                 if (groundTruthPath is not null) return false;
@@ -767,6 +791,7 @@ internal sealed record CliOptions(
             postFixLexiconReportPath,
             trMorphReportPath,
             ocrReportPath,
+            ocrCorrectionReportPath,
             groundTruthPath,
             applyInline,
             applyParagraph);

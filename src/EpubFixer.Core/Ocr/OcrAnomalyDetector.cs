@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text;
 using System.Text.RegularExpressions;
 using EpubFixer.Core.Epub.Models;
@@ -11,8 +12,8 @@ namespace EpubFixer.Core.Ocr;
 public sealed class OcrAnomalyDetector
 {
     private static readonly Regex EmbeddedDigitPattern = new(@"(?=[\p{L}\p{N}'’.-]*\p{N})[\p{L}\p{N}'’.-]*\p{L}[\p{L}\p{N}'’.-]*", RegexOptions.Compiled);
-    private static readonly Regex ShortHyphenPattern = new(@"\p{L}{2}-\p{L}{3,}", RegexOptions.Compiled);
     private static readonly Regex SequencePattern = new(@"ıı|l1|-;|-^|;\.|<", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex EmptyParenthesesPattern = new(@"\(\)", RegexOptions.Compiled);
 
     public OcrAnalysisReport Analyze(LogicalTextStream stream, ITurkishMorphologyAnalyzer analyzer)
     {
@@ -47,19 +48,21 @@ public sealed class OcrAnomalyDetector
             Add(candidates, stream, span.Start, span.Length, [OcrDetectionReason.SuspiciousCharacterSequence]);
         }
 
+        foreach (Match match in EmptyParenthesesPattern.Matches(stream.Text))
+        {
+            if (!IsAdjacentToLetter(stream.Text, match.Index, match.Length)) continue;
+            var span = ExpandEmptyParenthesesFragment(stream.Text, match.Index, match.Length);
+            if (!IsValidSpan(stream, span.Start, span.Length)) continue;
+            examined.Add((span.Start, span.Length));
+            Add(candidates, stream, span.Start, span.Length,
+                [OcrDetectionReason.SuspiciousCharacter, OcrDetectionReason.SuspiciousPunctuation,
+                    OcrDetectionReason.SuspiciousCharacterSequence]);
+        }
+
         foreach (var span in FindSuspiciousPunctuationSpans(stream))
         {
             examined.Add((span.Start, span.Length));
             Add(candidates, stream, span.Start, span.Length, span.Reasons);
-        }
-
-        foreach (Match match in ShortHyphenPattern.Matches(stream.Text))
-        {
-            if (IsValidSpan(stream, match.Index, match.Length))
-            {
-                examined.Add((match.Index, match.Length));
-                Add(candidates, stream, match.Index, match.Length, [OcrDetectionReason.SuspiciousPunctuation]);
-            }
         }
 
         foreach (var span in FindFragmentationSpans(stream, wordTokens))
@@ -107,7 +110,7 @@ public sealed class OcrAnomalyDetector
         return new OcrAnalysisReport(examined.Count, invalidTotal, strongInvalid, evidence);
     }
 
-    private static bool IsMorphologyInput(string text) => text.Any(char.IsLetter);
+    private static bool IsMorphologyInput(string text) => text.EnumerateRunes().Any(Rune.IsLetter);
 
     private static void Add(Dictionary<(int Start, int Length), CandidateDraft> map, LogicalTextStream stream, int start, int length, IEnumerable<OcrDetectionReason> reasons)
     {
@@ -187,6 +190,31 @@ public sealed class OcrAnomalyDetector
         while (end < text.Length && IsFragmentChar(text[end])) end++;
         return (start, end - start);
     }
+
+    private static bool IsAdjacentToLetter(string text, int start, int length)
+    {
+        return TryDecodePreviousRune(text, start, out var previous, out _) && Rune.IsLetter(previous)
+            || TryDecodeNextRune(text, start + length, out var next, out _) && Rune.IsLetter(next);
+    }
+
+    private static (int Start, int Length) ExpandEmptyParenthesesFragment(string text, int start, int length)
+    {
+        var end = start + length;
+        while (TryDecodePreviousRune(text, start, out var previous, out var previousLength) && IsFragmentRune(previous))
+            start -= previousLength;
+        while (TryDecodeNextRune(text, end, out var next, out var nextLength) && IsFragmentRune(next))
+            end += nextLength;
+        return (start, end - start);
+    }
+
+    private static bool TryDecodePreviousRune(string text, int end, out Rune rune, out int length) =>
+        Rune.DecodeLastFromUtf16(text.AsSpan(0, end), out rune, out length) == OperationStatus.Done;
+
+    private static bool TryDecodeNextRune(string text, int start, out Rune rune, out int length) =>
+        Rune.DecodeFromUtf16(text.AsSpan(start), out rune, out length) == OperationStatus.Done;
+
+    private static bool IsFragmentRune(Rune value) =>
+        Rune.IsLetterOrDigit(value) || value.Value is '\'' or '’' or '-' or '.' or '<' or '>' or '^' or ';';
 
     private static IEnumerable<(int Start, int Length)> FindFragmentationSpans(LogicalTextStream stream, IReadOnlyList<EpubFixer.Core.Tokenization.Models.WordToken> tokens)
     {

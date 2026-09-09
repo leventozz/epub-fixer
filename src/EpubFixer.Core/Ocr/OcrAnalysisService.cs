@@ -7,6 +7,7 @@ using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr.Models;
+using EpubFixer.Core.Lexicon;
 
 namespace EpubFixer.Core.Ocr;
 
@@ -21,6 +22,18 @@ public sealed class OcrAnalysisService
         ApplyExistingHyphenation(package, analyzer);
         var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
         return new OcrAnomalyDetector().Analyze(stream, analyzer);
+    }
+
+    public OcrCorrectionAnalysisReport AnalyzeCorrections(string epubPath, ITurkishMorphologyAnalyzer analyzer)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(epubPath);
+        ArgumentNullException.ThrowIfNull(analyzer);
+        var package = new EpubPackageReader().Read(epubPath);
+        ApplyExistingHyphenation(package, analyzer);
+        var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+        var analysis = new OcrAnomalyDetector().Analyze(stream, analyzer);
+        var lexicon = new BookLexiconBuilder().Build(stream);
+        return new OcrCorrectionCandidateGenerator().Generate(analysis, lexicon, analyzer);
     }
 
     private static void ApplyExistingHyphenation(EpubFixer.Core.Epub.Models.EpubPackage package, ITurkishMorphologyAnalyzer analyzer)

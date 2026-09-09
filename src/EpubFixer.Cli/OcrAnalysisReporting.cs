@@ -25,12 +25,13 @@ internal static class OcrAnalysisReporting
         builder.AppendLine();
         builder.AppendLine("## First 200 occurrences");
         builder.AppendLine();
-        builder.AppendLine("| # | Text / fragment | Document | Frequency | TRmorph valid | Confidence | Reasons | Context before | Context after |");
-        builder.AppendLine("|---:|---|---|---:|:---:|---|---|---|---|");
+        builder.AppendLine("| # | Text / fragment | Document | Frequency | TRmorph valid | Confidence | Reasons | Logical occurrence context |");
+        builder.AppendLine("|---:|---|---|---:|:---:|---|---|---|");
         foreach (var (item, index) in report.Candidates.Take(200).Select((item, index) => (item, index + 1)))
         {
             var c = item.Candidate;
-            builder.AppendLine($"| {index} | {Cell(c.Text)} | {Cell(c.Document)} | {item.BookFrequency} | {item.TrMorphValid} | {item.Confidence} | {Cell(string.Join(", ", item.DetectionReasons))} | {Cell(c.ContextBefore)} | {Cell(c.ContextAfter)} |");
+            var context = $"{c.ContextBefore}⟦{c.Text}⟧{c.ContextAfter}";
+            builder.AppendLine($"| {index} | {Cell(c.Text)} | {Cell(c.Document)} | {item.BookFrequency} | {item.TrMorphValid} | {item.Confidence} | {Cell(string.Join(", ", item.DetectionReasons))} | {Cell(context)} |");
         }
         return builder.ToString();
     }

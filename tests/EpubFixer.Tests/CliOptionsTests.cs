@@ -100,6 +100,17 @@ public sealed class CliOptionsTests
     }
 
     [Fact]
+    public void TryParse_AcceptsOcrCorrectionReport()
+    {
+        var parsed = CliOptions.TryParse(
+            ["analyze", "book.epub", "--ocr-correction-report", "ocr-candidates.md"],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.Equal("ocr-candidates.md", options.OcrCorrectionReportPath);
+    }
+
+    [Fact]
     public void TryParse_AcceptsStandaloneApplyParagraph()
     {
         var parsed = CliOptions.TryParse(
