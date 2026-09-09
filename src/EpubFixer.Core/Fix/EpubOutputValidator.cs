@@ -6,6 +6,7 @@ using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Fix.Models;
+using EpubFixer.Core.Morphology;
 
 namespace EpubFixer.Core.Fix;
 
@@ -20,7 +21,8 @@ internal sealed class EpubOutputValidator
         byte[] inputHashBefore,
         EpubPackage expectedPackage,
         HyphenationPipelineState expectedFinalState,
-        EpubWriteResult writeResult)
+        EpubWriteResult writeResult,
+        ITurkishMorphologyAnalyzer morphologyAnalyzer)
     {
         var inputHashAfter = SHA256.HashData(File.ReadAllBytes(inputPath));
 
@@ -49,6 +51,9 @@ internal sealed class EpubOutputValidator
         }
 
         var outputFinalState = HyphenationPipeline.Analyze(outputPackage.LogicalText);
+        var outputFinalV2State = HyphenationPipeline.AnalyzeV2(
+            outputPackage.LogicalText,
+            morphologyAnalyzer);
         var expectedCandidates = expectedFinalState.Candidates.Select(CreateCandidateSignature).ToArray();
         var outputCandidates = outputFinalState.Candidates.Select(CreateCandidateSignature).ToArray();
 
@@ -58,8 +63,9 @@ internal sealed class EpubOutputValidator
                 "The output EPUB produces a different hyphenation candidate state after reload.");
         }
 
-        if (outputFinalState.Decisions.Any(decision =>
-                decision.DecisionKind == HyphenationDecisionKind.AutoFixCandidate))
+        if (outputFinalV2State.Decisions.Any(decision =>
+                decision.DecisionKind == HyphenationDecisionKind.AutoFixCandidate
+                && decision.Evidence.Candidate.DetectionKind != HyphenationDetectionKind.DocumentBoundary))
         {
             throw new InvalidDataException(
                 "AutoFixCandidate decisions remain after reloading the output EPUB.");
@@ -83,7 +89,7 @@ internal sealed class EpubOutputValidator
                 MimetypePackagingValid: mimetypeValid,
                 ReadBackValidated: true),
             outputFinalState.Candidates.Count,
-            outputFinalState.Decisions.Count(decision =>
+            outputFinalV2State.Decisions.Count(decision =>
                 decision.DecisionKind == HyphenationDecisionKind.AutoFixCandidate));
     }
 

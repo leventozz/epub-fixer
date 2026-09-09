@@ -1,5 +1,8 @@
 using System.Security.Cryptography;
 using EpubFixer.Core.Fix;
+using EpubFixer.Core.Correction.Models;
+using EpubFixer.Core.Fix.Models;
+using EpubFixer.TrMorph;
 
 namespace EpubFixer.Tests;
 
@@ -19,7 +22,8 @@ public sealed class EpubFixServiceTests
 
         try
         {
-            var result = new EpubFixService().Fix(inputPath, outputPath);
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(analyzer).Fix(inputPath, outputPath);
 
             Assert.Equal(448, result.OriginalCandidateCount);
             Assert.Equal(148, result.OriginalAutoFixCandidateCount);
@@ -27,11 +31,17 @@ public sealed class EpubFixServiceTests
             Assert.Equal(0, result.InlineApplyResult.SkippedCount);
             Assert.Equal(19, result.CrossParagraphApplyResult.AppliedCount);
             Assert.Equal(0, result.CrossParagraphApplyResult.SkippedCount);
-            Assert.Equal(300, result.RemainingCandidateCount);
-            Assert.Equal(0, result.RemainingAutoFixCandidateCount);
-            Assert.Equal(["main-3.xhtml", "main-4.xhtml"], result.WriteResult.ModifiedDocumentPaths);
+            Assert.Equal(215, result.RemainingCandidateCount);
+            Assert.Equal(1, result.RemainingAutoFixCandidateCount);
+            Assert.Equal(86, result.V2AutoFixCandidateCount);
+            Assert.Equal(new V2DetectionKindCounts(56, 29, 1, 0), result.V2DetectionKinds);
+            Assert.Equal(85, result.V2PlannedCount);
+            Assert.Equal(new HyphenationCorrectionApplyResult(56, 0), result.V2InlineApplyResult);
+            Assert.Equal(new HyphenationCorrectionApplyResult(29, 0), result.V2CrossParagraphApplyResult);
+            Assert.Equal(1, result.V2UnsupportedDocumentBoundaryCount);
+            Assert.Equal(["main-3.xhtml", "main-4.xhtml", "main.xhtml"], result.WriteResult.ModifiedDocumentPaths);
             Assert.Equal(16, result.Integrity.EntryCount);
-            Assert.Equal(14, result.Integrity.UntouchedEntryCount);
+            Assert.Equal(13, result.Integrity.UntouchedEntryCount);
             Assert.True(result.Integrity.ResourceInventoryMatches);
             Assert.True(result.Integrity.UntouchedResourcesMatch);
             Assert.True(result.Integrity.MimetypePackagingValid);
@@ -54,8 +64,9 @@ public sealed class EpubFixServiceTests
             [new TestSpineItem("chapter")]);
         var inputHash = SHA256.HashData(File.ReadAllBytes(epub.Path));
 
+        using var analyzer = new FomaTurkishMorphologyAnalyzer();
         Assert.Throws<ArgumentException>(() =>
-            new EpubFixService().Fix(epub.Path, epub.Path));
+            new EpubFixService(analyzer).Fix(epub.Path, epub.Path));
         Assert.Equal(inputHash, SHA256.HashData(File.ReadAllBytes(epub.Path)));
     }
 
@@ -70,8 +81,9 @@ public sealed class EpubFixServiceTests
 
         try
         {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
             Assert.Throws<IOException>(() =>
-                new EpubFixService().Fix(epub.Path, outputPath));
+                new EpubFixService(analyzer).Fix(epub.Path, outputPath));
             Assert.Equal("do not replace", File.ReadAllText(outputPath));
         }
         finally

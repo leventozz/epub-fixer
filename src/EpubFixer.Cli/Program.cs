@@ -32,7 +32,8 @@ static int Run(string[] arguments)
 
         if (options.Command == CliCommand.Fix)
         {
-            var result = new EpubFixService().Fix(
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(analyzer).Fix(
                 options.EpubPath,
                 options.OutputEpubPath!);
             PrintFixSummary(result);
@@ -211,7 +212,9 @@ static void PrintFixSummary(EpubFixResult result)
     var skipped = result.InlineApplyResult.SkippedCount
         + result.CrossParagraphApplyResult.SkippedCount;
     var totalApplied = result.InlineApplyResult.AppliedCount
-        + result.CrossParagraphApplyResult.AppliedCount;
+        + result.CrossParagraphApplyResult.AppliedCount
+        + result.V2InlineApplyResult.AppliedCount
+        + result.V2CrossParagraphApplyResult.AppliedCount;
 
     Console.WriteLine($"Input:  {result.InputPath}");
     Console.WriteLine($"Output: {result.OutputPath}");
@@ -221,6 +224,12 @@ static void PrintFixSummary(EpubFixResult result)
     Console.WriteLine($"  Original AutoFix candidates: {result.OriginalAutoFixCandidateCount}");
     Console.WriteLine($"  Inline applied: {result.InlineApplyResult.AppliedCount}");
     Console.WriteLine($"  CrossParagraph applied: {result.CrossParagraphApplyResult.AppliedCount}");
+    Console.WriteLine($"  V2 AutoFix candidates: {result.V2AutoFixCandidateCount}");
+    Console.WriteLine($"  V2 DetectionKind: Inline={result.V2DetectionKinds.Inline}, CrossParagraph={result.V2DetectionKinds.CrossParagraph}, DocumentBoundary={result.V2DetectionKinds.DocumentBoundary}, Other={result.V2DetectionKinds.Other}");
+    Console.WriteLine($"  V2 planned: {result.V2PlannedCount}");
+    Console.WriteLine($"  V2 Inline applied: {result.V2InlineApplyResult.AppliedCount}");
+    Console.WriteLine($"  V2 CrossParagraph applied: {result.V2CrossParagraphApplyResult.AppliedCount}");
+    Console.WriteLine($"  V2 unsupported DocumentBoundary: {result.V2UnsupportedDocumentBoundaryCount}");
     Console.WriteLine($"  Skipped: {skipped}");
     Console.WriteLine();
     Console.WriteLine($"Total applied corrections: {totalApplied}");
