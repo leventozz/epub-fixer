@@ -42,6 +42,10 @@ public sealed record QualityBenchmarkResult(
     public int UnexpectedTextChanges { get; init; }
 
     public int NonTextChanges { get; init; }
+
+    public IReadOnlyList<UnexpectedTextChange> UnexpectedTextChangeDetails { get; init; } = [];
+
+    public IReadOnlyList<NonTextChange> NonTextChangeDetails { get; init; } = [];
 }
 
 public sealed record ProtectedOccurrenceViolation(
@@ -56,3 +60,16 @@ public sealed record KnownErrorCorrectionFailure(
 public sealed record ProtectedOccurrenceChange(
     ProtectedOccurrence Occurrence,
     string ObservedText);
+
+public sealed record UnexpectedTextChange(
+    string DocumentPath,
+    string Region,
+    string Before,
+    string After,
+    string Reason);
+
+public sealed record NonTextChange(
+    string DocumentPath,
+    string Region,
+    string Mutation,
+    string Reason);

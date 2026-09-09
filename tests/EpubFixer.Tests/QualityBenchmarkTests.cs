@@ -1,5 +1,10 @@
 using System.Reflection;
 using EpubFixer.Core.Epub;
+using EpubFixer.Core.Correction;
+using EpubFixer.Core.Detection;
+using EpubFixer.Core.Evidence;
+using EpubFixer.Core.Lexicon;
+using EpubFixer.QualityBenchmarks.Models;
 using EpubFixer.QualityBenchmarks;
 
 namespace EpubFixer.Tests;
@@ -41,6 +46,73 @@ public sealed class QualityBenchmarkTests
         Assert.Equal(0, result.Deferred);
         Assert.Equal(9, result.ProtectedOccurrences);
         Assert.Equal(0, result.ProtectedChanged);
+    }
+
+    [Fact]
+    public void Integrity_AllowsGroundTruthInlineMutation()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>Auersber-ger</p>"))],
+            [new TestSpineItem("chapter")]);
+        var package = new EpubPackageReader().Read(epub.Path);
+        var decisions = Analyze(package.LogicalText);
+        var plans = new HyphenationCorrectionPlanner().Plan(decisions);
+        var evaluator = new QualityBenchmarkIntegrityEvaluator();
+        var before = evaluator.Capture(package.SpineDocuments);
+
+        _ = new HyphenationCorrectionApplier().Apply(plans);
+
+        var audit = evaluator.Audit(before, package.SpineDocuments, plans, "inline");
+
+        Assert.Empty(audit.TextChanges);
+        Assert.Empty(audit.NonTextChanges);
+    }
+
+    [Fact]
+    public void Integrity_ReportsUnexpectedTextAndAttributeMutation()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p id=\"stable\">Auersber-ger</p>"))],
+            [new TestSpineItem("chapter")]);
+        var package = new EpubPackageReader().Read(epub.Path);
+        var evaluator = new QualityBenchmarkIntegrityEvaluator();
+        var before = evaluator.Capture(package.SpineDocuments);
+        var paragraph = package.SpineDocuments[0].Document.QuerySelector("p")!;
+        paragraph.SetAttribute("id", "changed");
+        paragraph.TextContent = "unexpected";
+
+        var audit = evaluator.Audit(before, package.SpineDocuments, [], "inline");
+
+        Assert.NotEmpty(audit.TextChanges);
+        Assert.NotEmpty(audit.NonTextChanges);
+    }
+
+    [Fact]
+    public void Integrity_AllowsGroundTruthCrossParagraphMutation()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>kol-</p>\n<p>tukta</p>"))],
+            [new TestSpineItem("chapter")]);
+        var package = new EpubPackageReader().Read(epub.Path);
+        var plans = new HyphenationCorrectionPlanner().Plan(Analyze(package.LogicalText));
+        var evaluator = new QualityBenchmarkIntegrityEvaluator();
+        var before = evaluator.Capture(package.SpineDocuments);
+
+        _ = new EpubFixer.Core.Correction.CrossParagraphHyphenationCorrectionApplier().Apply(plans);
+
+        var audit = evaluator.Audit(before, package.SpineDocuments, plans, "cross-paragraph");
+
+        Assert.Empty(audit.TextChanges);
+        Assert.Empty(audit.NonTextChanges);
+    }
+
+    private static IReadOnlyList<EpubFixer.Core.Decision.Models.HyphenationDecision> Analyze(
+        EpubFixer.Core.Epub.Models.LogicalTextStream stream)
+    {
+        var candidates = new HyphenationDetector().Detect(stream);
+        var lexicon = new BookLexiconBuilder().Build(stream);
+        var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon, stream);
+        return new EpubFixer.Core.Decision.HyphenationDecisionEvaluator().Evaluate(evidence);
     }
 
     [Fact]
@@ -417,6 +489,18 @@ public sealed class QualityBenchmarkTests
         }
 
         throw new DirectoryNotFoundException(string.Join(Path.DirectorySeparatorChar, parts));
+    }
+
+    private static string Xhtml(string body)
+    {
+        return $"""
+            <?xml version="1.0" encoding="utf-8"?>
+            <!DOCTYPE html>
+            <html xmlns="http://www.w3.org/1999/xhtml">
+              <head><title>Test</title></head>
+              <body>{body}</body>
+            </html>
+            """;
     }
 }
 

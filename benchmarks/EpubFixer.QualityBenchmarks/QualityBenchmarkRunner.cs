@@ -45,10 +45,25 @@ public sealed class QualityBenchmarkRunner
             decisions);
 
         var originalPlans = new HyphenationCorrectionPlanner().Plan(decisions);
+        var integrityEvaluator = new QualityBenchmarkIntegrityEvaluator();
+        var allowedOriginalPlans = originalPlans
+            .Where(plan => dataset.GroundTruth.KnownErrors.Any(knownError =>
+                QualityBenchmarkMatcher.IsMatch(
+                    knownError,
+                    plan.Decision.Evidence.Candidate)))
+            .ToArray();
         var inlinePlans = originalPlans
             .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline)
             .ToArray();
+
+        var beforeInline = integrityEvaluator.Capture(package.SpineDocuments);
         _ = new HyphenationCorrectionApplier().Apply(inlinePlans);
+        var inlineIntegrity = integrityEvaluator.Audit(
+            beforeInline,
+            package.SpineDocuments,
+            allowedOriginalPlans.Where(plan =>
+                plan.CorrectionKind == HyphenationCorrectionKind.Inline).ToArray(),
+            "inline");
 
         var afterInlineStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
         var afterInlineCandidates = new HyphenationDetector().Detect(afterInlineStream);
@@ -62,7 +77,23 @@ public sealed class QualityBenchmarkRunner
             .Plan(afterInlineDecisions)
             .Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.CrossParagraph)
             .ToArray();
+
+        var allowedFreshCrossParagraphPlans = freshCrossParagraphPlans
+            .Where(fresh => allowedOriginalPlans.Any(original =>
+                original.CorrectionKind == HyphenationCorrectionKind.CrossParagraph
+                && string.Equals(original.UnhyphenatedText, fresh.UnhyphenatedText, StringComparison.Ordinal)
+                && ReferenceEquals(original.LeftSource.SourceNode, fresh.LeftSource.SourceNode)
+                && ReferenceEquals(original.HyphenSource.SourceNode, fresh.HyphenSource.SourceNode)
+                && ReferenceEquals(original.RightSource.SourceNode, fresh.RightSource.SourceNode)))
+            .ToArray();
+
+        var beforeCrossParagraph = integrityEvaluator.Capture(package.SpineDocuments);
         _ = new CrossParagraphHyphenationCorrectionApplier().Apply(freshCrossParagraphPlans);
+        var crossIntegrity = integrityEvaluator.Audit(
+            beforeCrossParagraph,
+            package.SpineDocuments,
+            allowedFreshCrossParagraphPlans,
+            "cross-paragraph");
 
         var correctionResult = new QualityBenchmarkCorrectionEvaluator().Evaluate(
             dataset.GroundTruth.KnownErrors,
@@ -92,7 +123,15 @@ public sealed class QualityBenchmarkRunner
             Deferred = correctionResult.Deferred,
             CorrectionFailures = correctionResult.Failures,
             ProtectedChanged = protectedMutationResult.ProtectedChanged,
-            ProtectedChanges = protectedMutationResult.Changes
+            ProtectedChanges = protectedMutationResult.Changes,
+            UnexpectedTextChanges = inlineIntegrity.TextChanges.Count + crossIntegrity.TextChanges.Count,
+            NonTextChanges = inlineIntegrity.NonTextChanges.Count + crossIntegrity.NonTextChanges.Count,
+            UnexpectedTextChangeDetails = inlineIntegrity.TextChanges
+                .Concat(crossIntegrity.TextChanges)
+                .ToArray(),
+            NonTextChangeDetails = inlineIntegrity.NonTextChanges
+                .Concat(crossIntegrity.NonTextChanges)
+                .ToArray()
         };
     }
 }

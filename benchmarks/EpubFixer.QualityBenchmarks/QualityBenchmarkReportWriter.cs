@@ -68,6 +68,40 @@ public static class QualityBenchmarkReportWriter
         writer.WriteLine($"Protection rate: {FormatRate(result.ProtectionRate)}");
         writer.WriteLine($"Protected changed: {result.ProtectedChanged}");
 
+        writer.WriteLine();
+        writer.WriteLine("Integrity:");
+        writer.WriteLine($"  Unexpected text changes: {result.UnexpectedTextChanges}");
+        writer.WriteLine($"  Non-text changes: {result.NonTextChanges}");
+
+        foreach (var change in result.UnexpectedTextChangeDetails.Take(5))
+        {
+            writer.WriteLine();
+            writer.WriteLine("UNEXPECTED TEXT CHANGE");
+            writer.WriteLine($"document: {change.DocumentPath}");
+            writer.WriteLine($"region: {change.Region}");
+            writer.WriteLine($"before: {change.Before}");
+            writer.WriteLine($"after: {change.After}");
+            writer.WriteLine($"reason: {change.Reason}");
+        }
+
+        foreach (var change in result.NonTextChangeDetails.Take(5))
+        {
+            writer.WriteLine();
+            writer.WriteLine("UNEXPECTED NON-TEXT CHANGE");
+            writer.WriteLine($"document: {change.DocumentPath}");
+            writer.WriteLine($"region: {change.Region}");
+            writer.WriteLine($"mutation: {change.Mutation}");
+            writer.WriteLine($"reason: {change.Reason}");
+        }
+
+        var omittedTextChanges = result.UnexpectedTextChanges - Math.Min(5, result.UnexpectedTextChanges);
+        var omittedNonTextChanges = result.NonTextChanges - Math.Min(5, result.NonTextChanges);
+        if (omittedTextChanges > 0 || omittedNonTextChanges > 0)
+        {
+            writer.WriteLine();
+            writer.WriteLine($"Additional integrity diagnostics omitted: {omittedTextChanges + omittedNonTextChanges}");
+        }
+
         foreach (var change in result.ProtectedChanges)
         {
             writer.WriteLine();

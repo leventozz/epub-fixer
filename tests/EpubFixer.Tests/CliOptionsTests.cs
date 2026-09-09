@@ -101,6 +101,26 @@ public sealed class CliOptionsTests
     }
 
     [Fact]
+    public void TryParse_AcceptsTrMorphReportOnlyWithGroundTruth()
+    {
+        var parsed = CliOptions.TryParse(
+            ["analyze", "book.epub", "--trmorph-report", "report.md", "--ground-truth", "gt.json"],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.Equal("report.md", options.TrMorphReportPath);
+        Assert.Equal("gt.json", options.GroundTruthPath);
+    }
+
+    [Theory]
+    [InlineData("--trmorph-report", "report.md")]
+    [InlineData("--ground-truth", "gt.json")]
+    public void TryParse_RequiresTrMorphReportAndGroundTruthTogether(string option, string value)
+    {
+        Assert.False(CliOptions.TryParse(["analyze", "book.epub", option, value], out _));
+    }
+
+    [Fact]
     public void TryParse_RejectsDuplicateApplyParagraphFlag()
     {
         Assert.False(CliOptions.TryParse(

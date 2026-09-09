@@ -5,6 +5,7 @@
   <Folder Name="/src/">
     <Project Path="src/EpubFixer.Cli/EpubFixer.Cli.csproj" />
     <Project Path="src/EpubFixer.Core/EpubFixer.Core.csproj" />
+    <Project Path="src/EpubFixer.TrMorph/EpubFixer.TrMorph.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/EpubFixer.Tests/EpubFixer.Tests.csproj" />

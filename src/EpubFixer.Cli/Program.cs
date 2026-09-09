@@ -13,6 +13,8 @@ using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Fix.Models;
+using EpubFixer.Core.Morphology;
+using EpubFixer.TrMorph;
 
 return Run(args);
 
@@ -88,7 +90,9 @@ static int Run(string[] arguments)
                 $"Hyphenation analysis report written to: {options.HyphenAnalysisReportPath}");
         }
 
-        if (options.ApplyParagraph || options.PostFixLexiconReportPath is not null)
+        if (options.ApplyParagraph
+            || options.PostFixLexiconReportPath is not null
+            || options.TrMorphReportPath is not null)
         {
             var postFix = RunPostFixAnalysis(package, originalPipeline);
             var inlinePlans = postFix.InlinePlans;
@@ -122,6 +126,22 @@ static int Run(string[] arguments)
                 Console.WriteLine(
                     $"Post-fix lexicon report written to: {options.PostFixLexiconReportPath}");
             }
+
+            if (options.TrMorphReportPath is not null)
+            {
+                var protectedOccurrences = GroundTruthProtectedOccurrenceLoader.Load(
+                    options.GroundTruthPath!);
+                using var analyzer = new FomaTurkishMorphologyAnalyzer();
+                var morphology = new HyphenationMorphologyAnalyzer().Analyze(
+                    afterCrossParagraphPipeline.Evidence,
+                    analyzer);
+                File.WriteAllText(
+                    options.TrMorphReportPath,
+                    TrMorphReport.Serialize(morphology, protectedOccurrences, analyzer),
+                    new UTF8Encoding(false));
+                Console.WriteLine();
+                Console.WriteLine($"TRmorph report written to: {options.TrMorphReportPath}");
+            }
         }
         else if (options.ApplyInline)
         {
@@ -141,7 +161,8 @@ static int Run(string[] arguments)
     catch (Exception exception) when (exception is ArgumentException
         or IOException
         or InvalidDataException
-        or UnauthorizedAccessException)
+        or UnauthorizedAccessException
+        or TurkishMorphologyException)
     {
         Console.Error.WriteLine($"Error: {exception.Message}");
         return 2;
@@ -156,6 +177,7 @@ static void ValidateOutputPaths(CliOptions options)
         options.HyphenReportPath,
         options.HyphenAnalysisReportPath,
         options.PostFixLexiconReportPath,
+        options.TrMorphReportPath,
         options.OutputEpubPath
     }.Where(path => path is not null).Cast<string>().ToArray();
 
@@ -544,7 +566,8 @@ static void PrintUsage()
         + "[--apply-paragraph] "
         + "[--dump-text <output.txt>] [--hyphen-report <hyphens.json>] "
         + "[--hyphen-analysis-report <analysis.md>] "
-        + "[--post-fix-lexicon-report <post-fix.md>]");
+        + "[--post-fix-lexicon-report <post-fix.md>] "
+        + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
     Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub>");
 }
 
@@ -556,6 +579,8 @@ internal sealed record CliOptions(
     string? HyphenReportPath,
     string? HyphenAnalysisReportPath,
     string? PostFixLexiconReportPath,
+    string? TrMorphReportPath,
+    string? GroundTruthPath,
     bool ApplyInline,
     bool ApplyParagraph)
 {
@@ -585,6 +610,8 @@ internal sealed record CliOptions(
                 null,
                 null,
                 null,
+                null,
+                null,
                 false,
                 false);
             return true;
@@ -599,6 +626,8 @@ internal sealed record CliOptions(
         string? hyphenReportPath = null;
         string? hyphenAnalysisReportPath = null;
         string? postFixLexiconReportPath = null;
+        string? trMorphReportPath = null;
+        string? groundTruthPath = null;
         var applyInline = false;
         var applyParagraph = false;
         var index = 2;
@@ -676,6 +705,16 @@ internal sealed record CliOptions(
 
                 postFixLexiconReportPath = value;
             }
+            else if (string.Equals(option, "--trmorph-report", StringComparison.OrdinalIgnoreCase))
+            {
+                if (trMorphReportPath is not null) return false;
+                trMorphReportPath = value;
+            }
+            else if (string.Equals(option, "--ground-truth", StringComparison.OrdinalIgnoreCase))
+            {
+                if (groundTruthPath is not null) return false;
+                groundTruthPath = value;
+            }
             else
             {
                 return false;
@@ -683,6 +722,8 @@ internal sealed record CliOptions(
 
             index += 2;
         }
+
+        if ((trMorphReportPath is null) != (groundTruthPath is null)) return false;
 
         options = new CliOptions(
             CliCommand.Analyze,
@@ -692,6 +733,8 @@ internal sealed record CliOptions(
             hyphenReportPath,
             hyphenAnalysisReportPath,
             postFixLexiconReportPath,
+            trMorphReportPath,
+            groundTruthPath,
             applyInline,
             applyParagraph);
         return true;
