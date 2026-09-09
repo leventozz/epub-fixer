@@ -5,4 +5,5 @@ namespace EpubFixer.Core.Evidence.Models;
 public sealed record HyphenationEvidence(
     HyphenationCandidate Candidate,
     int UnhyphenatedOccurrenceCount,
-    bool ExistsInLexicon);
+    bool ExistsInLexicon,
+    HyphenationContextEvidence Context);

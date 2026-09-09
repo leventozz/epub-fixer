@@ -1,4 +1,7 @@
 using System.Text;
+using EpubFixer.Core.Correction;
+using EpubFixer.Core.Decision;
+using EpubFixer.Core.Decision.Models;
 using EpubFixer.Core.Detection;
 using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub;
@@ -24,12 +27,23 @@ static int Run(string[] arguments)
         var package = new EpubPackageReader().Read(options.EpubPath);
         var candidates = new HyphenationDetector().Detect(package.LogicalText);
         var lexicon = new BookLexiconBuilder().Build(package.LogicalText);
-        var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon);
+        var evidence = new HyphenationEvidenceEvaluator().Evaluate(
+            candidates,
+            lexicon,
+            package.LogicalText);
         var evidenceSummary = HyphenationEvidenceReporting.CreateSummary(evidence);
+        var decisions = new HyphenationDecisionEvaluator().Evaluate(evidence);
+        var decisionSummary = HyphenationDecisionReporting.CreateSummary(decisions);
+        var correctionPlans = new HyphenationCorrectionPlanner().Plan(decisions);
+        var correctionSummary = HyphenationCorrectionReporting.CreateSummary(
+            decisions,
+            correctionPlans);
 
         PrintSummary(package);
         PrintHyphenationSummary(candidates);
         HyphenationEvidenceReporting.Print(Console.Out, evidenceSummary);
+        HyphenationDecisionReporting.Print(Console.Out, decisionSummary);
+        HyphenationCorrectionReporting.Print(Console.Out, correctionSummary);
 
         if (options.DumpPath is not null)
         {
@@ -43,7 +57,11 @@ static int Run(string[] arguments)
 
         if (options.HyphenReportPath is not null)
         {
-            WriteHyphenationReport(options.HyphenReportPath, evidence, evidenceSummary);
+            WriteHyphenationReport(
+                options.HyphenReportPath,
+                decisions,
+                evidenceSummary,
+                decisionSummary);
             Console.WriteLine();
             Console.WriteLine($"Hyphenation report written to: {options.HyphenReportPath}");
         }
@@ -265,10 +283,14 @@ static void PrintCandidate(HyphenationCandidate candidate)
 
 static void WriteHyphenationReport(
     string reportPath,
-    IReadOnlyList<HyphenationEvidence> evidence,
-    HyphenationEvidenceSummary summary)
+    IReadOnlyList<HyphenationDecision> decisions,
+    HyphenationEvidenceSummary evidenceSummary,
+    HyphenationDecisionSummary decisionSummary)
 {
-    var json = HyphenationEvidenceReporting.SerializeJson(evidence, summary);
+    var json = HyphenationEvidenceReporting.SerializeJson(
+        decisions,
+        evidenceSummary,
+        decisionSummary);
     File.WriteAllText(reportPath, json, new UTF8Encoding(false));
 }
 

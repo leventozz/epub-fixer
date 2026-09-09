@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AngleSharp.Html.Parser;
+using EpubFixer.Core.Decision;
 using EpubFixer.Core.Detection;
 using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub;
@@ -10,6 +11,9 @@ namespace EpubFixer.Tests;
 
 public sealed class HyphenationEvidenceReportingTests
 {
+    private static readonly HyphenationContextEvidence EmptyContext =
+        new(null, null, false, false);
+
     [Fact]
     public void CreateSummary_CountsEveryOccurrenceInExactlyOneBucket()
     {
@@ -93,8 +97,13 @@ public sealed class HyphenationEvidenceReportingTests
     {
         var evidence = new[] { CreateEvidence("Auersber", "ger", 202) };
         var summary = HyphenationEvidenceReporting.CreateSummary(evidence);
+        var decisions = new HyphenationDecisionEvaluator().Evaluate(evidence);
+        var decisionSummary = HyphenationDecisionReporting.CreateSummary(decisions);
 
-        var json = HyphenationEvidenceReporting.SerializeJson(evidence, summary);
+        var json = HyphenationEvidenceReporting.SerializeJson(
+            decisions,
+            summary,
+            decisionSummary);
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
         var occurrence = root.GetProperty("occurrences")[0];
@@ -108,15 +117,67 @@ public sealed class HyphenationEvidenceReportingTests
                 .GetProperty("lexiconCountBuckets")
                 .GetProperty("fiftyOrMore")
                 .GetInt32());
+        Assert.Equal(1, root.GetProperty("decisions").GetProperty("total").GetInt32());
+        Assert.Equal(
+            0,
+            root.GetProperty("decisions").GetProperty("autoFixCandidate").GetInt32());
+        Assert.Equal(1, root.GetProperty("decisions").GetProperty("deferred").GetInt32());
+        Assert.Empty(
+            root.GetProperty("decisions").GetProperty("autoFixCandidateTransformations")
+                .EnumerateArray());
         Assert.Equal("Auersber", occurrence.GetProperty("leftPart").GetString());
         Assert.Equal("ger", occurrence.GetProperty("rightPart").GetString());
         Assert.Equal("Auersberger", occurrence.GetProperty("unhyphenatedText").GetString());
         Assert.Equal("Inline", occurrence.GetProperty("detectionKind").GetString());
         Assert.Equal(202, occurrence.GetProperty("unhyphenatedOccurrenceCount").GetInt32());
         Assert.True(occurrence.GetProperty("existsInLexicon").GetBoolean());
+        Assert.Equal("Deferred", occurrence.GetProperty("decisionKind").GetString());
+        var context = occurrence.GetProperty("context");
+        Assert.Equal("-", context.GetProperty("previousRune").GetString());
+        Assert.Equal("·", context.GetProperty("nextRune").GetString());
+        Assert.True(context.GetProperty("hasAdjacentHyphen").GetBoolean());
+        Assert.True(context.GetProperty("hasAdjacentSuspiciousCharacter").GetBoolean());
         Assert.Equal("chapter.xhtml", occurrence.GetProperty("leftSource").GetProperty("documentPath").GetString());
         Assert.DoesNotContain("SourceNode", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("AngleSharp", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void SerializeJson_IncludesDecisionSummaryAndAllAutoFixCandidateAggregates()
+    {
+        var evidence = new[]
+        {
+            CreateEvidence("Auersber", "ger", 202) with { Context = EmptyContext },
+            CreateEvidence("Auersber", "ger", 202) with { Context = EmptyContext },
+            CreateEvidence("Greg", "ers", 9) with { Context = EmptyContext }
+        };
+        var evidenceSummary = HyphenationEvidenceReporting.CreateSummary(evidence);
+        var decisions = new HyphenationDecisionEvaluator().Evaluate(evidence);
+        var decisionSummary = HyphenationDecisionReporting.CreateSummary(decisions);
+
+        var json = HyphenationEvidenceReporting.SerializeJson(
+            decisions,
+            evidenceSummary,
+            decisionSummary);
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        var decisionJson = root.GetProperty("decisions");
+        var aggregate = Assert.Single(
+            decisionJson.GetProperty("autoFixCandidateTransformations").EnumerateArray());
+
+        Assert.Equal(3, decisionJson.GetProperty("total").GetInt32());
+        Assert.Equal(2, decisionJson.GetProperty("autoFixCandidate").GetInt32());
+        Assert.Equal(1, decisionJson.GetProperty("deferred").GetInt32());
+        Assert.Equal("Auersber", aggregate.GetProperty("leftPart").GetString());
+        Assert.Equal("ger", aggregate.GetProperty("rightPart").GetString());
+        Assert.Equal("Auersberger", aggregate.GetProperty("unhyphenatedText").GetString());
+        Assert.Equal(202, aggregate.GetProperty("lexiconCount").GetInt32());
+        Assert.Equal(2, aggregate.GetProperty("candidateOccurrences").GetInt32());
+        Assert.Equal(
+            ["AutoFixCandidate", "AutoFixCandidate", "Deferred"],
+            root.GetProperty("occurrences")
+                .EnumerateArray()
+                .Select(item => item.GetProperty("decisionKind").GetString()));
     }
 
     [Fact]
@@ -140,7 +201,8 @@ public sealed class HyphenationEvidenceReportingTests
             .Select(candidate => new HyphenationEvidence(
                 candidate,
                 candidate.UnhyphenatedText == "Joana" ? 20 : 10,
-                true))
+                true,
+                EmptyContext))
             .ToArray();
 
         var analysis = HyphenationEvidenceReporting.CreateAnalysis(evidence, stream);
@@ -184,7 +246,11 @@ public sealed class HyphenationEvidenceReportingTests
                     source,
                     source,
                     source);
-                evidence.Add(new HyphenationEvidence(candidate, lexiconCount, lexiconCount > 0));
+                evidence.Add(new HyphenationEvidence(
+                    candidate,
+                    lexiconCount,
+                    lexiconCount > 0,
+                    EmptyContext));
             }
         }
 
@@ -220,7 +286,7 @@ public sealed class HyphenationEvidenceReportingTests
         var stream = new EpubPackageReader().Read(epub.Path).LogicalText;
         var evidence = new HyphenationDetector()
             .Detect(stream)
-            .Select(candidate => new HyphenationEvidence(candidate, 0, false))
+            .Select(candidate => new HyphenationEvidence(candidate, 0, false, EmptyContext))
             .ToArray();
 
         var analysis = HyphenationEvidenceReporting.CreateAnalysis(evidence, stream);
@@ -261,7 +327,8 @@ public sealed class HyphenationEvidenceReportingTests
         return new HyphenationEvidence(
             candidate,
             unhyphenatedOccurrenceCount,
-            unhyphenatedOccurrenceCount > 0);
+            unhyphenatedOccurrenceCount > 0,
+            new HyphenationContextEvidence("-", "·", true, true));
     }
 
     private static void AssertAggregate(

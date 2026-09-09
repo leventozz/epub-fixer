@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using EpubFixer.Core.Decision.Models;
 using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Evidence.Models;
@@ -125,15 +126,19 @@ internal static class HyphenationEvidenceReporting
     }
 
     public static string SerializeJson(
-        IReadOnlyList<HyphenationEvidence> evidence,
-        HyphenationEvidenceSummary summary)
+        IReadOnlyList<HyphenationDecision> decisions,
+        HyphenationEvidenceSummary evidenceSummary,
+        HyphenationDecisionSummary decisionSummary)
     {
-        ArgumentNullException.ThrowIfNull(evidence);
-        ArgumentNullException.ThrowIfNull(summary);
+        ArgumentNullException.ThrowIfNull(decisions);
+        ArgumentNullException.ThrowIfNull(evidenceSummary);
+        ArgumentNullException.ThrowIfNull(decisionSummary);
+
+        var evidence = decisions.Select(item => item.Evidence).ToArray();
 
         var report = new
         {
-            candidateCount = evidence.Count,
+            candidateCount = evidence.Length,
             counts = new
             {
                 inline = CountCandidates(evidence, HyphenationDetectionKind.Inline),
@@ -143,29 +148,53 @@ internal static class HyphenationEvidenceReporting
             },
             evidence = new
             {
-                existsInLexicon = summary.ExistsInLexicon,
-                notFoundInLexicon = summary.NotFoundInLexicon,
+                existsInLexicon = evidenceSummary.ExistsInLexicon,
+                notFoundInLexicon = evidenceSummary.NotFoundInLexicon,
                 lexiconCountBuckets = new
                 {
-                    zero = summary.Buckets.Zero,
-                    one = summary.Buckets.One,
-                    twoToFour = summary.Buckets.TwoToFour,
-                    fiveToNine = summary.Buckets.FiveToNine,
-                    tenToFortyNine = summary.Buckets.TenToFortyNine,
-                    fiftyOrMore = summary.Buckets.FiftyOrMore
+                    zero = evidenceSummary.Buckets.Zero,
+                    one = evidenceSummary.Buckets.One,
+                    twoToFour = evidenceSummary.Buckets.TwoToFour,
+                    fiveToNine = evidenceSummary.Buckets.FiveToNine,
+                    tenToFortyNine = evidenceSummary.Buckets.TenToFortyNine,
+                    fiftyOrMore = evidenceSummary.Buckets.FiftyOrMore
                 }
             },
-            occurrences = evidence.Select(item => new
+            decisions = new
             {
-                leftPart = item.Candidate.LeftPart,
-                rightPart = item.Candidate.RightPart,
-                unhyphenatedText = item.Candidate.UnhyphenatedText,
-                detectionKind = FormatDetectionKind(item.Candidate.DetectionKind),
-                unhyphenatedOccurrenceCount = item.UnhyphenatedOccurrenceCount,
-                existsInLexicon = item.ExistsInLexicon,
-                leftSource = CreatePortableSource(item.Candidate.LeftSource),
-                hyphenSource = CreatePortableSource(item.Candidate.HyphenSource),
-                rightSource = CreatePortableSource(item.Candidate.RightSource)
+                total = decisionSummary.TotalDecisions,
+                autoFixCandidate = decisionSummary.AutoFixCandidate,
+                deferred = decisionSummary.Deferred,
+                autoFixCandidateTransformations = decisionSummary.AutoFixCandidateTransformations
+                    .Select(item => new
+                    {
+                        leftPart = item.Key.LeftPart,
+                        rightPart = item.Key.RightPart,
+                        unhyphenatedText = item.Key.UnhyphenatedText,
+                        lexiconCount = item.LexiconCount,
+                        candidateOccurrences = item.CandidateOccurrences
+                    })
+                    .ToArray()
+            },
+            occurrences = decisions.Select(decision => new
+            {
+                leftPart = decision.Evidence.Candidate.LeftPart,
+                rightPart = decision.Evidence.Candidate.RightPart,
+                unhyphenatedText = decision.Evidence.Candidate.UnhyphenatedText,
+                detectionKind = FormatDetectionKind(decision.Evidence.Candidate.DetectionKind),
+                unhyphenatedOccurrenceCount = decision.Evidence.UnhyphenatedOccurrenceCount,
+                existsInLexicon = decision.Evidence.ExistsInLexicon,
+                decisionKind = FormatDecisionKind(decision.DecisionKind),
+                context = new
+                {
+                    previousRune = decision.Evidence.Context.PreviousRune,
+                    nextRune = decision.Evidence.Context.NextRune,
+                    hasAdjacentHyphen = decision.Evidence.Context.HasAdjacentHyphen,
+                    hasAdjacentSuspiciousCharacter = decision.Evidence.Context.HasAdjacentSuspiciousCharacter
+                },
+                leftSource = CreatePortableSource(decision.Evidence.Candidate.LeftSource),
+                hyphenSource = CreatePortableSource(decision.Evidence.Candidate.HyphenSource),
+                rightSource = CreatePortableSource(decision.Evidence.Candidate.RightSource)
             }).ToArray()
         };
 
@@ -377,6 +406,16 @@ internal static class HyphenationEvidenceReporting
             HyphenationDetectionKind.TextNodeBoundary => "TextNodeBoundary",
             HyphenationDetectionKind.ParagraphBoundary => "ParagraphBoundary",
             HyphenationDetectionKind.DocumentBoundary => "DocumentBoundary",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
+        };
+    }
+
+    private static string FormatDecisionKind(HyphenationDecisionKind kind)
+    {
+        return kind switch
+        {
+            HyphenationDecisionKind.AutoFixCandidate => "AutoFixCandidate",
+            HyphenationDecisionKind.Deferred => "Deferred",
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null)
         };
     }

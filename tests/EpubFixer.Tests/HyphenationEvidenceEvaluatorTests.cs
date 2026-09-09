@@ -1,4 +1,5 @@
 using EpubFixer.Core.Detection;
+using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Epub.Models;
@@ -18,7 +19,7 @@ public sealed class HyphenationEvidenceEvaluatorTests
         var lexicon = new BookLexiconBuilder().Build(stream);
 
         var evidence = Assert.Single(
-            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon));
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
 
         Assert.Same(candidate, evidence.Candidate);
         Assert.Equal(10, evidence.UnhyphenatedOccurrenceCount);
@@ -34,7 +35,7 @@ public sealed class HyphenationEvidenceEvaluatorTests
         var lexicon = new BookLexiconBuilder().Build(stream);
 
         var evidence = Assert.Single(
-            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon));
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
 
         Assert.Equal("MayısHaziran", evidence.Candidate.UnhyphenatedText);
         Assert.Equal(0, evidence.UnhyphenatedOccurrenceCount);
@@ -50,7 +51,7 @@ public sealed class HyphenationEvidenceEvaluatorTests
         var lexicon = new BookLexiconBuilder().Build(stream);
 
         var evidence = Assert.Single(
-            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon));
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
 
         Assert.Equal(0, evidence.UnhyphenatedOccurrenceCount);
         Assert.False(evidence.ExistsInLexicon);
@@ -65,7 +66,7 @@ public sealed class HyphenationEvidenceEvaluatorTests
         var candidates = new HyphenationDetector().Detect(stream);
         var lexicon = new BookLexiconBuilder().Build(stream);
 
-        var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon);
+        var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon, stream);
 
         Assert.Equal(2, candidates.Count);
         Assert.Equal(2, evidence.Count);
@@ -79,6 +80,111 @@ public sealed class HyphenationEvidenceEvaluatorTests
     }
 
     [Fact]
+    public void Evaluate_ReportsIsolatedCandidateContext()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Auersber-ger</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var lexicon = new BookLexiconBuilder().Build(stream);
+
+        var evidence = Assert.Single(
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
+
+        Assert.Null(evidence.Context.PreviousRune);
+        Assert.Null(evidence.Context.NextRune);
+        Assert.False(evidence.Context.HasAdjacentHyphen);
+        Assert.False(evidence.Context.HasAdjacentSuspiciousCharacter);
+    }
+
+    [Fact]
+    public void Evaluate_ReportsAdjacentHyphenWithoutTreatingItAsSuspicious()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Webern-ha-lı</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(
+            new HyphenationDetector().Detect(stream),
+            item => item.LeftPart == "ha" && item.RightPart == "lı");
+        var lexicon = new BookLexiconBuilder().Build(stream);
+
+        var evidence = Assert.Single(
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
+
+        Assert.Equal("-", evidence.Context.PreviousRune);
+        Assert.Null(evidence.Context.NextRune);
+        Assert.True(evidence.Context.HasAdjacentHyphen);
+        Assert.False(evidence.Context.HasAdjacentSuspiciousCharacter);
+    }
+
+    [Fact]
+    public void Evaluate_ReportsMiddleDotAsSuspiciousContext()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Webern-ha-lı·fi</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(
+            new HyphenationDetector().Detect(stream),
+            item => item.LeftPart == "ha" && item.RightPart == "lı");
+        var lexicon = new BookLexiconBuilder().Build(stream);
+
+        var evidence = Assert.Single(
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
+
+        Assert.Equal("-", evidence.Context.PreviousRune);
+        Assert.Equal("·", evidence.Context.NextRune);
+        Assert.True(evidence.Context.HasAdjacentHyphen);
+        Assert.True(evidence.Context.HasAdjacentSuspiciousCharacter);
+    }
+
+    [Fact]
+    public void Evaluate_DoesNotTreatNormalPunctuationAsSuspicious()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>(Auersber-ger),</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var lexicon = new BookLexiconBuilder().Build(stream);
+
+        var evidence = Assert.Single(
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
+
+        Assert.Equal("(", evidence.Context.PreviousRune);
+        Assert.Equal(")", evidence.Context.NextRune);
+        Assert.False(evidence.Context.HasAdjacentHyphen);
+        Assert.False(evidence.Context.HasAdjacentSuspiciousCharacter);
+    }
+
+    [Fact]
+    public void Evaluate_DecodesAdjacentUnicodeScalarAsOneRune()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Auersber-ger😀</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var lexicon = new BookLexiconBuilder().Build(stream);
+
+        var evidence = Assert.Single(
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
+
+        Assert.Equal("😀", evidence.Context.NextRune);
+        Assert.True(evidence.Context.HasAdjacentSuspiciousCharacter);
+    }
+
+    [Fact]
+    public void Evaluate_ResolvesContextAcrossTextNodeBoundaries()
+    {
+        using var epub = CreateSingleDocumentEpub(
+            "<p>(<span>Viya-</span><span>na</span>),</p>");
+        var stream = ReadStream(epub);
+        var candidate = Assert.Single(new HyphenationDetector().Detect(stream));
+        var lexicon = new BookLexiconBuilder().Build(stream);
+
+        var evidence = Assert.Single(
+            new HyphenationEvidenceEvaluator().Evaluate([candidate], lexicon, stream));
+
+        Assert.Equal(HyphenationDetectionKind.TextNodeBoundary, candidate.DetectionKind);
+        Assert.Equal("(", evidence.Context.PreviousRune);
+        Assert.Equal(")", evidence.Context.NextRune);
+        Assert.False(evidence.Context.HasAdjacentSuspiciousCharacter);
+    }
+
+    [Fact]
     public void Evaluate_RejectsNullInputs()
     {
         using var epub = CreateSingleDocumentEpub("<p>Auersber-ger</p>");
@@ -87,8 +193,9 @@ public sealed class HyphenationEvidenceEvaluatorTests
         var lexicon = new BookLexiconBuilder().Build(stream);
         var evaluator = new HyphenationEvidenceEvaluator();
 
-        Assert.Throws<ArgumentNullException>(() => evaluator.Evaluate(null!, lexicon));
-        Assert.Throws<ArgumentNullException>(() => evaluator.Evaluate([candidate], null!));
+        Assert.Throws<ArgumentNullException>(() => evaluator.Evaluate(null!, lexicon, stream));
+        Assert.Throws<ArgumentNullException>(() => evaluator.Evaluate([candidate], null!, stream));
+        Assert.Throws<ArgumentNullException>(() => evaluator.Evaluate([candidate], lexicon, null!));
     }
 
     private static LogicalTextStream ReadStream(TemporaryEpub epub)
