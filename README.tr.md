@@ -4,7 +4,7 @@
 
 # EpubFixer
 
-**Türkçe EPUB dosyalarındaki OCR kaynaklı metin bozulmalarını, kitabın kendi dilinden öğrenerek çevrimdışı analiz eden ve güvenli düzeltmeleri uygulayan konsol aracı.**
+**Türkçe EPUB dosyalarındaki OCR hatalarını bulup düzeltmek için geliştirilmiş bir komut satırı aracı.**
 
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D4?logo=windows)
@@ -17,15 +17,15 @@
 
 ---
 
-E-kitap okuyucuları EPUB formatında oldukça iyi bir deneyim sunuyor. Ancak PDF'den dönüştürülen EPUB'larda satır sonlarından kalan tireler, parçalanmış kelimeler ve `1 / l / ı` gibi OCR karakter karışıklıkları okuma akışını kolayca bozabiliyor.
+Reader ile kitap okumayı seviyorum fakat kullandığım cihaz en iyi EPUB dosyalarıyla çalışıyor. Her kitap bu formatta bulunmuyor; PDF'den dönüştürülen EPUB'larda da parçalanmış kelimeler, satır sonlarından kalan tireler ve `1 / l / ı` gibi OCR hataları sıkça karşıma çıkıyor.
 
-EpubFixer şu sorudan doğdu:
+Bu durum aklıma şu soruyu getirdi:
 
 > Bir EPUB dosyasındaki OCR hatalarının ne kadarı yalnızca algoritmalar ve sözlükler kullanılarak, metnin anlamını değiştirme riski düşük tutularak düzeltilebilir?
 
-Proje bu soruyu **LLM, harici API ve internet bağlantısı kullanmadan** araştırıyor. Kitabın kendi kelime haznesini, Türkçe morfoloji analizini ve OCR'a özgü hata desenlerini birlikte değerlendiriyor. Temel yaklaşım agresif olmak değil, temkinli olmak: sistem yeterince emin değilse metni değiştirmiyor.
+EpubFixer bu soruya cevap ararken ortaya çıktı. Kitabın kendi kelime haznesini, Türkçe morfoloji analizini ve sık rastlanan OCR hata desenlerini birlikte kullanıyor. Her şey bilgisayarda, internet bağlantısı veya harici bir servis olmadan çalışıyor. Bir düzeltme için yeterli kanıt yoksa kelime olduğu gibi bırakılıyor.
 
-## Öne çıkanlar
+## Neler yapıyor?
 
 - EPUB içindeki XHTML belgelerini okuma sırasına göre işler.
 - Kitaba özel, büyük/küçük harf duyarlı bir kelime haznesi ve kullanım sıklıkları oluşturur.
@@ -195,7 +195,7 @@ benchmarks/
 
 ## Katkıda bulunma
 
-Hata örnekleri, yeni OCR desenleri, güvenli karar kuralları ve farklı EPUB yapıları için testler özellikle değerlidir.
+Katkılara açığım. Özellikle tekrar üretilebilir OCR örnekleri, yeni hata desenleri ve farklı EPUB yapılarını kapsayan testler faydalı olacaktır.
 
 1. Depoyu fork'layın ve bir özellik dalı oluşturun.
 2. Davranış değişikliği için test ekleyin.
@@ -207,11 +207,3 @@ Hata bildirirken mümkünse küçük ve telif açısından paylaşılabilir bir 
 ## Üçüncü taraf bileşenler
 
 Türkçe morfoloji analizi için TRmorph sonlu durum dönüştürücüsü ve foma `flookup` çalışma zamanı kullanılır. Kaynak, sürüm ve lisans bilgileri [THIRD-PARTY-NOTICES.md](src/EpubFixer.TrMorph/Resources/win-x64/THIRD-PARTY-NOTICES.md) dosyasındadır.
-
----
-
-<div align="center">
-
-**Tamamen çevrimdışı. LLM yok. Harici API yok. Biraz algoritma, biraz sözlük, bolca merak.**
-
-</div>

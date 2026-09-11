@@ -4,7 +4,7 @@
 
 # EpubFixer
 
-**A privacy-first CLI that analyzes OCR artifacts in Turkish EPUB files, learns from each book's own vocabulary, and applies high-confidence corrections entirely offline.**
+**A command-line tool for finding and correcting OCR errors in Turkish EPUB files.**
 
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D4?logo=windows)
@@ -17,15 +17,15 @@
 
 ---
 
-E-readers offer an excellent experience with EPUB files. EPUBs converted from PDF, however, often contain leftover line-break hyphens, fragmented words, and OCR character confusions such as `1 / l / ı`. These artifacts quickly get in the way of reading.
+I enjoy reading on an e-reader, but mine works best with EPUB files. Not every book is available in that format, and EPUBs converted from PDF often come with broken words, leftover line-break hyphens, and OCR character confusions such as `1 / l / ı`.
 
-EpubFixer started with a question:
+That led to a question:
 
 > How many OCR errors in an EPUB can be corrected using only algorithms and dictionaries, while keeping the risk of changing the text's meaning low?
 
-The project explores that question **without an LLM, external API, or internet connection**. It combines the book's own vocabulary with Turkish morphological analysis and OCR-specific error patterns. The guiding principle is caution, not aggression: when the evidence is not strong enough, EpubFixer leaves the text unchanged.
+EpubFixer is my attempt to answer it. It uses the book's own vocabulary, Turkish morphological analysis, and common OCR error patterns. Everything runs locally, without an LLM or an external service. If there is not enough evidence for a correction, the word is left unchanged.
 
-## Highlights
+## What it does
 
 - Processes XHTML documents in the EPUB spine's reading order.
 - Builds a case-sensitive, book-specific lexicon with occurrence frequencies.
@@ -195,7 +195,7 @@ benchmarks/
 
 ## Contributing
 
-Error samples, new OCR patterns, conservative decision rules, and tests for different EPUB structures are particularly valuable.
+Contributions are welcome, especially reproducible OCR examples, new error patterns, and tests covering different EPUB structures.
 
 1. Fork the repository and create a feature branch.
 2. Add tests for behavioral changes.
@@ -207,11 +207,3 @@ When reporting a bug, include a small, copyright-safe EPUB sample when possible,
 ## Third-party components
 
 Turkish morphological analysis uses the TRmorph finite-state transducer and the foma `flookup` runtime. Provenance, pinned revisions, hashes, and license details are documented in [THIRD-PARTY-NOTICES.md](src/EpubFixer.TrMorph/Resources/win-x64/THIRD-PARTY-NOTICES.md).
-
----
-
-<div align="center">
-
-**Fully offline. No LLM. No external API. Just algorithms, dictionaries, and curiosity.**
-
-</div>
