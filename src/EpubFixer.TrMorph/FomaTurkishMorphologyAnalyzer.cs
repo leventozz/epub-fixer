@@ -4,7 +4,7 @@ using EpubFixer.Core.Morphology;
 
 namespace EpubFixer.TrMorph;
 
-public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, IDisposable
+public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, ITurkishMorphologicalParser, IDisposable
 {
     private readonly Process process;
     private readonly StreamWriter input;
@@ -78,6 +78,33 @@ public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, 
 
         cache[word] = valid;
         return valid;
+    }
+
+    public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentException.ThrowIfNullOrWhiteSpace(word);
+        if (process.HasExited) throw Failure("TRmorph flookup exited before the query completed.");
+        input.WriteLine(word);
+        input.Flush();
+        var analyses = new List<TurkishMorphologicalAnalysis>();
+        while (true)
+        {
+            var line = output.ReadLine();
+            if (line is null) throw Failure("TRmorph flookup ended unexpectedly.");
+            if (line.Length == 0) break;
+            if (line == "+?") continue;
+            var first = line.IndexOf('<');
+            var root = first < 0 ? line : line[..first];
+            var tags = new HashSet<string>(StringComparer.Ordinal);
+            if (first >= 0)
+            {
+                foreach (var tag in line[first..].Split('<', StringSplitOptions.RemoveEmptyEntries))
+                    tags.Add(tag.TrimEnd('>'));
+            }
+            analyses.Add(new(root, tags));
+        }
+        return analyses;
     }
 
     public void Dispose()

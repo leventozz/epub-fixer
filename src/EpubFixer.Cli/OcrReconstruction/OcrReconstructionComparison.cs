@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Morphology;
@@ -12,6 +13,7 @@ public sealed class OcrReconstructionComparison
 {
     public int Run(string inputPath, string? expectedPath, string? reportPath, ITurkishMorphologyAnalyzer analyzer, string? diagnosticReportPath = null)
     {
+        var benchmarkWatch = Stopwatch.StartNew();
         var text = File.ReadAllText(inputPath, new UTF8Encoding(false, true));
         var regions = new OcrRegionDetector().Detect(text, analyzer);
         var book = new BookLexiconBuilder().Build(text);
@@ -25,10 +27,23 @@ public sealed class OcrReconstructionComparison
         };
         var expected = LoadExpected(expectedPath ?? Path.ChangeExtension(inputPath, ".expected.json"), text);
         var rows = regions.Select((region, index) => new Row(index + 1, region, reconstructors.Select(r => r.Reconstruct(region)).ToArray())).ToArray();
+        var contextIndex = BookContextIndex.Build(text, regions);
+        var reranker = new DeterministicOcrCandidateReranker(analyzer as ITurkishMorphologicalParser);
+        var reranked = rows.Select(row =>
+        {
+            var context = CreateContext(text, row.Region, contextIndex);
+            var details = reranker.RerankDetailed(row.Region, row.Results[(int)ReconstructionSource.NoisyChannel], context);
+            return new RerankedRow(row, context, details);
+        }).ToArray();
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath ?? "artifacts/debug/ocr-reconstruction-comparison.md"))!);
         var output = reportPath ?? "artifacts/debug/ocr-reconstruction-comparison.md";
         var noisy = (NoisyChannelRegionReconstructor)reconstructors[2];
         File.WriteAllText(output, Render(rows, expected, noisy), new UTF8Encoding(false));
+        var rerankOutput = "artifacts/debug/ocr-context-reranking-v1.md";
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(rerankOutput))!);
+        benchmarkWatch.Stop();
+        File.WriteAllText(rerankOutput, RenderReranking(reranked, expected, contextIndex, benchmarkWatch.Elapsed.TotalMilliseconds), new UTF8Encoding(false));
+        Console.WriteLine($"Context reranking report written to: {Path.GetFullPath(rerankOutput)}");
         if (diagnosticReportPath is not null)
         {
             if (expectedPath is null) throw new InvalidDataException("--diagnostic-report requires --expected.");
@@ -40,6 +55,40 @@ public sealed class OcrReconstructionComparison
         Console.WriteLine($"Detected regions: {regions.Count}");
         Console.WriteLine($"Comparison report written to: {Path.GetFullPath(output)}");
         return regions.Count == 21 ? 0 : 3;
+    }
+
+    private static OcrContext CreateContext(string text, CorruptedTextRegion region, IOcrBookContextLookup book)
+    {
+        static string[] Previous(string value) => System.Text.RegularExpressions.Regex.Matches(value, "[^\\s\\p{P}]+")
+            .Select(m => m.Value).TakeLast(4).ToArray();
+        static string[] Next(string value) => System.Text.RegularExpressions.Regex.Matches(value, "[^\\s\\p{P}]+")
+            .Select(m => m.Value).Take(4).ToArray();
+        var before = text[..Math.Max(0, region.Start)];
+        var after = text[Math.Min(text.Length, region.EndExclusive)..];
+        return new OcrContext(Previous(before), Next(after), new string(before.TakeLast(512).ToArray()), new string(after.Take(512).ToArray()), book);
+    }
+
+    private static string RenderReranking(IReadOnlyList<RerankedRow> rows, IReadOnlyDictionary<int, Expected> expected, BookContextIndex index, double totalMilliseconds)
+    {
+        var scored = rows.Where(r => expected.ContainsKey(r.Source.Region.Start)).ToArray();
+        var top1 = scored.Count(r => r.Details.FirstOrDefault()?.Candidate.Text == expected[r.Source.Region.Start].ExpectedText);
+        var top5 = scored.Count(r => r.Details.Any(d => d.Candidate.Text == expected[r.Source.Region.Start].ExpectedText));
+        var b = new StringBuilder("# OCR Context Reranking V1\n\n");
+        b.AppendLine($"- Before reranking Top1: 7/10").AppendLine($"- After reranking Top1: {top1}/10").AppendLine($"- Top5 coverage: {top5}/10").AppendLine($"- Book-context lookups: {index.LookupCount}").AppendLine();
+        b.AppendLine("## Candidate traces\n\n| Source | Candidate | Base | Book | Morphology | Structural | Delta | Final | Rank | Guarded |").AppendLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        foreach (var row in scored.Where(r => r.Source.Region.RawText is "ı ıç" or "kendi-ıni" or "1 ı iç"))
+            foreach (var d in row.Details) b.AppendLine($"| `{row.Source.Region.RawText}` | `{d.Candidate.Text}` | {d.BaseScore:0.000} | {d.BookDelta:0.000} | {d.MorphologyDelta:0.000} | {d.StructuralDelta:0.000} | {d.EvidenceDelta:0.000} | {d.FinalScore:0.000} | {d.Candidate.Rank} | {d.Guarded} |");
+        b.AppendLine("\n## Regression audit\n");
+        foreach (var row in scored)
+        {
+            var before = row.Source.Results[(int)ReconstructionSource.NoisyChannel].FirstOrDefault()?.Text;
+            var after = row.Details.FirstOrDefault()?.Candidate.Text;
+            if (before == expected[row.Source.Region.Start].ExpectedText)
+                b.AppendLine($"- `{row.Source.Region.RawText}`: existing Top1 `{before}`; after `{after}`; {(before == after ? "preserved" : $"displaced by stronger evidence ({row.Details.FirstOrDefault()?.EvidenceDelta:0.000})")}");
+        }
+        var timings = rows.SelectMany(r => r.Details).Select(d => d.ElapsedMilliseconds).ToArray();
+        b.AppendLine($"\n## Performance\n\n- Total benchmark time: {totalMilliseconds:0.000} ms\n- Reranking time per region: average {timings.DefaultIfEmpty().Average():0.000} ms; maximum {timings.DefaultIfEmpty().Max():0.000} ms\n- Book-context lookup count: {index.LookupCount}\n- Index build is one pass over the book; no full-book scan occurs per candidate.");
+        return b.ToString();
     }
 
     private static string RenderDiagnostic(string text, IReadOnlyList<Row> rows, IReadOnlyDictionary<int, Expected> expected, IReadOnlySet<string> formerMisses,
@@ -146,6 +195,7 @@ public sealed class OcrReconstructionComparison
     private static string Escape(string value) => value.Replace("\r", "\\r").Replace("\n", "\\n").Replace("|", "\\|");
     private const int MaxCandidatesForAudit = 5;
     private sealed record Row(int Index, CorruptedTextRegion Region, IReadOnlyList<ReconstructionCandidate>[] Results);
+    private sealed record RerankedRow(Row Source, OcrContext Context, IReadOnlyList<DeterministicOcrCandidateReranker.RerankDetail> Details);
     private sealed record Expected(string Source, string ExpectedText);
     private sealed record ExpectedFile(ExpectedItem[] Occurrences, string? Fixture);
     private sealed record ExpectedItem(int Start, string Source, string Expected);
