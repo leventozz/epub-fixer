@@ -27,14 +27,14 @@ public sealed class OcrReconstructionComparison
         var rows = regions.Select((region, index) => new Row(index + 1, region, reconstructors.Select(r => r.Reconstruct(region)).ToArray())).ToArray();
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath ?? "artifacts/debug/ocr-reconstruction-comparison.md"))!);
         var output = reportPath ?? "artifacts/debug/ocr-reconstruction-comparison.md";
-        File.WriteAllText(output, Render(rows, expected), new UTF8Encoding(false));
+        var noisy = (NoisyChannelRegionReconstructor)reconstructors[2];
+        File.WriteAllText(output, Render(rows, expected, noisy), new UTF8Encoding(false));
         if (diagnosticReportPath is not null)
         {
             if (expectedPath is null) throw new InvalidDataException("--diagnostic-report requires --expected.");
-            var noisy = (NoisyChannelRegionReconstructor)reconstructors[2];
-            var misses = rows.Where(r => expected.TryGetValue(r.Region.Start, out var e) && !r.Results[2].Any(c => c.Text == e.ExpectedText)).ToArray();
+            var formerMisses = new HashSet<string>(StringComparer.Ordinal) { "kendi-ıni", "1 ı iç", "ı ızellikle" };
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(diagnosticReportPath))!);
-            File.WriteAllText(diagnosticReportPath, RenderDiagnostic(text, misses, expected, noisy, clean, book, analyzer), new UTF8Encoding(false));
+            File.WriteAllText(diagnosticReportPath, RenderDiagnostic(text, rows, expected, formerMisses, noisy, clean, book, analyzer), new UTF8Encoding(false));
             Console.WriteLine($"NoisyChannel diagnostic report written to: {Path.GetFullPath(diagnosticReportPath)}");
         }
         Console.WriteLine($"Detected regions: {regions.Count}");
@@ -42,11 +42,12 @@ public sealed class OcrReconstructionComparison
         return regions.Count == 21 ? 0 : 3;
     }
 
-    private static string RenderDiagnostic(string text, IReadOnlyList<Row> misses, IReadOnlyDictionary<int, Expected> expected,
+    private static string RenderDiagnostic(string text, IReadOnlyList<Row> rows, IReadOnlyDictionary<int, Expected> expected, IReadOnlySet<string> formerMisses,
         NoisyChannelRegionReconstructor noisy, CleanTurkishLexicon clean, BookLexicon book, ITurkishMorphologyAnalyzer analyzer)
     {
-        var b = new StringBuilder("# NoisyChannel Diagnostic\n\n");
-        b.AppendLine($"Miss count: {misses.Count}").AppendLine();
+        var misses = rows.Where(r => expected.TryGetValue(r.Region.Start, out var e) && formerMisses.Contains(r.Region.RawText)).ToArray();
+        var b = new StringBuilder("# NoisyChannel Diagnostic V2\n\n");
+        b.AppendLine($"Former-miss trace count: {misses.Length}").AppendLine();
         b.AppendLine("| Source | Expected | Root cause | Subreason | Generated? | Pruned? | Morphology | CleanLexicon | Minimum path |").AppendLine("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |");
         var traces = new List<(Row Row, NoisyChannelDiagnosticTrace Trace)>();
         foreach (var row in misses)
@@ -77,8 +78,6 @@ public sealed class OcrReconstructionComparison
             var nfc = word.Normalize(); var lower = CleanTurkishLexicon.Normalize(nfc); var rawValid = analyzer.IsValidWord(word); var nfcValid = analyzer.IsValidWord(nfc); var lowerValid = analyzer.IsValidWord(lower);
             b.AppendLine($"| `{word}` | `{nfc}` | `{lower}` | {rawValid} | {nfcValid} | {lowerValid} | {clean.Contains(lower)} | {clean.GetFrequency(lower)} | {book.Contains(word)} | {book.GetCount(word)} |");
         }
-        b.AppendLine("\n## Final architectural classification\n\n");
-        b.AppendLine(traces.Any(x => x.Trace.MinimumPath is null) ? "B) Candidate generation needs a small general operation extension" : "A) Candidate generation architecture is sufficient; tuning/search issue");
         return b.ToString();
     }
 
@@ -96,7 +95,7 @@ public sealed class OcrReconstructionComparison
         return result;
     }
 
-    private static string Render(IReadOnlyList<Row> rows, IReadOnlyDictionary<int, Expected> expected)
+    private static string Render(IReadOnlyList<Row> rows, IReadOnlyDictionary<int, Expected> expected, NoisyChannelRegionReconstructor noisy)
     {
         var builder = new StringBuilder("# OCR Reconstruction Comparison\n\n");
         builder.AppendLine($"Detected regions: {rows.Count}").AppendLine();
@@ -126,10 +125,26 @@ public sealed class OcrReconstructionComparison
             foreach (var row in labeled.Where(r => !r.Results[(int)method].Any(c => c.Text == expected[r.Region.Start].ExpectedText))) builder.AppendLine($"- `{row.Region.Start}` `{row.Region.RawText}` → `{expected[row.Region.Start].ExpectedText}`");
             builder.AppendLine();
         }
+        builder.AppendLine("## NoisyChannel candidate quality audit\n");
+        builder.AppendLine("| Source | Expected | Rank | Candidate | Score | Edit cost | CleanLexicon | Clean frequency | BookLexicon | Book frequency | TRmorph |");
+        builder.AppendLine("| --- | --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        foreach (var row in rows.Where(r => expected.ContainsKey(r.Region.Start)))
+        {
+            var details = noisy.ReconstructDetailed(row.Region);
+            for (var rank = 0; rank < MaxCandidatesForAudit; rank++)
+            {
+                var candidate = rank < details.Count ? details[rank] : null;
+                builder.AppendLine(candidate is null
+                    ? $"| `{Escape(row.Region.RawText)}` | `{Escape(expected[row.Region.Start].ExpectedText)}` | {rank + 1} | *(no candidate)* | — | — | — | — | — | — | — |"
+                    : $"| `{Escape(row.Region.RawText)}` | `{Escape(expected[row.Region.Start].ExpectedText)}` | {rank + 1} | `{Escape(candidate.Text)}` | {candidate.Score:0.000} | {candidate.Cost:0.000} | {candidate.Lexical} | {candidate.CleanFrequency} | {candidate.Book} | {candidate.BookFrequency} | {candidate.Morphology} |");
+            }
+        }
+        builder.AppendLine("\nPrevious NoisyChannel benchmark: Top1 6/10, Top5 7/10, Missed 3.");
         return builder.ToString();
     }
 
     private static string Escape(string value) => value.Replace("\r", "\\r").Replace("\n", "\\n").Replace("|", "\\|");
+    private const int MaxCandidatesForAudit = 5;
     private sealed record Row(int Index, CorruptedTextRegion Region, IReadOnlyList<ReconstructionCandidate>[] Results);
     private sealed record Expected(string Source, string ExpectedText);
     private sealed record ExpectedFile(ExpectedItem[] Occurrences, string? Fixture);

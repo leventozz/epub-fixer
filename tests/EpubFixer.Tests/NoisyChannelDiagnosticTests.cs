@@ -8,7 +8,7 @@ namespace EpubFixer.Tests;
 public sealed class NoisyChannelDiagnosticTests
 {
     [Fact]
-    public void Diagnose_FindsReachableCandidateEvenWhenBeamDropsIt()
+    public void Diagnose_RetainsLexicalCandidateThatWasPreviouslyPruned()
     {
         var clean = LoadClean("özellikle 10\nhiç 10\n");
         var book = new BookLexiconBuilder().Build("özellikle hiçe");
@@ -17,14 +17,14 @@ public sealed class NoisyChannelDiagnosticTests
 
         var trace = reconstructor.Diagnose(region, "özellikle");
 
-        Assert.Equal("GeneratedThenPruned", trace.Classification);
-        Assert.Equal("BeamWidthPruned", trace.Subreason);
+        Assert.Equal("GeneratedAndVisible", trace.Classification);
+        Assert.True(trace.Visible);
         Assert.NotNull(trace.MinimumPath);
-        Assert.Contains(trace.Depths, item => item.ExpectedGenerated && !item.ExpectedRetained);
+        Assert.DoesNotContain(trace.Depths, item => item.ExpectedGenerated && !item.ExpectedRetained);
     }
 
     [Fact]
-    public void Diagnose_ReportsMissingOperationWithoutInventingPath()
+    public void Diagnose_UsesGenericPairContractionForLocalSubstitutionAndDeletion()
     {
         var clean = LoadClean("kendimi 10\n");
         var book = new BookLexiconBuilder().Build("kendimi");
@@ -32,10 +32,10 @@ public sealed class NoisyChannelDiagnosticTests
 
         var trace = reconstructor.Diagnose(Region("kendi-ıni"), "kendimi");
 
-        Assert.Equal("NotGenerated", trace.Classification);
-        Assert.Equal("MissingEditOperation", trace.Subreason);
-        Assert.Null(trace.MinimumPath);
-        Assert.False(trace.Generated);
+        Assert.Equal("GeneratedAndVisible", trace.Classification);
+        Assert.NotNull(trace.MinimumPath);
+        Assert.Contains(trace.MinimumPath!, step => step.Operation.Contains("pair contraction", StringComparison.Ordinal));
+        Assert.True(trace.Generated);
     }
 
     private static CorruptedTextRegion Region(string text) => new(text, 0, text.Length, [text], "", "", []);
