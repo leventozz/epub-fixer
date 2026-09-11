@@ -76,6 +76,39 @@ public sealed class OcrCorrectionDecisionEvaluatorTests
         Assert.Null(second.SelectedProposal);
     }
 
+    [Fact]
+    public void StructuralApostropheException_AllowsAlignedCaseWithInvalidMorphology()
+    {
+        var source = StructuralApostropheOccurrence("l<ilb'de", Proposal("Kilb'de", 30,
+            [OcrCorrectionGenerationReason.StructuralNormalization, OcrCorrectionGenerationReason.GarbageRemoval,
+             OcrCorrectionGenerationReason.BookLexiconNeighbor], editDistance: 2));
+
+        var decision = Evaluate(source);
+
+        Assert.Equal(OcrCorrectionDecisionKind.AutoFixCandidate, decision.DecisionKind);
+        Assert.True(decision.SelectedProposal!.CaseCompatible);
+        Assert.Contains(OcrCorrectionDecisionReason.CaseCompatible, decision.DecisionReasons);
+    }
+
+    [Fact]
+    public void StructuralApostropheException_RequiresApostropheAndSuffixAndUniqueSafety()
+    {
+        var noApostrophe = Evaluate(StructuralApostropheOccurrence("l<ilbde", Proposal("Kilbde", 30,
+            [OcrCorrectionGenerationReason.StructuralNormalization, OcrCorrectionGenerationReason.GarbageRemoval,
+             OcrCorrectionGenerationReason.BookLexiconNeighbor], editDistance: 2)));
+        Assert.NotEqual(OcrCorrectionDecisionKind.AutoFixCandidate, noApostrophe.DecisionKind);
+
+        var changedSuffix = Evaluate(StructuralApostropheOccurrence("l<ilb'de", Proposal("Kilb'e", 30,
+            [OcrCorrectionGenerationReason.StructuralNormalization, OcrCorrectionGenerationReason.GarbageRemoval,
+             OcrCorrectionGenerationReason.BookLexiconNeighbor], editDistance: 2)));
+        Assert.NotEqual(OcrCorrectionDecisionKind.AutoFixCandidate, changedSuffix.DecisionKind);
+
+        var tied = Evaluate(StructuralApostropheOccurrence("l<ilb'de",
+            Proposal("Kilb'de", 30, [OcrCorrectionGenerationReason.StructuralNormalization, OcrCorrectionGenerationReason.GarbageRemoval, OcrCorrectionGenerationReason.BookLexiconNeighbor], editDistance: 2),
+            Proposal("Kilbb'de", 30, [OcrCorrectionGenerationReason.StructuralNormalization, OcrCorrectionGenerationReason.GarbageRemoval, OcrCorrectionGenerationReason.BookLexiconNeighbor], editDistance: 2)));
+        Assert.Equal(OcrCorrectionDecisionKind.Review, tied.DecisionKind);
+    }
+
     private static OcrCorrectionDecision Evaluate(OcrCorrectionOccurrence occurrence)
     {
         var analysis = new OcrCorrectionAnalysisReport(
@@ -88,6 +121,14 @@ public sealed class OcrCorrectionDecisionEvaluatorTests
         var candidate = Candidate(source);
         var evidence = new OcrWordEvidence(candidate, 1, source, 1, false,
             [OcrDetectionReason.MorphologyInvalid, OcrDetectionReason.RareInBook], confidence);
+        return new OcrCorrectionOccurrence(evidence, candidate, "", source, "", proposals);
+    }
+
+    private static OcrCorrectionOccurrence StructuralApostropheOccurrence(string source, params OcrCorrectionCandidate[] proposals)
+    {
+        var candidate = Candidate(source);
+        var evidence = new OcrWordEvidence(candidate, 0, source, 0, false,
+            [OcrDetectionReason.SuspiciousCharacter, OcrDetectionReason.MorphologyInvalid], OcrConfidence.High);
         return new OcrCorrectionOccurrence(evidence, candidate, "", source, "", proposals);
     }
 

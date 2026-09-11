@@ -22,7 +22,7 @@ public sealed class OcrCorrectionDecisionEvaluator
             .Select(proposal => new OcrCorrectionProposalSafetyEvidence(
                 proposal,
                 GetCasePattern(proposal.ProposedText),
-                IsCaseCompatible(sourceCase, GetCasePattern(proposal.ProposedText)),
+                IsCaseCompatible(occurrence, sourceCase, proposal),
                 SameApostropheBase(occurrence.Source.Candidate.Text, proposal.ProposedText)))
             .ToArray();
         var reasons = new HashSet<OcrCorrectionDecisionReason>();
@@ -94,7 +94,7 @@ public sealed class OcrCorrectionDecisionEvaluator
         var structural = evidence.Where(item =>
             !item.Proposal.IsPartialStructuralRepair
             && HasStructuralGeneration(item.Proposal)
-            && (item.CaseCompatible || IsStructuralApostropheException(occurrence, item))
+            && item.CaseCompatible
             && (item.Proposal.TrMorphValid || IsStructuralApostropheException(occurrence, item))).ToArray();
         if (structural.Length == 0) return null;
 
@@ -204,7 +204,11 @@ public sealed class OcrCorrectionDecisionEvaluator
 
     private static bool IsStructuralApostropheException(OcrCorrectionOccurrence occurrence, OcrCorrectionProposalSafetyEvidence item) =>
         (occurrence.Source.Candidate.Text.Contains('\'') || occurrence.Source.Candidate.Text.Contains('’'))
+        && item.CaseCompatible
+        && !item.Proposal.IsPartialStructuralRepair
         && item.Proposal.GenerationReasons.Contains(OcrCorrectionGenerationReason.BookLexiconNeighbor)
+        && HasStructuralGeneration(item.Proposal)
+        && SameApostropheSuffix(occurrence.Source.Candidate.Text, item.Proposal.ProposedText)
         && item.Proposal.BookFrequency >= 5;
 
     private static OcrCorrectionProposalSafetyEvidence Best(IEnumerable<OcrCorrectionProposalSafetyEvidence> items) =>
@@ -231,7 +235,85 @@ public sealed class OcrCorrectionDecisionEvaluator
         return OcrCasePattern.Mixed;
     }
 
-    private static bool IsCaseCompatible(OcrCasePattern source, OcrCasePattern proposal) => source == proposal;
+    private static bool IsCaseCompatible(
+        OcrCorrectionOccurrence occurrence,
+        OcrCasePattern source,
+        OcrCorrectionCandidate proposal)
+    {
+        var proposalCase = GetCasePattern(proposal.ProposedText);
+        if (source == proposalCase) return true;
+
+        // A structural glyph can disappear before the lexicon neighbor is chosen.
+        // Compare only alphabetic letters that survive a minimal edit alignment;
+        // this narrow guard is used only for apostrophe structural repairs.
+        if (!HasStructuralSourceEvidence(occurrence)
+            || !HasStructuralGeneration(proposal)
+            || !proposal.GenerationReasons.Contains(OcrCorrectionGenerationReason.BookLexiconNeighbor)
+            || !SameApostropheSuffix(occurrence.Source.Candidate.Text, proposal.ProposedText))
+            return false;
+
+        var sourceBase = RawApostropheBase(occurrence.Source.Candidate.Text);
+        var proposalBase = RawApostropheBase(proposal.ProposedText);
+        if (sourceBase is null || proposalBase is null) return false;
+        return SurvivingLettersPreserveCase(sourceBase, proposalBase);
+    }
+
+    private static bool SameApostropheSuffix(string source, string proposal)
+    {
+        var sourceIndex = source.IndexOfAny(['\'', '’']);
+        var proposalIndex = proposal.IndexOfAny(['\'', '’']);
+        return sourceIndex > 0 && proposalIndex > 0
+            && string.Equals(source[(sourceIndex + 1)..], proposal[(proposalIndex + 1)..], StringComparison.Ordinal);
+    }
+
+    private static string? RawApostropheBase(string value)
+    {
+        var index = value.IndexOfAny(['\'', '’']);
+        return index > 0 && index < value.Length - 1 ? value[..index] : null;
+    }
+
+    private static bool SurvivingLettersPreserveCase(string source, string proposal)
+    {
+        var left = source.EnumerateRunes().ToArray();
+        var right = proposal.EnumerateRunes().ToArray();
+        var costs = new int[left.Length + 1, right.Length + 1];
+        var moves = new byte[left.Length + 1, right.Length + 1];
+        for (var j = 0; j <= right.Length; j++) costs[0, j] = j;
+        for (var i = 0; i <= left.Length; i++) costs[i, 0] = i;
+        for (var i = 1; i <= left.Length; i++)
+        {
+            for (var j = 1; j <= right.Length; j++)
+            {
+                var substitution = costs[i - 1, j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1);
+                var deletion = costs[i - 1, j] + 1;
+                var insertion = costs[i, j - 1] + 1;
+                costs[i, j] = Math.Min(substitution, Math.Min(deletion, insertion));
+                moves[i, j] = substitution <= deletion && substitution <= insertion ? (byte)1
+                    : deletion <= insertion ? (byte)2 : (byte)3;
+            }
+        }
+
+        var iIndex = left.Length;
+        var jIndex = right.Length;
+        var surviving = 0;
+        while (iIndex > 0 || jIndex > 0)
+        {
+            if (iIndex == 0) { jIndex--; continue; }
+            if (jIndex == 0) { iIndex--; continue; }
+            if (iIndex > 0 && jIndex > 0 && moves[iIndex, jIndex] == 1)
+            {
+                if (Rune.IsLetter(left[iIndex - 1]) && Rune.IsLetter(right[jIndex - 1])
+                    && Rune.ToLowerInvariant(left[iIndex - 1]) == Rune.ToLowerInvariant(right[jIndex - 1]))
+                {
+                    surviving++;
+                    if (Rune.IsUpper(left[iIndex - 1]) != Rune.IsUpper(right[jIndex - 1])) return false;
+                }
+                iIndex--; jIndex--; continue;
+            }
+            if (moves[iIndex, jIndex] == 2) iIndex--; else jIndex--;
+        }
+        return surviving > 0;
+    }
 
     private static bool SameApostropheBase(string source, string proposal)
     {

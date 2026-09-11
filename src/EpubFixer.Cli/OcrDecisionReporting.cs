@@ -14,7 +14,7 @@ internal static class OcrDecisionReporting
     public static string SerializeMarkdown(OcrCorrectionDecisionAnalysisReport report)
     {
         var decisions = report.Decisions;
-        var proposals = decisions.SelectMany(item => item.SourceOccurrence.Proposals).ToArray();
+        var audit = BuildAudit(decisions);
         var builder = new StringBuilder();
         builder.AppendLine("# OCR Correction Decision V1");
         builder.AppendLine();
@@ -33,15 +33,14 @@ internal static class OcrDecisionReporting
 
         builder.AppendLine("## AutoFix rules");
         builder.AppendLine();
-        foreach (var reason in new[]
-        {
-            OcrCorrectionDecisionReason.DirectStructuralRepair,
-            OcrCorrectionDecisionReason.StructuralLexiconRepair,
-            OcrCorrectionDecisionReason.AdjacentCompositeRepair,
-            OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon,
-            OcrCorrectionDecisionReason.SameApostropheBase
-        })
-            builder.AppendLine($"- {reason}: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.DecisionReasons.Contains(reason))}");
+        foreach (var rule in audit.Rules)
+            builder.AppendLine($"- {rule.Rule}: {rule.Rows.Count} (rows: {string.Join(", ", rule.Rows)})");
+        builder.AppendLine();
+
+        builder.AppendLine("## AutoFix Audit Risk Groups");
+        builder.AppendLine();
+        foreach (var group in audit.RiskGroups)
+            builder.AppendLine($"- {group.Name}: {group.Count}");
         builder.AppendLine();
 
         builder.AppendLine("## Review and Defer reasons");
@@ -64,6 +63,14 @@ internal static class OcrDecisionReporting
         builder.AppendLine($"- AutoFix TitleCase: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceCase == OcrCasePattern.TitleCase)}");
         builder.AppendLine($"- AutoFix apostrophe same-base: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.DecisionReasons.Contains(OcrCorrectionDecisionReason.SameApostropheBase))}");
         builder.AppendLine($"- AutoFix selected proposal was not generator rank 1: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SelectedProposal!.Proposal.ProposalRank != 1)}");
+        builder.AppendLine();
+
+        builder.AppendLine("## All AutoFix Candidates");
+        builder.AppendLine();
+        builder.AppendLine("| # | Source | SelectedProposal | SourceConfidence | DecisionRule | DecisionReasons | RiskFlags | TRmorph | BookFrequency | EditDistance | Cost | StructuralSteps | Partial | SourceSpans | CaseCompatible | SameApostropheBase | GeneratorRank |");
+        builder.AppendLine("|---:|---|---|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|");
+        foreach (var row in audit.Rows)
+            builder.AppendLine($"| {row.Number} | {Cell(row.Source)} | {Cell(row.SelectedProposal)} | {row.SourceConfidence} | {row.DecisionRule} | {Cell(row.DecisionReasons)} | {Cell(row.RiskFlags)} | {row.TrMorph} | {row.BookFrequency} | {row.EditDistance} | {row.Cost} | {row.StructuralSteps} | {row.Partial} | {row.SourceSpans} | {row.CaseCompatible} | {row.SameApostropheBase} | {row.GeneratorRank} |");
         builder.AppendLine();
 
         builder.AppendLine("## Decision Regression Examples");
@@ -122,4 +129,61 @@ internal static class OcrDecisionReporting
     }
 
     private static string Cell(string value) => value.Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
+
+    private static Audit BuildAudit(IReadOnlyList<OcrCorrectionDecision> decisions)
+    {
+        var auto = decisions.Where(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate).ToArray();
+        var ordered = auto.OrderBy(item => RiskRank(item)).ThenBy(item => item.SourceOccurrence.Source.Candidate.LogicalStart).ToArray();
+        var rows = ordered.Select((decision, index) => AuditRow.Create(index + 1, decision)).ToArray();
+        var rules = new[]
+        {
+            OcrCorrectionDecisionReason.DirectStructuralRepair,
+            OcrCorrectionDecisionReason.StructuralLexiconRepair,
+            OcrCorrectionDecisionReason.AdjacentCompositeRepair,
+            OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon,
+            OcrCorrectionDecisionReason.SameApostropheBase
+        }.Select(rule => new AuditRule(rule, rows.Where(row => row.DecisionReasons.Contains(rule.ToString())).Select(row => row.Number).ToArray())).ToArray();
+        var riskNames = new[] { "TRmorphInvalid", "EvidenceOnly", "TitleCase", "NonTopRank", "BookFrequencyZero", "MultiSource", "SameApostropheBase" };
+        var risks = riskNames.Select(name => new AuditRiskGroup(name, rows.Count(row => row.RiskFlags.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(name, StringComparer.Ordinal)))).ToArray();
+        return new Audit(rows, rules, risks);
+    }
+
+    private static int RiskRank(OcrCorrectionDecision decision)
+    {
+        var proposal = decision.SelectedProposal!.Proposal;
+        if (!proposal.TrMorphValid) return 0;
+        if (decision.SourceOccurrence.Source.Confidence == OcrConfidence.EvidenceOnly) return 1;
+        if (decision.SourceCase == OcrCasePattern.TitleCase) return 2;
+        if (proposal.ProposalRank != 1) return 3;
+        if (proposal.BookFrequency == 0) return 4;
+        return 5;
+    }
+
+    private sealed record Audit(IReadOnlyList<AuditRow> Rows, IReadOnlyList<AuditRule> Rules, IReadOnlyList<AuditRiskGroup> RiskGroups);
+    private sealed record AuditRule(OcrCorrectionDecisionReason Rule, IReadOnlyList<int> Rows);
+    private sealed record AuditRiskGroup(string Name, int Count);
+    private sealed record AuditRow(int Number, string Source, string SelectedProposal, OcrConfidence SourceConfidence, string DecisionRule, string DecisionReasons, string RiskFlags, bool TrMorph, int BookFrequency, int EditDistance, int Cost, int StructuralSteps, bool Partial, int SourceSpans, bool CaseCompatible, bool SameApostropheBase, int GeneratorRank)
+    {
+        public static AuditRow Create(int number, OcrCorrectionDecision decision)
+        {
+            var selected = decision.SelectedProposal!;
+            var proposal = selected.Proposal;
+            var flags = new List<string>();
+            if (!proposal.TrMorphValid) flags.Add("TRmorphInvalid");
+            if (decision.SourceOccurrence.Source.Confidence == OcrConfidence.EvidenceOnly) flags.Add("EvidenceOnly");
+            if (decision.SourceCase == OcrCasePattern.TitleCase) flags.Add("TitleCase");
+            if (proposal.ProposalRank != 1) flags.Add("NonTopRank");
+            if (proposal.BookFrequency == 0) flags.Add("BookFrequencyZero");
+            if (proposal.ConsumesMultipleOccurrences) flags.Add("MultiSource");
+            if (selected.SameApostropheBase) flags.Add("SameApostropheBase");
+            var rule = decision.DecisionReasons.FirstOrDefault(item => item is
+                OcrCorrectionDecisionReason.DirectStructuralRepair or OcrCorrectionDecisionReason.StructuralLexiconRepair or
+                OcrCorrectionDecisionReason.AdjacentCompositeRepair or OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon or
+                OcrCorrectionDecisionReason.SameApostropheBase).ToString();
+            return new(number, decision.SourceOccurrence.WorkingSource.Text, proposal.ProposedText, decision.SourceOccurrence.Source.Confidence,
+                rule, string.Join(", ", decision.DecisionReasons), string.Join(",", flags), proposal.TrMorphValid, proposal.BookFrequency,
+                proposal.EditDistance, proposal.GenerationCost, proposal.StructuralTransformationCount, proposal.IsPartialStructuralRepair,
+                proposal.SourceSpanCount, selected.CaseCompatible, selected.SameApostropheBase, proposal.ProposalRank);
+        }
+    }
 }

@@ -3,6 +3,7 @@ using EpubFixer.Core.Ocr.Models;
 using EpubFixer.Core.Decision;
 using EpubFixer.Core.Decision.Models;
 using EpubFixer.TrMorph;
+using System.Text.RegularExpressions;
 
 namespace EpubFixer.Tests;
 
@@ -88,9 +89,9 @@ public sealed class OcrCorrectionV111RealRegressionTests
         var report = new OcrCorrectionDecisionEvaluator().Evaluate(candidates);
 
         Assert.Equal(893, report.Decisions.Count);
-        Assert.Equal(218, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
+        Assert.Equal(217, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
         Assert.Equal(287, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
-        Assert.Equal(388, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Defer));
+        Assert.Equal(389, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Defer));
 
         AssertDecision(report, "y1pranmışt1", OcrCorrectionDecisionKind.AutoFixCandidate, "yıpranmıştı");
         AssertDecision(report, "^iddetli", OcrCorrectionDecisionKind.AutoFixCandidate, "şiddetli");
@@ -103,6 +104,15 @@ public sealed class OcrCorrectionV111RealRegressionTests
         AssertDecision(report, "Avııstıırya'nın", OcrCorrectionDecisionKind.AutoFixCandidate, "Avusturya'nın");
         AssertDecision(report, "l<ilb'de", OcrCorrectionDecisionKind.AutoFixCandidate, "Kilb'de");
         AssertDecision(report, "Joana'mn", OcrCorrectionDecisionKind.AutoFixCandidate, "Joana'nın");
+        Assert.All(report.Decisions.Where(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate), item =>
+        {
+            if (item.DecisionReasons.Contains(OcrCorrectionDecisionReason.CaseCompatible))
+                Assert.True(item.SelectedProposal!.CaseCompatible);
+        });
+        var markdown = OcrDecisionReporting.SerializeMarkdown(report);
+        Assert.Contains("## AutoFix Audit Risk Groups", markdown);
+        Assert.Contains("## All AutoFix Candidates", markdown);
+        Assert.Equal(217, markdown.Split('\n').Count(line => Regex.IsMatch(line, "^\\|\\s*\\d+\\s*\\|")));
 
         foreach (var query in new[] { "Eiles", "Metis", "Akzente", "Stallburg", "Eine", "Stefan" })
             Assert.DoesNotContain(report.Decisions, item => item.SourceOccurrence.Source.Candidate.Text == query

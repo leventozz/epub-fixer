@@ -22,6 +22,9 @@ public sealed class OcrDecisionReportingTests
         Assert.Contains("Review: 0", markdown);
         Assert.Contains("Defer: 1", markdown);
         Assert.Contains("## Decision Regression Examples", markdown);
+        Assert.Contains("## AutoFix Audit Risk Groups", markdown);
+        Assert.Contains("## All AutoFix Candidates", markdown);
+        Assert.Contains("| # | Source | SelectedProposal |", markdown);
         Assert.Contains("`onlarm`", markdown);
     }
 }
