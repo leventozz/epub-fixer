@@ -37,6 +37,66 @@ public sealed class OcrCorrectionDecisionEvaluatorTests
         Assert.Equal("tiyatro", decision.SelectedProposal!.Proposal.ProposedText);
     }
 
+    [Theory]
+    [InlineData("kepaze", "cenaze")]
+    [InlineData("kepazesi", "cenazesi")]
+    [InlineData("ze", "ve")]
+    public void EvidenceOnly_ConservativeGuardsDowngradeRiskyCorrections(string sourceText, string proposalText)
+    {
+        var decision = Evaluate(Occurrence(sourceText, OcrConfidence.EvidenceOnly, Proposal(proposalText, 500, editDistance: sourceText == "ze" ? 1 : 2)));
+
+        Assert.Equal(OcrCorrectionDecisionKind.Review, decision.DecisionKind);
+        Assert.Null(decision.SelectedProposal);
+    }
+
+    [Fact]
+    public void EvidenceOnly_FiveToOneDominanceIsRequired()
+    {
+        var decision = Evaluate(Occurrence("ornek", OcrConfidence.EvidenceOnly,
+            Proposal("örnek", 25), Proposal("ornek", 5)));
+
+        Assert.Equal(OcrCorrectionDecisionKind.AutoFixCandidate, decision.DecisionKind);
+    }
+
+    [Fact]
+    public void SameApostropheBase_IsReviewOnly()
+    {
+        var decision = Evaluate(Occurrence("Joana'mn", OcrConfidence.EvidenceOnly,
+            Proposal("Joana'nın", 100, editDistance: 2)));
+
+        Assert.Equal(OcrCorrectionDecisionKind.Review, decision.DecisionKind);
+        Assert.Contains(OcrCorrectionDecisionReason.SameApostropheBaseReviewOnly, decision.DecisionReasons);
+    }
+
+    [Fact]
+    public void CompositeRepairOwnsConsumedStandaloneOccurrence()
+    {
+        var first = Candidate("ilgi-1");
+        var second = Candidate("iydi") with { LogicalStart = 7 };
+        var firstEvidence = new OcrWordEvidence(first, 0, first.Text, 0, false,
+            [OcrDetectionReason.SuspiciousCharacter], OcrConfidence.High);
+        var secondEvidence = new OcrWordEvidence(second, 1, second.Text, 1, false,
+            [OcrDetectionReason.MorphologyInvalid, OcrDetectionReason.RareInBook], OcrConfidence.EvidenceOnly);
+        var composite = new OcrCorrectionCandidate(first, OcrConfidence.High, "ilgiliydi",
+            [OcrCorrectionGenerationReason.AdjacentFragmentComposition], 1, 1, true, 10, 1,
+            [first, second], 1, false);
+        var standalone = new OcrCorrectionCandidate(second, OcrConfidence.EvidenceOnly, "iyi",
+            [OcrCorrectionGenerationReason.BookLexiconNeighbor], 1, 1, true, 99, 1, [second], 0, false);
+        var occurrences = new[]
+        {
+            new OcrCorrectionOccurrence(firstEvidence, first, "", first.Text, "", [composite]),
+            new OcrCorrectionOccurrence(secondEvidence, second, "", second.Text, "", [standalone])
+        };
+        var report = new OcrCorrectionAnalysisReport(
+            new OcrAnalysisReport(2, 2, 0, [firstEvidence, secondEvidence], [], 0), occurrences, []);
+
+        var decisions = new OcrCorrectionDecisionEvaluator().Evaluate(report).Decisions;
+
+        Assert.Equal(OcrCorrectionDecisionKind.AutoFixCandidate, decisions[0].DecisionKind);
+        Assert.Equal(OcrCorrectionDecisionKind.Review, decisions[1].DecisionKind);
+        Assert.Contains(OcrCorrectionDecisionReason.ConsumedByCompositeRepair, decisions[1].DecisionReasons);
+    }
+
     [Fact]
     public void ProperNameRisk_BlocksGenericFuzzyAutoFix()
     {
@@ -119,7 +179,7 @@ public sealed class OcrCorrectionDecisionEvaluatorTests
     private static OcrCorrectionOccurrence Occurrence(string source, OcrConfidence confidence, params OcrCorrectionCandidate[] proposals)
     {
         var candidate = Candidate(source);
-        var evidence = new OcrWordEvidence(candidate, 1, source, 1, false,
+        var evidence = new OcrWordEvidence(candidate, 1, source, 2, false,
             [OcrDetectionReason.MorphologyInvalid, OcrDetectionReason.RareInBook], confidence);
         return new OcrCorrectionOccurrence(evidence, candidate, "", source, "", proposals);
     }

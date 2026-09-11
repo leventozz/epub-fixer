@@ -8,7 +8,8 @@ internal static class OcrDecisionReporting
     [
         "y1pranmışt1", "^iddetli", "ilgi-1 iydi", "liyatro", "akşaın", "ınetre", "J3arış",
         "Viya-ııa'da", "Avııstıırya'nın", "l<ilb'de", "Joana'mn", "Eiles", "Metis", "Akzente",
-        "Stallburg", "Eine", "Stefan", "onlarm", "Lckrarlayan", "ger-^ .ckten", "ço-nıktu"
+        "Stallburg", "Eine", "Stefan", "onlarm", "Lckrarlayan", "ger-^ .ckten", "ço-nıktu",
+        "kepaze", "kepazesi", "iydi", "Auersberger'dir", "Schreker'e", "Fritz'inin"
     ];
 
     public static string SerializeMarkdown(OcrCorrectionDecisionAnalysisReport report)
@@ -16,13 +17,30 @@ internal static class OcrDecisionReporting
         var decisions = report.Decisions;
         var audit = BuildAudit(decisions);
         var builder = new StringBuilder();
-        builder.AppendLine("# OCR Correction Decision V1");
+        builder.AppendLine("# OCR Correction Decision V1.1");
         builder.AppendLine();
         builder.AppendLine($"- Total anomalies: {decisions.Count}");
         builder.AppendLine($"- With proposals: {decisions.Count(item => item.SourceOccurrence.Proposals.Count > 0)}");
         builder.AppendLine($"- Without proposals: {decisions.Count(item => item.SourceOccurrence.Proposals.Count == 0)}");
         foreach (var kind in Enum.GetValues<OcrCorrectionDecisionKind>())
             builder.AppendLine($"- {kind}: {decisions.Count(item => item.DecisionKind == kind)}");
+        builder.AppendLine();
+
+        builder.AppendLine("## V1 → V1.1 comparison");
+        builder.AppendLine();
+        builder.AppendLine("| Metric | V1 | V1.1 |");
+        builder.AppendLine("|---|---:|---:|");
+        AppendComparison(builder, "AutoFixCandidate", 217, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
+        AppendComparison(builder, "Review", 287, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
+        AppendComparison(builder, "Defer", 389, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Defer));
+        AppendComparison(builder, "HIGH AutoFix", 72, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.High));
+        AppendComparison(builder, "MEDIUM AutoFix", 38, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.Medium));
+        AppendComparison(builder, "EvidenceOnly AutoFix", 107, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.EvidenceOnly));
+        foreach (var rule in new[] { OcrCorrectionDecisionReason.DirectStructuralRepair, OcrCorrectionDecisionReason.StructuralLexiconRepair, OcrCorrectionDecisionReason.AdjacentCompositeRepair, OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon, OcrCorrectionDecisionReason.SameApostropheBase })
+        {
+            var oldCount = rule switch { OcrCorrectionDecisionReason.DirectStructuralRepair => 15, OcrCorrectionDecisionReason.StructuralLexiconRepair => 97, OcrCorrectionDecisionReason.AdjacentCompositeRepair => 2, OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon => 98, _ => 5 };
+            AppendComparison(builder, rule.ToString(), oldCount, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.DecisionReasons.Contains(rule)));
+        }
         builder.AppendLine();
 
         builder.AppendLine("## Confidence distribution");
@@ -62,6 +80,10 @@ internal static class OcrDecisionReporting
         builder.AppendLine($"- AutoFix EvidenceOnly: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.EvidenceOnly)}");
         builder.AppendLine($"- AutoFix TitleCase: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceCase == OcrCasePattern.TitleCase)}");
         builder.AppendLine($"- AutoFix apostrophe same-base: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.DecisionReasons.Contains(OcrCorrectionDecisionReason.SameApostropheBase))}");
+        builder.AppendLine($"- ConsumedByCompositeRepair count: {decisions.Count(item => item.DecisionReasons.Contains(OcrCorrectionDecisionReason.ConsumedByCompositeRepair))}");
+        builder.AppendLine($"- EvidenceOnly rejected by short-token guard: {decisions.Count(item => item.DecisionReasons.Contains(OcrCorrectionDecisionReason.EvidenceOnlyTooShort))}");
+        builder.AppendLine($"- EvidenceOnly rejected by edit-distance guard: {decisions.Count(item => item.DecisionReasons.Contains(OcrCorrectionDecisionReason.EvidenceOnlyEditDistanceTooHigh))}");
+        builder.AppendLine($"- SameApostropheBase downgraded count: {decisions.Count(item => item.DecisionReasons.Contains(OcrCorrectionDecisionReason.SameApostropheBaseReviewOnly))}");
         builder.AppendLine($"- AutoFix selected proposal was not generator rank 1: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SelectedProposal!.Proposal.ProposalRank != 1)}");
         builder.AppendLine();
 
@@ -129,6 +151,9 @@ internal static class OcrDecisionReporting
     }
 
     private static string Cell(string value) => value.Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
+
+    private static void AppendComparison(StringBuilder builder, string metric, int v1, int v11) =>
+        builder.AppendLine($"| {metric} | {v1} | {v11} |");
 
     private static Audit BuildAudit(IReadOnlyList<OcrCorrectionDecision> decisions)
     {

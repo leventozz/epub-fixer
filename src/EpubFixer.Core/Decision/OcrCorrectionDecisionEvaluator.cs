@@ -9,9 +9,32 @@ public sealed class OcrCorrectionDecisionEvaluator
     public OcrCorrectionDecisionAnalysisReport Evaluate(OcrCorrectionAnalysisReport analysis)
     {
         ArgumentNullException.ThrowIfNull(analysis);
-        var decisions = analysis.Occurrences
+        var provisional = analysis.Occurrences
             .Select(EvaluateOccurrence)
             .ToArray();
+        var consumed = provisional
+            .Where(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate
+                && item.DecisionReasons.Contains(OcrCorrectionDecisionReason.AdjacentCompositeRepair))
+            .SelectMany(item => item.SelectedProposal!.Proposal.ConsumedSources.Skip(1))
+            .ToArray();
+        var decisions = provisional.Select(item =>
+        {
+            if (item.DecisionReasons.Contains(OcrCorrectionDecisionReason.AdjacentCompositeRepair)
+                || !consumed.Any(source => SameGeometry(source, item.SourceOccurrence.Source.Candidate)))
+                return item;
+
+            var reasons = item.DecisionReasons.Append(OcrCorrectionDecisionReason.ConsumedByCompositeRepair);
+            var competing = item.SelectedProposal is null
+                ? item.CompetingProposals
+                : item.CompetingProposals.Append(item.SelectedProposal).ToArray();
+            return item with
+            {
+                DecisionKind = OcrCorrectionDecisionKind.Review,
+                SelectedProposal = null,
+                DecisionReasons = reasons.Distinct().OrderBy(reason => reason).ToArray(),
+                CompetingProposals = competing
+            };
+        }).ToArray();
         return new OcrCorrectionDecisionAnalysisReport(analysis, decisions);
     }
 
@@ -96,6 +119,12 @@ public sealed class OcrCorrectionDecisionEvaluator
             && HasStructuralGeneration(item.Proposal)
             && item.CaseCompatible
             && (item.Proposal.TrMorphValid || IsStructuralApostropheException(occurrence, item))).ToArray();
+        if (ContainsAnyApostrophe(occurrence.Source.Candidate.Text)
+            && structural.Length == 0
+            && evidence.Any(item => !item.Proposal.TrMorphValid && HasStructuralGeneration(item.Proposal)
+                && item.Proposal.GenerationReasons.Contains(OcrCorrectionGenerationReason.BookLexiconNeighbor)
+                && item.CaseCompatible && !SameApostropheSuffix(occurrence.Source.Candidate.Text, item.Proposal.ProposedText)))
+            reasons.Add(OcrCorrectionDecisionReason.ApostropheSuffixChangeUnsafe);
         if (structural.Length == 0) return null;
 
         var structuralWinner = Best(structural);
@@ -127,17 +156,9 @@ public sealed class OcrCorrectionDecisionEvaluator
             item.SameApostropheBase && item.CaseCompatible && !item.Proposal.IsPartialStructuralRepair
             && item.Proposal.EditDistance <= 2 && item.Proposal.BookFrequency >= 5).ToArray();
         if (candidates.Length == 0) return null;
-        var winner = candidates.OrderByDescending(item => item.Proposal.BookFrequency).First();
-        var runner = candidates.Where(item => !ReferenceEquals(item, winner)).MaxBy(item => item.Proposal.BookFrequency);
-        if (runner is not null && winner.Proposal.BookFrequency < runner.Proposal.BookFrequency * 3)
-        {
-            reasons.Add(OcrCorrectionDecisionReason.InsufficientFrequencyDominance);
-            return Create(occurrence, sourceCase, OcrCorrectionDecisionKind.Review, null, candidates, reasons);
-        }
-        reasons.Add(OcrCorrectionDecisionReason.SameApostropheBase);
+        reasons.Add(OcrCorrectionDecisionReason.SameApostropheBaseReviewOnly);
         reasons.Add(OcrCorrectionDecisionReason.CaseCompatible);
-        return Create(occurrence, sourceCase, OcrCorrectionDecisionKind.AutoFixCandidate, winner,
-            candidates.Where(item => !ReferenceEquals(item, winner)).ToArray(), reasons);
+        return Create(occurrence, sourceCase, OcrCorrectionDecisionKind.Review, null, candidates, reasons);
     }
 
     private static OcrCorrectionDecision? EvaluateEvidenceOnly(
@@ -153,14 +174,28 @@ public sealed class OcrCorrectionDecisionEvaluator
             return null;
         }
         var candidates = evidence.Where(item =>
-            !item.Proposal.IsPartialStructuralRepair && item.CaseCompatible && item.Proposal.TrMorphValid).ToArray();
+            !item.Proposal.IsPartialStructuralRepair && item.CaseCompatible && item.Proposal.TrMorphValid
+            && item.Proposal.EditDistance == 1 && item.Proposal.BookFrequency >= 5
+            && item.Proposal.SourceSpanCount == 1).ToArray();
+        if (occurrence.Source.Candidate.Text.EnumerateRunes().Count(Rune.IsLetter) < 4)
+            reasons.Add(OcrCorrectionDecisionReason.EvidenceOnlyTooShort);
+        if (evidence.Any(item => item.Proposal.EditDistance > 1))
+            reasons.Add(OcrCorrectionDecisionReason.EvidenceOnlyEditDistanceTooHigh);
+        if (occurrence.Source.Candidate.Text.EnumerateRunes().Any(IsUnicodeDash))
+            reasons.Add(OcrCorrectionDecisionReason.InsufficientFrequencyDominance);
+        if (ContainsAnyApostrophe(occurrence.Source.Candidate.Text))
+            reasons.Add(OcrCorrectionDecisionReason.SameApostropheBaseReviewOnly);
         if (candidates.Length == 0) return null;
         var winner = candidates.OrderByDescending(item => item.Proposal.BookFrequency)
             .ThenBy(item => item.Proposal.EditDistance)
             .ThenBy(item => item.Proposal.ProposedText, StringComparer.Ordinal).First();
-        var runner = candidates.Where(item => !ReferenceEquals(item, winner)).MaxBy(item => item.Proposal.BookFrequency);
-        if (winner.Proposal.EditDistance > 2 || winner.Proposal.BookFrequency < 3
-            || runner is not null && winner.Proposal.BookFrequency < runner.Proposal.BookFrequency * 3)
+        var sameSafety = candidates.Where(item => SameSafety(item, winner)).ToArray();
+        var runner = sameSafety.Where(item => !ReferenceEquals(item, winner)).MaxBy(item => item.Proposal.BookFrequency);
+        if (occurrence.Source.Candidate.Text.EnumerateRunes().Count(Rune.IsLetter) < 4
+            || ContainsAnyApostrophe(occurrence.Source.Candidate.Text)
+            || occurrence.Source.Candidate.Text.EnumerateRunes().Any(IsUnicodeDash)
+            || evidence.Any(item => item.Proposal.EditDistance > 1)
+            || runner is not null && winner.Proposal.BookFrequency < runner.Proposal.BookFrequency * 5)
         {
             reasons.Add(OcrCorrectionDecisionReason.InsufficientFrequencyDominance);
             if (runner is not null) reasons.Add(OcrCorrectionDecisionReason.AmbiguousCandidates);
@@ -224,6 +259,17 @@ public sealed class OcrCorrectionDecisionEvaluator
         && left.Proposal.EditDistance == right.Proposal.EditDistance;
 
     private static bool IsProperNameRisk(OcrCasePattern pattern) => pattern is OcrCasePattern.TitleCase or OcrCasePattern.Uppercase;
+
+    private static bool SameGeometry(OcrWordCandidate left, OcrWordCandidate right) =>
+        string.Equals(left.Document, right.Document, StringComparison.Ordinal)
+        && left.LogicalStart == right.LogicalStart
+        && left.Text.Length == right.Text.Length
+        && string.Equals(left.Text, right.Text, StringComparison.Ordinal);
+
+    private static bool IsUnicodeDash(Rune rune) =>
+        Rune.GetUnicodeCategory(rune) == System.Globalization.UnicodeCategory.DashPunctuation;
+
+    private static bool ContainsAnyApostrophe(string value) => value.Contains('\'') || value.Contains('’');
 
     public static OcrCasePattern GetCasePattern(string text)
     {

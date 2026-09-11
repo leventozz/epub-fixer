@@ -15,5 +15,10 @@ public enum OcrCorrectionDecisionReason
     PartialRepairOnly,
     NoValidProposal,
     NoProposal,
-    CaseMismatch
+    CaseMismatch,
+    EvidenceOnlyTooShort,
+    EvidenceOnlyEditDistanceTooHigh,
+    ConsumedByCompositeRepair,
+    ApostropheSuffixChangeUnsafe,
+    SameApostropheBaseReviewOnly
 }

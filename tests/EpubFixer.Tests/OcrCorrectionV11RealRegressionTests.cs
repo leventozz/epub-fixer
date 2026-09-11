@@ -81,7 +81,7 @@ public sealed class OcrCorrectionV111RealRegressionTests
     }
 
     [Fact]
-    public void RealBook_DecisionV1MatchesSafetyRegressionSet()
+    public void RealBook_DecisionV11MatchesSafetyRegressionSet()
     {
         var epubPath = Path.Combine(AppContext.BaseDirectory, "test-data", "Odun Kesmek_recognized.epub");
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
@@ -89,21 +89,21 @@ public sealed class OcrCorrectionV111RealRegressionTests
         var report = new OcrCorrectionDecisionEvaluator().Evaluate(candidates);
 
         Assert.Equal(893, report.Decisions.Count);
-        Assert.Equal(217, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
-        Assert.Equal(287, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
+        Assert.Equal(123, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
+        Assert.Equal(381, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
         Assert.Equal(389, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Defer));
 
         AssertDecision(report, "y1pranmışt1", OcrCorrectionDecisionKind.AutoFixCandidate, "yıpranmıştı");
         AssertDecision(report, "^iddetli", OcrCorrectionDecisionKind.AutoFixCandidate, "şiddetli");
         AssertDecision(report, "ilgi-1 iydi", OcrCorrectionDecisionKind.AutoFixCandidate, "ilgiliydi");
         AssertDecision(report, "liyatro", OcrCorrectionDecisionKind.AutoFixCandidate, "tiyatro");
-        AssertDecision(report, "akşaın", OcrCorrectionDecisionKind.AutoFixCandidate, "akşam");
-        AssertDecision(report, "ınetre", OcrCorrectionDecisionKind.AutoFixCandidate, "metre");
+        AssertDecision(report, "akşaın", OcrCorrectionDecisionKind.Review, null);
+        AssertDecision(report, "ınetre", OcrCorrectionDecisionKind.Review, null);
         AssertDecision(report, "J3arış", OcrCorrectionDecisionKind.AutoFixCandidate, "Barış");
         AssertDecision(report, "Viya-ııa'da", OcrCorrectionDecisionKind.AutoFixCandidate, "Viyana'da");
         AssertDecision(report, "Avııstıırya'nın", OcrCorrectionDecisionKind.AutoFixCandidate, "Avusturya'nın");
         AssertDecision(report, "l<ilb'de", OcrCorrectionDecisionKind.AutoFixCandidate, "Kilb'de");
-        AssertDecision(report, "Joana'mn", OcrCorrectionDecisionKind.AutoFixCandidate, "Joana'nın");
+        AssertDecision(report, "Joana'mn", OcrCorrectionDecisionKind.Review, null);
         Assert.All(report.Decisions.Where(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate), item =>
         {
             if (item.DecisionReasons.Contains(OcrCorrectionDecisionReason.CaseCompatible))
@@ -112,7 +112,7 @@ public sealed class OcrCorrectionV111RealRegressionTests
         var markdown = OcrDecisionReporting.SerializeMarkdown(report);
         Assert.Contains("## AutoFix Audit Risk Groups", markdown);
         Assert.Contains("## All AutoFix Candidates", markdown);
-        Assert.Equal(217, markdown.Split('\n').Count(line => Regex.IsMatch(line, "^\\|\\s*\\d+\\s*\\|")));
+        Assert.Equal(123, markdown.Split('\n').Count(line => Regex.IsMatch(line, "^\\|\\s*\\d+\\s*\\|")));
 
         foreach (var query in new[] { "Eiles", "Metis", "Akzente", "Stallburg", "Eine", "Stefan" })
             Assert.DoesNotContain(report.Decisions, item => item.SourceOccurrence.Source.Candidate.Text == query
