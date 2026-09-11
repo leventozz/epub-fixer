@@ -4,12 +4,17 @@ using EpubFixer.Core.Morphology;
 
 namespace EpubFixer.TrMorph;
 
-public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, ITurkishMorphologicalParser, IDisposable
+public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, IBatchTurkishMorphologicalParser, IDisposable
 {
     private readonly Process process;
     private readonly StreamWriter input;
     private readonly StreamReader output;
-    private readonly Dictionary<string, bool> cache = new(StringComparer.Ordinal);
+    private readonly object sync = new();
+    private readonly Dictionary<string, IReadOnlyList<TurkishMorphologicalAnalysis>> cache = new(StringComparer.Ordinal);
+    private long hits;
+    private long misses;
+    private long batchRequests;
+    private long batchedWords;
     private bool disposed;
 
     public FomaTurkishMorphologyAnalyzer(string? flookupPath = null, string? transducerPath = null)
@@ -60,33 +65,44 @@ public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, 
 
     public bool IsValidWord(string word)
     {
-        ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(word);
-        if (cache.TryGetValue(word, out var cached)) return cached;
-        if (process.HasExited) throw Failure("TRmorph flookup exited before the query completed.");
-
-        input.WriteLine(word);
-        input.Flush();
-        var valid = false;
-        while (true)
-        {
-            var line = output.ReadLine();
-            if (line is null) throw Failure("TRmorph flookup ended unexpectedly.");
-            if (line.Length == 0) break;
-            if (!string.Equals(line, "+?", StringComparison.Ordinal)) valid = true;
-        }
-
-        cache[word] = valid;
-        return valid;
+        return Analyze(word).Count > 0;
     }
 
     public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentException.ThrowIfNullOrWhiteSpace(word);
+        return AnalyzeBatch(new[] { word })[word.Normalize()];
+    }
+
+    public TurkishMorphologyCacheStatistics CacheStatistics
+    {
+        get { lock (sync) return new(hits, misses, cache.Count, batchRequests, batchedWords); }
+    }
+
+    public IReadOnlyDictionary<string, IReadOnlyList<TurkishMorphologicalAnalysis>> AnalyzeBatch(IEnumerable<string> words)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        ArgumentNullException.ThrowIfNull(words);
+        var requested = words.Select(word => { ArgumentException.ThrowIfNullOrWhiteSpace(word); return word.Normalize(); }).ToList();
+        lock (sync)
+        {
+            batchRequests++;
+            batchedWords += requested.Count;
+            var missing = requested.Distinct(StringComparer.Ordinal).Where(word => !cache.ContainsKey(word)).ToList();
+            hits += requested.Count(word => cache.ContainsKey(word));
+            misses += missing.Count;
+            foreach (var word in missing) input.WriteLine(word);
+            if (missing.Count > 0) input.Flush();
+            foreach (var word in missing) cache[word] = ReadResult();
+            return requested.Distinct(StringComparer.Ordinal).ToDictionary(word => word, word => cache[word], StringComparer.Ordinal);
+        }
+    }
+
+    private IReadOnlyList<TurkishMorphologicalAnalysis> ReadResult()
+    {
         if (process.HasExited) throw Failure("TRmorph flookup exited before the query completed.");
-        input.WriteLine(word);
-        input.Flush();
         var analyses = new List<TurkishMorphologicalAnalysis>();
         while (true)
         {

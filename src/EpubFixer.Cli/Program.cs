@@ -283,20 +283,24 @@ static int RunDebugOcrReconstruction(string[] arguments)
     string? expected = null;
     string? report = null;
     string? diagnosticReport = null;
-    for (var i = 2; i < arguments.Length; i += 2)
+    var fast = false;
+    string? targetIds = null;
+    for (var i = 2; i < arguments.Length; i++)
     {
+        if (string.Equals(arguments[i], "--fast", StringComparison.OrdinalIgnoreCase)) { fast = true; continue; }
         if (i + 1 >= arguments.Length) { PrintUsage(); return 1; }
-        if (string.Equals(arguments[i], "--expected", StringComparison.OrdinalIgnoreCase)) expected = arguments[i + 1];
-        else if (string.Equals(arguments[i], "--report", StringComparison.OrdinalIgnoreCase)) report = arguments[i + 1];
-        else if (string.Equals(arguments[i], "--diagnostic-report", StringComparison.OrdinalIgnoreCase)) diagnosticReport = arguments[i + 1];
+        if (string.Equals(arguments[i], "--expected", StringComparison.OrdinalIgnoreCase)) expected = arguments[++i];
+        else if (string.Equals(arguments[i], "--report", StringComparison.OrdinalIgnoreCase)) report = arguments[++i];
+        else if (string.Equals(arguments[i], "--diagnostic-report", StringComparison.OrdinalIgnoreCase)) diagnosticReport = arguments[++i];
+        else if (string.Equals(arguments[i], "--targets", StringComparison.OrdinalIgnoreCase)) targetIds = arguments[++i];
         else { PrintUsage(); return 1; }
     }
     try
     {
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
-        return new OcrReconstructionComparison().Run(arguments[1], expected, report, analyzer, diagnosticReport);
+        return new OcrReconstructionComparison().Run(arguments[1], expected, report, analyzer, diagnosticReport, fast, targetIds);
     }
-    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or TurkishMorphologyException)
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException or TurkishMorphologyException)
     {
         Console.Error.WriteLine($"Error: {ex.Message}");
         return 2;
@@ -749,7 +753,7 @@ static bool PathsReferToSameFile(string firstPath, string secondPath)
 static void PrintUsage()
 {
     Console.Error.WriteLine("       epubfixer debug-ocr-region <input.txt> [--report <report.md>] [--output <output.txt>]");
-    Console.Error.WriteLine("       epubfixer debug-ocr-reconstruction <input.txt> [--expected <expected.json>] [--report <report.md>] [--diagnostic-report <report.md>]");
+    Console.Error.WriteLine("       epubfixer debug-ocr-reconstruction <input.txt> [--fast] [--targets <ids>] [--expected <expected.json>] [--report <report.md>] [--diagnostic-report <report.md>]");
     Console.Error.WriteLine(
         "Usage: epubfixer analyze <book.epub> "
         + "[--apply-inline] "

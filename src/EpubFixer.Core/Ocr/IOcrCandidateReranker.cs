@@ -20,6 +20,8 @@ public sealed record OcrContext(
 public interface IOcrBookContextLookup
 {
     OcrBookContextMatch? FindBest(string candidate, IReadOnlyList<string> previous, IReadOnlyList<string> next);
+
+    OcrBookContextEvidence? FindEvidence(string candidate, IReadOnlyList<string> previous, IReadOnlyList<string> next) => null;
 }
 
 public sealed record OcrBookContextMatch(
@@ -28,4 +30,20 @@ public sealed record OcrBookContextMatch(
     int RightMatches,
     bool OrderedPair,
     bool BothSides,
-    int OccurrenceCount);
+    int OccurrenceCount)
+{
+    public int Frequency => OccurrenceCount;
+    public int BigramMatches { get; init; }
+    public int TrigramMatches { get; init; }
+    public int PhraseMatches { get; init; }
+    public double ConsensusSupport { get; init; }
+}
+
+public sealed record OcrBookContextEvidence(
+    int Frequency,
+    int LeftMatches,
+    int RightMatches,
+    int BigramMatches,
+    int TrigramMatches,
+    int PhraseMatches,
+    double ConsensusSupport);
