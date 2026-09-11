@@ -34,7 +34,10 @@ internal sealed class DeterministicOcrCandidateReranker(
         var bigram = evidence is null ? 0d : Math.Min(1d, evidence.BigramMatches / 2d);
         var trigram = evidence is null ? 0d : Math.Min(1d, evidence.TrigramMatches / 2d);
         var consensus = evidence?.ConsensusSupport ?? 0d;
-        var book = .06 * frequency + .80 * left + .80 * right + .35 * bigram + .35 * trigram + .14 * consensus;
+        // Local phrase evidence is more discriminative than corpus frequency;
+        // keep exact-frequency bounded while giving coherent context enough
+        // weight to overcome a small base-score advantage.
+        var book = .06 * frequency + 1.20 * left + 1.20 * right + 1.60 * bigram + .50 * trigram + .14 * consensus;
         if (match is { BothSides: true }) book += 2.0;
         if (match?.PrefixOnly == true) book *= .75;
         var morphology = 0d; var strongMorphology = false;

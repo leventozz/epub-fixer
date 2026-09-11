@@ -28,6 +28,9 @@ public sealed class NoisyChannelRegionReconstructor(
     internal IReadOnlyList<NoisyChannelCandidateDetail> ReconstructDetailed(CorruptedTextRegion region, int maxCandidates = MaxCandidates) =>
         Search(region.RawText.Normalize(), false).Final.Take(Math.Min(maxCandidates, MaxCandidates)).ToArray();
 
+    internal IReadOnlyCollection<string> CollectMorphologyInputs(CorruptedTextRegion region)
+        => Search(region.RawText.Normalize(), false, null, scoreFinal: false).FinalStates.Keys.ToArray();
+
     internal NoisyChannelDiagnosticTrace Diagnose(CorruptedTextRegion region, string expected)
     {
         var raw = region.RawText.Normalize(); var target = expected.Normalize(); var search = Search(raw, true, target);
@@ -42,7 +45,7 @@ public sealed class NoisyChannelRegionReconstructor(
             evaluated is null ? null : new(evaluated.Score, evaluated.Cost, evaluated.Lexical, evaluated.Morphology, evaluated.Book, evaluated.CleanFrequency, evaluated.BookFrequency), retained);
     }
 
-    private SearchResult Search(string raw, bool trace, string? expected = null)
+    private SearchResult Search(string raw, bool trace, string? expected = null, bool scoreFinal = true)
     {
         var cache = new Dictionary<string, LexicalEvidence>(StringComparer.Ordinal); var beam = new Dictionary<string, State>(StringComparer.Ordinal) { [raw] = new(raw, 0, 0, []) }; var all = new Dictionary<string, State>(beam, StringComparer.Ordinal); var rows = new List<DiagnosticDepthRow>();
         for (var depth = 0; depth < MaxDepth; depth++)
@@ -53,7 +56,9 @@ public sealed class NoisyChannelRegionReconstructor(
             var retained = expanded.OrderByDescending(x => RetentionKey(x.Key, x.Value, depth + 1, cache)).ThenBy(x => x.Value.Cost).ThenBy(x => x.Key, StringComparer.Ordinal).Take(BeamWidth).ToArray(); beam = retained.ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
             if (trace) rows.Add(new(depth + 1, expanded.Count, beam.Count, expanded.Count - beam.Count, beam.Count == 0 ? null : beam.Values.Min(x => x.Cost), expected is not null && expanded.ContainsKey(expected), expected is not null && beam.ContainsKey(expected), beam.Values.OrderBy(x => x.Cost).ThenBy(x => x.Text, StringComparer.Ordinal).Take(8).Select(x => x.Text).ToArray()));
         }
-        var final = beam.Select(pair => Score(pair.Key, pair.Value)).Where(x => x is not null).Cast<NoisyChannelCandidateDetail>().OrderByDescending(x => x.Score).ThenBy(x => x.Cost).ThenByDescending(x => x.Lexical).ThenByDescending(x => x.Morphology).ThenBy(x => x.Text, StringComparer.Ordinal).ToArray();
+        var final = scoreFinal
+            ? beam.Select(pair => Score(pair.Key, pair.Value)).Where(x => x is not null).Cast<NoisyChannelCandidateDetail>().OrderByDescending(x => x.Score).ThenBy(x => x.Cost).ThenByDescending(x => x.Lexical).ThenByDescending(x => x.Morphology).ThenBy(x => x.Text, StringComparer.Ordinal).ToArray()
+            : Array.Empty<NoisyChannelCandidateDetail>();
         return new(final, beam, all, rows);
 
         double RetentionKey(string text, State state, int currentDepth, Dictionary<string, LexicalEvidence> values)

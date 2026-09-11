@@ -15,6 +15,7 @@ public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, 
     private long misses;
     private long batchRequests;
     private long batchedWords;
+    private long processInvocations;
     private bool disposed;
 
     public FomaTurkishMorphologyAnalyzer(string? flookupPath = null, string? transducerPath = null)
@@ -61,6 +62,7 @@ public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, 
 
         input = process.StandardInput;
         output = process.StandardOutput;
+        processInvocations = 1;
     }
 
     public bool IsValidWord(string word)
@@ -78,7 +80,7 @@ public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, 
 
     public TurkishMorphologyCacheStatistics CacheStatistics
     {
-        get { lock (sync) return new(hits, misses, cache.Count, batchRequests, batchedWords); }
+        get { lock (sync) return new(hits, misses, cache.Count, batchRequests, batchedWords, processInvocations); }
     }
 
     public IReadOnlyDictionary<string, IReadOnlyList<TurkishMorphologicalAnalysis>> AnalyzeBatch(IEnumerable<string> words)
@@ -88,15 +90,19 @@ public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, 
         var requested = words.Select(word => { ArgumentException.ThrowIfNullOrWhiteSpace(word); return word.Normalize(); }).ToList();
         lock (sync)
         {
-            batchRequests++;
-            batchedWords += requested.Count;
-            var missing = requested.Distinct(StringComparer.Ordinal).Where(word => !cache.ContainsKey(word)).ToList();
-            hits += requested.Count(word => cache.ContainsKey(word));
+            var unique = requested.Distinct(StringComparer.Ordinal).ToList();
+            var missing = unique.Where(word => !cache.ContainsKey(word)).ToList();
+            hits += unique.Count(word => cache.ContainsKey(word));
             misses += missing.Count;
+            if (missing.Count > 0)
+            {
+                batchRequests++;
+                batchedWords += missing.Count;
+            }
             foreach (var word in missing) input.WriteLine(word);
             if (missing.Count > 0) input.Flush();
             foreach (var word in missing) cache[word] = ReadResult();
-            return requested.Distinct(StringComparer.Ordinal).ToDictionary(word => word, word => cache[word], StringComparer.Ordinal);
+            return unique.ToDictionary(word => word, word => cache[word], StringComparer.Ordinal);
         }
     }
 

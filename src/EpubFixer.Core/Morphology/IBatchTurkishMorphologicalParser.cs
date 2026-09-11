@@ -12,4 +12,8 @@ public sealed record TurkishMorphologyCacheStatistics(
     long Misses,
     long UniqueAnalyzedWords,
     long BatchRequests,
-    long BatchedWords);
+    long BatchedWords,
+    long ProcessInvocations)
+{
+    public double AverageBatchSize => BatchRequests == 0 ? 0 : BatchedWords / (double)BatchRequests;
+}

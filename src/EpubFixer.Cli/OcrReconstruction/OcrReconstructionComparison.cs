@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Morphology;
@@ -15,6 +16,8 @@ public sealed class OcrReconstructionComparison
     {
         var benchmarkWatch = Stopwatch.StartNew();
         var text = File.ReadAllText(inputPath, new UTF8Encoding(false, true));
+        if (analyzer is IBatchTurkishMorphologicalParser detectionBatch)
+            AnalyzeInChunks(detectionBatch, CollectDetectorInputs(text));
         var regions = new OcrRegionDetector().Detect(text, analyzer);
         var book = new BookLexiconBuilder().Build(text);
         var cleanPath = Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt");
@@ -27,6 +30,12 @@ public sealed class OcrReconstructionComparison
         };
         var expected = LoadExpected(expectedPath ?? Path.ChangeExtension(inputPath, ".expected.json"), text);
         var selected = SelectRegions(regions, fast, targetIds);
+        if (analyzer is IBatchTurkishMorphologicalParser reconstructionBatch)
+        {
+            var noisyPreparer = (NoisyChannelRegionReconstructor)reconstructors[2];
+            var words = book.Entries.Keys.Concat(selected.SelectMany(noisyPreparer.CollectMorphologyInputs));
+            AnalyzeInChunks(reconstructionBatch, words);
+        }
         var rows = selected.Select(region => new Row(regions.Select((r, i) => (r, i + 1)).First(x => ReferenceEquals(x.r, region)).Item2, region, reconstructors.Select(r => r.Reconstruct(region)).ToArray())).ToArray();
         var contextIndex = BookContextIndex.Build(text, regions);
         var reranker = new DeterministicOcrCandidateReranker(analyzer as ITurkishMorphologicalParser);
@@ -35,7 +44,7 @@ public sealed class OcrReconstructionComparison
             var words = rows.SelectMany(row => row.Results[(int)ReconstructionSource.NoisyChannel]).Select(c => c.Text)
                 .Concat(rows.SelectMany(row => { var c = CreateContext(text, row.Region, contextIndex); return c.PreviousWords.Concat(c.NextWords); }))
                 .Distinct(StringComparer.Ordinal).ToArray();
-            batch.AnalyzeBatch(words);
+            AnalyzeInChunks(batch, words);
         }
         var reranked = rows.Select(row =>
         {
@@ -47,14 +56,14 @@ public sealed class OcrReconstructionComparison
         var output = reportPath ?? "artifacts/debug/ocr-reconstruction-comparison.md";
         var noisy = (NoisyChannelRegionReconstructor)reconstructors[2];
         File.WriteAllText(output, Render(rows, expected, noisy), new UTF8Encoding(false));
-        var rerankOutput = "artifacts/debug/ocr-self-corpus-reranking-v2.md";
+        var rerankOutput = "artifacts/debug/ocr-self-corpus-reranking-v3.md";
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(rerankOutput))!);
         benchmarkWatch.Stop();
         File.WriteAllText(rerankOutput, RenderReranking(reranked, expected, contextIndex, benchmarkWatch.Elapsed.TotalMilliseconds), new UTF8Encoding(false));
-        var performanceOutput = "artifacts/debug/ocr-performance-v2.md";
+        var performanceOutput = "artifacts/debug/ocr-performance-v3.md";
         var stats = analyzer is IBatchTurkishMorphologicalParser bp ? bp.CacheStatistics : null;
         var hitRatio = stats is null || stats.Hits + stats.Misses == 0 ? "n/a" : (stats.Hits / (double)(stats.Hits + stats.Misses)).ToString("P2");
-        File.WriteAllText(performanceOutput, $"# OCR Performance V2\n\n- Old full benchmark: approximately 145 seconds (supplied baseline)\n- New selected benchmark: {benchmarkWatch.Elapsed.TotalMilliseconds:0.000} ms\n- TRmorph misses: {stats?.Misses.ToString() ?? "n/a"}\n- TRmorph hits: {stats?.Hits.ToString() ?? "n/a"}\n- Unique analyzed words: {stats?.UniqueAnalyzedWords.ToString() ?? "n/a"}\n- Cache hit ratio: {hitRatio}\n- Batch requests: {stats?.BatchRequests.ToString() ?? "n/a"}\n- Batched words: {stats?.BatchedWords.ToString() ?? "n/a"}\n", new UTF8Encoding(false));
+        File.WriteAllText(performanceOutput, $"# OCR Performance V3\n\n- Run mode: {(fast ? "fast 3-target" : "full scored benchmark")}\n- Fast baseline: approximately 12.35 s; 2260 requests; 2299 submitted words\n- Full baseline: Top1 9/10; Top5 10/10; approximately 145.485 s\n- Current total time: {benchmarkWatch.Elapsed.TotalMilliseconds:0.000} ms\n- TRmorph misses: {stats?.Misses.ToString() ?? "n/a"}\n- TRmorph hits: {stats?.Hits.ToString() ?? "n/a"}\n- Unique analyzed words: {stats?.UniqueAnalyzedWords.ToString() ?? "n/a"}\n- Cache hit ratio: {hitRatio}\n- Batch requests: {stats?.BatchRequests.ToString() ?? "n/a"}\n- Batched words: {stats?.BatchedWords.ToString() ?? "n/a"}\n- Average batch size: {stats?.AverageBatchSize.ToString("0.000") ?? "n/a"}\n- TRmorph process invocations: {stats?.ProcessInvocations.ToString() ?? "n/a"}\n", new UTF8Encoding(false));
         Console.WriteLine($"Performance report written to: {Path.GetFullPath(performanceOutput)}");
         Console.WriteLine($"Context reranking report written to: {Path.GetFullPath(rerankOutput)}");
         if (diagnosticReportPath is not null)
@@ -68,6 +77,25 @@ public sealed class OcrReconstructionComparison
         Console.WriteLine($"Detected regions: {regions.Count}");
         Console.WriteLine($"Comparison report written to: {Path.GetFullPath(output)}");
         return regions.Count == 21 ? 0 : 3;
+    }
+
+    private static IEnumerable<string> CollectDetectorInputs(string text)
+    {
+        foreach (Match match in Regex.Matches(text, @"[\p{L}\p{N}][\p{L}\p{N}'’.,;:^<>()!?-]*", RegexOptions.CultureInvariant))
+        {
+            var value = match.Value;
+            var start = 0; var end = value.Length;
+            while (start < end && value[start] is ',' or '.' or ':' or ';' or '!' or '?') start++;
+            while (end > start && value[end - 1] is ',' or '.' or ':' or ';' or '!' or '?') end--;
+            if (end > start) yield return value[start..end];
+        }
+    }
+
+    private static void AnalyzeInChunks(IBatchTurkishMorphologicalParser batch, IEnumerable<string> words)
+    {
+        foreach (var chunk in words.Where(word => !string.IsNullOrWhiteSpace(word))
+                     .Distinct(StringComparer.Ordinal).Chunk(128))
+            batch.AnalyzeBatch(chunk);
     }
 
     private static IReadOnlyList<CorruptedTextRegion> SelectRegions(IReadOnlyList<CorruptedTextRegion> regions, bool fast, string? targetIds)
@@ -100,7 +128,8 @@ public sealed class OcrReconstructionComparison
         var scored = rows.Where(r => expected.ContainsKey(r.Source.Region.Start)).ToArray();
         var top1 = scored.Count(r => r.Details.FirstOrDefault()?.Candidate.Text == expected[r.Source.Region.Start].ExpectedText);
         var top5 = scored.Count(r => r.Details.Any(d => d.Candidate.Text == expected[r.Source.Region.Start].ExpectedText));
-        var b = new StringBuilder("# OCR Self-Corpus Reranking V2\n\n");
+        var b = new StringBuilder("# OCR Self-Corpus Reranking V3\n\n");
+        b.AppendLine("## Regression cause and correction\n").AppendLine("V2 shortened context windows, pooled evidence across unrelated occurrences, counted prefix matches as exact frequency, and marked a candidate prefix-only when any longer token shared its prefix. V3 restores four-token local context and scores one coherent supporting occurrence with exact-frequency accounting.\n");
         b.AppendLine($"- Previous reranking Top1: 9/10").AppendLine($"- New reranking Top1: {top1}/{scored.Length}").AppendLine($"- Previous Top5 coverage: 10/10").AppendLine($"- New Top5 coverage: {top5}/{scored.Length}").AppendLine($"- Book-context lookups: {index.LookupCount}").AppendLine();
         b.AppendLine("## Candidate traces\n\n| Source | Candidate | Base | Frequency | Left | Right | Bigram | Trigram | Consensus | Morphology | Structural | Final | Rank |").AppendLine("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
         foreach (var row in scored.Where(r => r.Source.Region.RawText is "ı ıç" or "kendi-ıni" or "1 ı iç"))
