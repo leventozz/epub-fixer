@@ -1,0 +1,15 @@
+{
+  "fixture": "odun-kesmek-region-01.txt",
+  "occurrences": [
+    { "start": 291, "source": "ı ıç", "expected": "üç" },
+    { "start": 348, "source": "kendi-ıni", "expected": "kendimi" },
+    { "start": 478, "source": "1 ı iç", "expected": "hiç" },
+    { "start": 545, "source": ":,ohbet", "expected": "sohbet" },
+    { "start": 606, "source": "koli ukta", "expected": "koltukta" },
+    { "start": 796, "source": "ı ızellikle", "expected": "özellikle" },
+    { "start": 933, "source": "ı ılduğu", "expected": "olduğu" },
+    { "start": 1055, "source": "Ce-lıimde", "expected": "Cebimde" },
+    { "start": 1984, "source": "ge-^:cn", "expected": "geçen" },
+    { "start": 2343, "source": "yü-ıiimeye", "expected": "yürümeye" }
+  ]
+}

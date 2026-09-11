@@ -10,6 +10,11 @@
   <ItemGroup>
     <ProjectReference Include="..\EpubFixer.Core\EpubFixer.Core.csproj" />
     <ProjectReference Include="..\EpubFixer.TrMorph\EpubFixer.TrMorph.csproj" />
+    <PackageReference Include="SymSpell" Version="6.7.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Resources\OcrReconstruction\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
