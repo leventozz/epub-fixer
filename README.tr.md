@@ -11,7 +11,7 @@
 ![Language](https://img.shields.io/badge/language-T%C3%BCrk%C3%A7e-E30A17)
 ![Offline](https://img.shields.io/badge/processing-100%25%20offline-2E7D32)
 
-[Hızlı başlangıç](#hızlı-başlangıç) · [Nasıl çalışır?](#nasıl-çalışır) · [Kalite ölçümü](#kalite-ölçümü) · [Yol haritası](#yol-haritası)
+[Hızlı başlangıç](#hızlı-başlangıç) · [Nasıl çalışır?](#nasıl-çalışır) · [Kalite ölçümü](#kalite-ölçümü)
 
 </div>
 
@@ -36,17 +36,6 @@ Proje bu soruyu **LLM, harici API ve internet bağlantısı kullanmadan** araşt
 - Kararları `AutoFix`, `Review` veya `Defer` olarak ayırarak belirsiz durumları otomatik değişiklikten korur.
 - Kaynak EPUB'ın üzerine yazmaz; yeni bir dosya üretir ve çıktıyı yeniden okuyarak doğrular.
 - Değişmeyen arşiv girdilerinin byte düzeyinde aynı kaldığını denetler.
-
-## Mevcut durum
-
-EpubFixer aktif geliştirme aşamasında olan deneysel bir projedir. Bugünkü yetenekler iki ayrı seviyededir:
-
-| Yetenek | Tespit | Aday/karar raporu | EPUB'a otomatik uygulama |
-| --- | :---: | :---: | :---: |
-| Hatalı tireleme ve bölünmüş kelimeler | ✅ | ✅ | ✅ |
-| Şüpheli karakter ve genel OCR bozulmaları | ✅ | ✅ | 🚧 Geliştiriliyor |
-
-`fix` komutu şu anda yalnızca güven eşiğini geçen **tireleme ve bölünmüş kelime** düzeltmelerini dosyaya uygular. Genel OCR düzeltme motoru aday ve karar raporları üretir; bu kararların EPUB'a güvenli biçimde uygulanması yol haritasındadır.
 
 ## Hızlı başlangıç
 
@@ -201,18 +190,8 @@ benchmarks/
 
 - Şimdilik yalnızca Türkçe metinler hedeflenmektedir.
 - Paketlenmiş morfoloji çalışma zamanı nedeniyle mevcut dağıtım Windows x64 odaklıdır.
-- Genel OCR kararları henüz çıktı EPUB'ına otomatik uygulanmaz.
 - Şifreli/DRM korumalı EPUB dosyaları desteklenmez.
 - Karmaşık veya standart dışı EPUB yapılarında sonuçlar değişebilir.
-
-## Yol haritası
-
-- [ ] Genel OCR kararlarını kaynak konumlarını koruyarak EPUB'a uygulama
-- [ ] Düzeltmeleri kullanıcıya sunan etkileşimli inceleme modu
-- [ ] Daha fazla kitap ve hata türüyle benchmark veri setini genişletme
-- [ ] Linux ve macOS çalışma zamanı desteği
-- [ ] Yayınlanabilir tek dosyalı CLI paketleri
-- [ ] Ek diller için genişletilebilir morfoloji katmanı
 
 ## Katkıda bulunma
 

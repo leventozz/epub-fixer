@@ -11,7 +11,7 @@
 ![Language](https://img.shields.io/badge/language-Turkish-E30A17)
 ![Offline](https://img.shields.io/badge/processing-100%25%20offline-2E7D32)
 
-[Quick start](#quick-start) · [How it works](#how-it-works) · [Quality benchmark](#quality-benchmark) · [Roadmap](#roadmap)
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Quality benchmark](#quality-benchmark)
 
 </div>
 
@@ -36,17 +36,6 @@ The project explores that question **without an LLM, external API, or internet c
 - Classifies decisions as `AutoFix`, `Review`, or `Defer`, keeping uncertain cases away from automatic mutation.
 - Never overwrites the source EPUB; it creates a new file and validates it by reading it back.
 - Verifies that untouched archive entries remain byte-identical.
-
-## Current status
-
-EpubFixer is an experimental project under active development. Its current capabilities fall into two levels:
-
-| Capability | Detection | Candidate/decision report | Automatic EPUB mutation |
-| --- | :---: | :---: | :---: |
-| Incorrect hyphenation and split words | ✅ | ✅ | ✅ |
-| Suspicious characters and general OCR artifacts | ✅ | ✅ | 🚧 In development |
-
-The `fix` command currently writes only **hyphenation and split-word** corrections that pass the confidence threshold. The general OCR pipeline can generate candidate and decision reports; safely applying those decisions to the EPUB is on the roadmap.
 
 ## Quick start
 
@@ -201,18 +190,8 @@ benchmarks/
 
 - Only Turkish text is currently targeted.
 - The bundled morphology runtime makes the current distribution Windows x64-specific.
-- General OCR decisions are not yet applied automatically to the output EPUB.
 - Encrypted or DRM-protected EPUB files are not supported.
 - Results may vary for complex or non-standard EPUB structures.
-
-## Roadmap
-
-- [ ] Apply general OCR decisions while preserving exact EPUB source locations
-- [ ] Add an interactive review mode for proposed corrections
-- [ ] Expand the benchmark with more books and error categories
-- [ ] Add Linux and macOS runtime support
-- [ ] Publish single-file CLI distributions
-- [ ] Introduce an extensible morphology layer for additional languages
 
 ## Contributing
 
