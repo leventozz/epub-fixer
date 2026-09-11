@@ -235,14 +235,33 @@ static int RunDebugOcrRegion(string[] arguments)
         var text = File.ReadAllText(input, new UTF8Encoding(false, true));
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
         var regions = new OcrRegionDetector().Detect(text, analyzer);
+        var targets = new[] { "ya\n\ndn", "ı,ırarını", "ı ıç", "kendi-ıni", "dikkat-:;i zlikle", "1 ı iç", ":,ohbet", "koli ukta", "(le", "ı ızellikle", "ı ılduğu", "Ce-lıimde", "( 1 iye", "--:<lbaha", "Anacadde-si'ni", "Schwarzen-herg", "ge-^:cn", "Simmerin-ger", "yü-ıiimeye" };
+        var clean = new[] { "de yıllarca,", "düşünüyorum,", "eve,", "başladığında,", "dolaştım,", "denilebilir, o en", "o zamanlar.", "ve içtim,", "anlatılmaz,", "yoktu,", "oldum,", "ettim,", "Jeannie", "Billroth", "Auersberger", "Rennweg", "Schwarzenberg", "Wahring", "Simmeringer", "Joana'ya" };
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath))!);
         File.WriteAllText(outputPath, text, new UTF8Encoding(false));
         var builder = new StringBuilder("# OCR Region Debug\n\n## RAW TEXT\n\n");
         builder.AppendLine(text).AppendLine("\n## DETECTED CORRUPTED REGIONS\n");
+        var targetOccurrences = targets.SelectMany(target => Occurrences(text, target).Select(start => (Target: target, Start: start, End: start + target.Length))).ToArray();
+        var targetRows = targetOccurrences.Select(item => (item, Region: regions.FirstOrDefault(r => r.Start <= item.Start && r.EndExclusive >= item.End))).ToArray();
+        builder.AppendLine($"Previous detected region count: 77\nNew detected region count: {regions.Count}\nTarget occurrence count: {targetRows.Length}\nTarget detected count: {targetRows.Count(x => x.Region is not null)}\nTarget missed count: {targetRows.Count(x => x.Region is null)}\nBoundary-correct target count: {targetRows.Count(x => x.Region is not null && x.Region.Start == x.item.Start && x.Region.EndExclusive == x.item.End)}\n");
+        builder.AppendLine("## TARGET REGION AUDIT\n");
+        foreach (var row in targetRows)
+        {
+            var r = row.Region;
+            builder.AppendLine($"- Target: `{row.item.Target.Replace("\r", "\\r").Replace("\n", "\\n")}` | Detected: {r is not null} | Raw region: `{r?.RawText.Replace("\r", "\\r").Replace("\n", "\\n") ?? ""}` | Start: {r?.Start.ToString() ?? "-"} | EndExclusive: {r?.EndExclusive.ToString() ?? "-"} | Reasons: {(r is null ? "-" : string.Join(", ", r.DetectionReasons))} | Boundary-correct: {r is not null && r.Start == row.item.Start && r.EndExclusive == row.item.End}");
+        }
+        builder.AppendLine("\n## CLEAN TEXT FALSE-POSITIVE AUDIT\n");
+        var cleanRows = clean.SelectMany(target => Occurrences(text, target).Select(start => (Target: target, Start: start, End: start + target.Length))).ToArray();
+        foreach (var row in cleanRows)
+        {
+            var overlap = regions.FirstOrDefault(r => r.Start < row.End && r.EndExclusive > row.Start);
+            builder.AppendLine($"- `{row.Target}` [{row.Start},{row.End}): Region: {overlap is not null} | Raw: `{overlap?.RawText ?? ""}` | Reasons: {(overlap is null ? "-" : string.Join(", ", overlap.DetectionReasons))}");
+        }
+        builder.AppendLine($"\nClean false-positive count: {cleanRows.Count(row => regions.Any(r => r.Start < row.End && r.EndExclusive > row.Start))}\n");
         foreach (var (r, index) in regions.Select((r, i) => (r, i + 1)))
             builder.AppendLine($"### #{index}\n- Raw: `{r.RawText.Replace("\r", "\\r").Replace("\n", "\\n")}`\n- Start: {r.Start}\n- EndExclusive: {r.EndExclusive}\n- Fragments: {string.Join(" | ", r.LogicalFragments)}\n- Reasons: {string.Join(", ", r.DetectionReasons)}\n- Context: `{r.ContextBefore}⟦{r.RawText}⟧{r.ContextAfter}`\n");
-        builder.AppendLine("## RECONSTRUCTION CANDIDATES\n\nDeferred in detection milestone.\n\n## DECISIONS\n\nDeferred in detection milestone.\n\n## RECONSTRUCTED TEXT\n\nRaw text copied unchanged.\n");
+        builder.AppendLine("## RECONSTRUCTION CANDIDATES\n\nDeferred.\n\n## DECISIONS\n\nDeferred.\n\n## RECONSTRUCTED TEXT\n\nRaw.\n");
         File.WriteAllText(reportPath, builder.ToString(), new UTF8Encoding(false));
         Console.WriteLine("=== DETECTED CORRUPTED REGIONS ===");
         Console.WriteLine($"Detected regions: {regions.Count}");
@@ -253,6 +272,11 @@ static int RunDebugOcrRegion(string[] arguments)
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DecoderFallbackException)
     { Console.Error.WriteLine($"Error: {ex.Message}"); return 2; }
+}
+
+static IEnumerable<int> Occurrences(string text, string value)
+{
+    for (var start = 0; (start = text.IndexOf(value, start, StringComparison.Ordinal)) >= 0; start += Math.Max(1, value.Length)) yield return start;
 }
 
 static void ValidateOutputPaths(CliOptions options)
