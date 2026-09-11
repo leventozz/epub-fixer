@@ -111,6 +111,25 @@ public sealed class CliOptionsTests
     }
 
     [Fact]
+    public void TryParse_AcceptsOcrDecisionReport()
+    {
+        var parsed = CliOptions.TryParse(
+            ["analyze", "book.epub", "--ocr-decision-report", "ocr-decisions.md"],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.Equal("ocr-decisions.md", options.OcrDecisionReportPath);
+    }
+
+    [Fact]
+    public void TryParse_RejectsDuplicateOcrDecisionReport()
+    {
+        Assert.False(CliOptions.TryParse(
+            ["analyze", "book.epub", "--ocr-decision-report", "a.md", "--ocr-decision-report", "b.md"],
+            out _));
+    }
+
+    [Fact]
     public void TryParse_AcceptsStandaloneApplyParagraph()
     {
         var parsed = CliOptions.TryParse(

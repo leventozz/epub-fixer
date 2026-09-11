@@ -44,12 +44,22 @@ static int Run(string[] arguments)
 
     var package = new EpubPackageReader().Read(options.EpubPath);
     OcrCorrectionAnalysisReport? correctionReport = null;
-    if (options.OcrCorrectionReportPath is not null)
+    OcrCorrectionDecisionAnalysisReport? decisionReport = null;
+    if (options.OcrCorrectionReportPath is not null || options.OcrDecisionReportPath is not null)
     {
         using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
         correctionReport = new OcrAnalysisService().AnalyzeCorrections(options.EpubPath, ocrAnalyzer);
-        File.WriteAllText(options.OcrCorrectionReportPath, OcrCorrectionAnalysisReporting.SerializeMarkdown(correctionReport), new UTF8Encoding(false));
-        Console.WriteLine($"OCR correction report written to: {options.OcrCorrectionReportPath}");
+        if (options.OcrCorrectionReportPath is not null)
+        {
+            File.WriteAllText(options.OcrCorrectionReportPath, OcrCorrectionAnalysisReporting.SerializeMarkdown(correctionReport), new UTF8Encoding(false));
+            Console.WriteLine($"OCR correction report written to: {options.OcrCorrectionReportPath}");
+        }
+        if (options.OcrDecisionReportPath is not null)
+        {
+            decisionReport = new OcrCorrectionDecisionEvaluator().Evaluate(correctionReport);
+            File.WriteAllText(options.OcrDecisionReportPath, OcrDecisionReporting.SerializeMarkdown(decisionReport), new UTF8Encoding(false));
+            Console.WriteLine($"OCR decision report written to: {options.OcrDecisionReportPath}");
+        }
     }
     if (options.OcrReportPath is not null)
     {
@@ -208,6 +218,7 @@ static void ValidateOutputPaths(CliOptions options)
         options.TrMorphReportPath,
         options.OcrReportPath,
         options.OcrCorrectionReportPath,
+        options.OcrDecisionReportPath,
         options.OutputEpubPath
     }.Where(path => path is not null).Cast<string>().ToArray();
 
@@ -607,6 +618,7 @@ static void PrintUsage()
         + "[--post-fix-lexicon-report <post-fix.md>] "
         + "[--ocr-report <ocr.md>] "
         + "[--ocr-correction-report <ocr-candidates.md>] "
+        + "[--ocr-decision-report <ocr-decisions.md>] "
         + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
     Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub>");
 }
@@ -622,6 +634,7 @@ internal sealed record CliOptions(
     string? TrMorphReportPath,
     string? OcrReportPath,
     string? OcrCorrectionReportPath,
+    string? OcrDecisionReportPath,
     string? GroundTruthPath,
     bool ApplyInline,
     bool ApplyParagraph)
@@ -656,6 +669,7 @@ internal sealed record CliOptions(
                 null,
                 null,
                 null,
+                null,
                 false,
                 false);
             return true;
@@ -673,6 +687,7 @@ internal sealed record CliOptions(
         string? trMorphReportPath = null;
     string? ocrReportPath = null;
         string? ocrCorrectionReportPath = null;
+        string? ocrDecisionReportPath = null;
         string? groundTruthPath = null;
         var applyInline = false;
         var applyParagraph = false;
@@ -766,6 +781,11 @@ internal sealed record CliOptions(
                 if (ocrCorrectionReportPath is not null) return false;
                 ocrCorrectionReportPath = value;
             }
+            else if (string.Equals(option, "--ocr-decision-report", StringComparison.OrdinalIgnoreCase))
+            {
+                if (ocrDecisionReportPath is not null) return false;
+                ocrDecisionReportPath = value;
+            }
             else if (string.Equals(option, "--ground-truth", StringComparison.OrdinalIgnoreCase))
             {
                 if (groundTruthPath is not null) return false;
@@ -792,6 +812,7 @@ internal sealed record CliOptions(
             trMorphReportPath,
             ocrReportPath,
             ocrCorrectionReportPath,
+            ocrDecisionReportPath,
             groundTruthPath,
             applyInline,
             applyParagraph);

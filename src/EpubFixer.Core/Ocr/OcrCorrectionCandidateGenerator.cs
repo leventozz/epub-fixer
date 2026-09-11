@@ -221,7 +221,7 @@ public sealed class OcrCorrectionCandidateGenerator
             foreach (var value in ReplaceAll(text, pair.Item1, pair.Item2))
                 yield return new Seed(value,
                     [OcrCorrectionGenerationReason.GlyphSubstitution, OcrCorrectionGenerationReason.StructuralNormalization], 1, 1);
-        foreach (var pair in new[] { ('1', new[] { 'l', 'i', 'ı', 'I' }), ('0', new[] { 'o', 'O', 'ö', 'Ö' }), ('3', new[] { 'e', 'E' }) })
+        foreach (var pair in new[] { ('1', new[] { 'l', 'i', 'ı', 'I' }), ('0', new[] { 'o', 'O', 'ö', 'Ö' }), ('3', new[] { 'e', 'E' }), ('^', new[] { 'ş' }) })
             foreach (var value in ReplaceChar(text, pair.Item1, pair.Item2))
                 yield return new Seed(value,
                     [OcrCorrectionGenerationReason.GlyphSubstitution, OcrCorrectionGenerationReason.StructuralNormalization], 1, 1);

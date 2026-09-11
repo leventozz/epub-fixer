@@ -8,8 +8,15 @@ internal static class OcrCorrectionAnalysisReporting
         var occurrences = report.Occurrences;
         var withProposal = occurrences.Count(item => item.Proposals.Count > 0);
         var proposals = occurrences.SelectMany(item => item.Proposals).ToArray();
+        var retainedByBaseFormFrequency = report.SourceAnalysis.Candidates.Count(IsPreviouslySuppressedByBaseFormFrequency);
+        var caretProposals = occurrences
+            .Where(item => item.WorkingSource.Text.Contains('^'))
+            .SelectMany(item => item.Proposals)
+            .Where(item => item.GenerationReasons.Contains(OcrCorrectionGenerationReason.GlyphSubstitution)
+                && item.ProposedText.Contains('ş'))
+            .ToArray();
         var builder = new StringBuilder();
-        builder.AppendLine("# OCR Correction Candidate Generation V1.1");
+        builder.AppendLine("# OCR Correction Candidate Generation V1.1.1");
         builder.AppendLine();
         builder.AppendLine($"- Total OCR anomalies: {occurrences.Count}");
         builder.AppendLine($"- With >=1 proposal: {withProposal}");
@@ -17,15 +24,21 @@ internal static class OcrCorrectionAnalysisReporting
         foreach (var confidence in Enum.GetValues<OcrConfidence>())
             builder.AppendLine($"- {confidence} with proposal: {Coverage(occurrences, confidence)}");
         builder.AppendLine();
-        builder.AppendLine("## V1 → V1.1 proposal coverage");
+        builder.AppendLine("## V1.1 → V1.1.1 comparison");
         builder.AppendLine();
-        builder.AppendLine("| Metric | V1 | V1.1 | Delta |");
+        builder.AppendLine("| Metric | V1.1 | V1.1.1 | Delta |");
         builder.AppendLine("|---|---:|---:|---:|");
-        AppendComparison(builder, "With proposal", 640, withProposal);
-        AppendComparison(builder, "Without proposal", 253, occurrences.Count - withProposal);
+        AppendComparison(builder, "Total anomalies", 767, occurrences.Count);
+        AppendComparison(builder, "With proposal", 533, withProposal);
+        AppendComparison(builder, "Without proposal", 234, occurrences.Count - withProposal);
         AppendComparison(builder, "HIGH coverage", 137, Coverage(occurrences, OcrConfidence.High));
         AppendComparison(builder, "MEDIUM coverage", 80, Coverage(occurrences, OcrConfidence.Medium));
-        AppendComparison(builder, "EvidenceOnly coverage", 423, Coverage(occurrences, OcrConfidence.EvidenceOnly));
+        AppendComparison(builder, "EvidenceOnly coverage", 316, Coverage(occurrences, OcrConfidence.EvidenceOnly));
+        AppendComparison(builder, "Multi-step structural proposals", 434, proposals.Count(item => item.StructuralTransformationCount > 1));
+        AppendComparison(builder, "TRmorph-valid multi-step proposals", 265, proposals.Count(item => item.StructuralTransformationCount > 1 && item.TrMorphValid));
+        AppendComparison(builder, "AdjacentFragmentComposition proposals", 2, proposals.Count(IsAdjacent));
+        AppendComparison(builder, "TRmorph-valid adjacent proposals", 2, proposals.Count(item => IsAdjacent(item) && item.TrMorphValid));
+        AppendComparison(builder, "BaseFormFrequency-suppressed candidates", 126, retainedByBaseFormFrequency);
         builder.AppendLine();
         builder.AppendLine("## Proposal count distribution");
         builder.AppendLine();
@@ -44,7 +57,10 @@ internal static class OcrCorrectionAnalysisReporting
         builder.AppendLine($"- TRmorph-valid proposals produced only after multi-step composition: {proposals.Count(item => item.StructuralTransformationCount > 1 && item.TrMorphValid)}");
         builder.AppendLine($"- AdjacentFragmentComposition proposal count: {proposals.Count(IsAdjacent)}");
         builder.AppendLine($"- TRmorph-valid adjacent composite proposal count: {proposals.Count(item => IsAdjacent(item) && item.TrMorphValid)}");
-        builder.AppendLine($"- EvidenceOnly candidates suppressed from RareInBook because BaseFormFrequency > 1: {report.SourceAnalysis.RareInBookSuppressedOccurrences.Count}");
+        builder.AppendLine($"- BaseFormFrequency > 1 candidate count: {report.SourceAnalysis.Candidates.Count(item => item.BaseFormFrequency > 1)}");
+        builder.AppendLine($"- Previously suppressed by BaseFormFrequency, now retained candidate count: {retainedByBaseFormFrequency}");
+        builder.AppendLine($"- ^ → ş generated proposal count: {caretProposals.Length}");
+        builder.AppendLine($"- ^ → ş TRmorph-valid proposal count: {caretProposals.Count(item => item.TrMorphValid)}");
         builder.AppendLine($"- Unique apostrophe base forms: {report.SourceAnalysis.UniqueApostropheBaseForms}");
         builder.AppendLine();
         builder.AppendLine("## Generation reason counts");
@@ -120,6 +136,12 @@ internal static class OcrCorrectionAnalysisReporting
 
     private static bool IsAdjacent(OcrCorrectionCandidate candidate) =>
         candidate.GenerationReasons.Contains(OcrCorrectionGenerationReason.AdjacentFragmentComposition);
+
+    private static bool IsPreviouslySuppressedByBaseFormFrequency(OcrWordEvidence candidate) =>
+        candidate.Confidence == OcrConfidence.EvidenceOnly
+        && !candidate.TrMorphValid
+        && candidate.BookFrequency == 1
+        && candidate.BaseFormFrequency > 1;
 
     private static void AppendComparison(StringBuilder builder, string metric, int baseline, int current) =>
         builder.AppendLine($"| {metric} | {baseline} | {current} | {current - baseline:+#;-#;0} |");

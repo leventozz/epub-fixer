@@ -25,7 +25,7 @@ public sealed class OcrAnalysisReportingTests
     }
 
     [Fact]
-    public void CorrectionReport_ShowsV11MetricsTargetsAndExplicitMissingTargets()
+    public void CorrectionReport_ShowsV111MetricsTargetsAndExplicitMissingTargets()
     {
         using var epub = TemporaryEpub.Create(
             [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>Eiles Eiles'e Eiles'le y1pranmışt1.</p>"))],
@@ -38,9 +38,12 @@ public sealed class OcrAnalysisReportingTests
 
         var markdown = OcrCorrectionAnalysisReporting.SerializeMarkdown(report);
 
-        Assert.Contains("# OCR Correction Candidate Generation V1.1", markdown);
-        Assert.Contains("## V1 → V1.1 proposal coverage", markdown);
+        Assert.Contains("# OCR Correction Candidate Generation V1.1.1", markdown);
+        Assert.Contains("## V1.1 → V1.1.1 comparison", markdown);
         Assert.Contains("Multi-step structural proposals count", markdown);
+        Assert.Contains("BaseFormFrequency > 1 candidate count", markdown);
+        Assert.Contains("Previously suppressed by BaseFormFrequency, now retained candidate count", markdown);
+        Assert.Contains("^ → ş generated proposal count", markdown);
         Assert.Contains("## Target Regression Examples", markdown);
         Assert.Contains("### `Eiles`", markdown);
         Assert.Contains("- BaseFormFrequency: 3", markdown);

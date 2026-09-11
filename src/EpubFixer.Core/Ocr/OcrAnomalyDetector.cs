@@ -95,15 +95,11 @@ public sealed class OcrAnomalyDetector
             if (!valid) invalidTotal++;
             var reasons = draft.Reasons.ToHashSet();
             if (!valid) reasons.Add(OcrDetectionReason.MorphologyInvalid);
-            var suppressRareInBook = frequency == 1 && baseFormFrequency > 1;
-            if (frequency == 1 && !suppressRareInBook) reasons.Add(OcrDetectionReason.RareInBook);
+            if (frequency == 1) reasons.Add(OcrDetectionReason.RareInBook);
 
             var structural = reasons.Any(reason => reason is not OcrDetectionReason.MorphologyInvalid and not OcrDetectionReason.RareInBook);
             if (!structural && !(reasons.Contains(OcrDetectionReason.MorphologyInvalid) && reasons.Contains(OcrDetectionReason.RareInBook)))
             {
-                if (suppressRareInBook && reasons.Contains(OcrDetectionReason.MorphologyInvalid))
-                    rareSuppressed.Add(new OcrWordEvidence(candidate, frequency, baseForm, baseFormFrequency,
-                        valid, reasons.OrderBy(item => item).ToArray(), OcrConfidence.EvidenceOnly));
                 continue;
             }
 

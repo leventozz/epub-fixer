@@ -88,6 +88,21 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     }
 
     [Fact]
+    public void Generate_RetainsBaseFormFamilyCandidateAndFindsBookProposal()
+    {
+        var analyzer = new RecordingMorphologyAnalyzer(["Joana'nın", "Joana'ya"]);
+        var report = Analyze("Joana'mn Joana'nın Joana'ya", out var stream, analyzer);
+
+        var occurrence = Assert.Single(Generate(report, stream, analyzer).Occurrences,
+            item => item.Source.Candidate.Text == "Joana'mn");
+
+        Assert.Equal(OcrConfidence.EvidenceOnly, occurrence.Source.Confidence);
+        Assert.Equal("Joana", occurrence.Source.BaseForm);
+        Assert.Equal(3, occurrence.Source.BaseFormFrequency);
+        Assert.Contains(occurrence.Proposals, item => item.ProposedText == "Joana'nın");
+    }
+
+    [Fact]
     public void Generate_EnforcesStructuralDepthProposalLimitAndDeterministicOrdering()
     {
         var analyzer = new RecordingMorphologyAnalyzer(["alblcldl"]);
@@ -154,16 +169,41 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     }
 
     [Fact]
-    public void Generate_ExpandsAttachedStructuralGlyphIntoWorkingSpan()
+    public void Generate_ExpandsAttachedCaretAndAppliesGenericGlyphSubstitution()
     {
         var analyzer = new RecordingMorphologyAnalyzer(["şiddetli"]);
-        var report = Analyze("bir ^iddetli şiddetli", out var stream, analyzer);
+        var report = Analyze("bir ^iddetli", out var stream, analyzer);
 
         var occurrence = Assert.Single(Generate(report, stream, analyzer).Occurrences,
             item => item.Source.Candidate.Text == "iddetli");
 
         Assert.Equal("^iddetli", occurrence.WorkingSource.Text);
-        Assert.Contains(occurrence.Proposals, item => item.ProposedText == "şiddetli" && item.TrMorphValid);
+        var proposal = Assert.Single(occurrence.Proposals, item => item.ProposedText == "şiddetli");
+        Assert.True(proposal.TrMorphValid);
+        Assert.Equal(0, proposal.BookFrequency);
+        Assert.Equal(1, proposal.StructuralTransformationCount);
+        Assert.Contains(OcrCorrectionGenerationReason.GlyphSubstitution, proposal.GenerationReasons);
+    }
+
+    [Theory]
+    [InlineData("a^a", "aşa", 1)]
+    [InlineData("dü-^ündüm", "düşündüm", 2)]
+    public void Generate_CaretSubstitutionIsGenericAndComposesWithExistingStructuralSteps(
+        string source,
+        string expected,
+        int structuralSteps)
+    {
+        var analyzer = new RecordingMorphologyAnalyzer([expected]);
+        var report = Analyze(source, out var stream, analyzer);
+
+        var proposal = Assert.Single(Generate(report, stream, analyzer).Occurrences
+            .SelectMany(item => item.Proposals), item => item.ProposedText == expected);
+
+        Assert.True(proposal.TrMorphValid);
+        Assert.Equal(structuralSteps, proposal.StructuralTransformationCount);
+        Assert.Contains(OcrCorrectionGenerationReason.GlyphSubstitution, proposal.GenerationReasons);
+        if (structuralSteps > 1)
+            Assert.Contains(OcrCorrectionGenerationReason.HyphenRemoval, proposal.GenerationReasons);
     }
 
     [Fact]

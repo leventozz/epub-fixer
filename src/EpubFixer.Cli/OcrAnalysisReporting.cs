@@ -15,7 +15,8 @@ internal static class OcrAnalysisReporting
         builder.AppendLine($"- Evidence-only candidates: {report.Candidates.Count(item => item.Confidence == OcrConfidence.EvidenceOnly)}");
         builder.AppendLine($"- TRmorph invalid total: {report.TrMorphInvalidTotal}");
         builder.AppendLine($"- TRmorph invalid + strong OCR evidence: {report.TrMorphInvalidWithStrongEvidence}");
-        builder.AppendLine($"- EvidenceOnly suppressed from RareInBook by BaseFormFrequency: {report.RareInBookSuppressedOccurrences.Count}");
+        builder.AppendLine($"- BaseFormFrequency > 1 candidate count: {report.Candidates.Count(item => item.BaseFormFrequency > 1)}");
+        builder.AppendLine($"- Previously suppressed by BaseFormFrequency, now retained candidate count: {report.Candidates.Count(IsPreviouslySuppressedByBaseFormFrequency)}");
         builder.AppendLine($"- Unique apostrophe base forms: {report.UniqueApostropheBaseForms}");
         builder.AppendLine();
         builder.AppendLine("Reason counts overlap: one occurrence may carry multiple reasons, so reason totals do not need to equal candidate total.");
@@ -37,6 +38,12 @@ internal static class OcrAnalysisReporting
         }
         return builder.ToString();
     }
+
+    private static bool IsPreviouslySuppressedByBaseFormFrequency(OcrWordEvidence candidate) =>
+        candidate.Confidence == OcrConfidence.EvidenceOnly
+        && !candidate.TrMorphValid
+        && candidate.BookFrequency == 1
+        && candidate.BaseFormFrequency > 1;
 
     private static string Cell(string value) => value.Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
 }

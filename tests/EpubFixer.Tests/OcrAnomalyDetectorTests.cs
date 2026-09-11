@@ -97,19 +97,28 @@ public sealed class OcrAnomalyDetectorTests
     }
 
     [Fact]
-    public void Analyze_SuppressesRareInBookForApostropheBaseFamilyOnly()
+    public void Analyze_BaseFormFrequencyDoesNotSuppressRareEvidenceOnlyCandidates()
     {
-        var report = Analyze("Eiles Eiles'e Eiles'le ınetre",
-            ["Eiles", "Eiles'e", "Eiles'le", "ınetre"]);
+        var report = Analyze("Eiles Eiles'e Eiles'le Joana'mn Joana'nın Joana'ya ınetre",
+            ["Eiles", "Eiles'e", "Eiles'le", "Joana'mn", "Joana'nın", "Joana'ya", "ınetre"]);
 
-        Assert.DoesNotContain(report.Candidates, item => item.Candidate.Text.StartsWith("Eiles", StringComparison.Ordinal));
-        Assert.Equal(3, report.RareInBookSuppressedOccurrences.Count);
-        Assert.All(report.RareInBookSuppressedOccurrences, item =>
+        Assert.Empty(report.RareInBookSuppressedOccurrences);
+        var eilesFamily = report.Candidates
+            .Where(item => item.Candidate.Text.StartsWith("Eiles", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(3, eilesFamily.Length);
+        Assert.All(eilesFamily, item =>
         {
             Assert.Equal("Eiles", item.BaseForm);
             Assert.Equal(3, item.BaseFormFrequency);
-            Assert.DoesNotContain(OcrDetectionReason.RareInBook, item.DetectionReasons);
+            Assert.Equal(OcrConfidence.EvidenceOnly, item.Confidence);
+            Assert.Contains(OcrDetectionReason.RareInBook, item.DetectionReasons);
         });
+        var joana = Assert.Single(report.Candidates, item => item.Candidate.Text == "Joana'mn");
+        Assert.Equal(OcrConfidence.EvidenceOnly, joana.Confidence);
+        Assert.Equal("Joana", joana.BaseForm);
+        Assert.Equal(3, joana.BaseFormFrequency);
+        Assert.Contains(OcrDetectionReason.RareInBook, joana.DetectionReasons);
         Assert.Contains(report.Candidates, item => item.Candidate.Text == "ınetre"
             && item.DetectionReasons.Contains(OcrDetectionReason.RareInBook));
     }
