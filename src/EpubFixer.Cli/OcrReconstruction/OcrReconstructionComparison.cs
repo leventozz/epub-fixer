@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using EpubFixer.Core.Lexicon;
+using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
@@ -9,7 +10,7 @@ namespace EpubFixer.Cli.OcrReconstruction;
 
 public sealed class OcrReconstructionComparison
 {
-    public int Run(string inputPath, string? expectedPath, string? reportPath, ITurkishMorphologyAnalyzer analyzer)
+    public int Run(string inputPath, string? expectedPath, string? reportPath, ITurkishMorphologyAnalyzer analyzer, string? diagnosticReportPath = null)
     {
         var text = File.ReadAllText(inputPath, new UTF8Encoding(false, true));
         var regions = new OcrRegionDetector().Detect(text, analyzer);
@@ -27,9 +28,58 @@ public sealed class OcrReconstructionComparison
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath ?? "artifacts/debug/ocr-reconstruction-comparison.md"))!);
         var output = reportPath ?? "artifacts/debug/ocr-reconstruction-comparison.md";
         File.WriteAllText(output, Render(rows, expected), new UTF8Encoding(false));
+        if (diagnosticReportPath is not null)
+        {
+            if (expectedPath is null) throw new InvalidDataException("--diagnostic-report requires --expected.");
+            var noisy = (NoisyChannelRegionReconstructor)reconstructors[2];
+            var misses = rows.Where(r => expected.TryGetValue(r.Region.Start, out var e) && !r.Results[2].Any(c => c.Text == e.ExpectedText)).ToArray();
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(diagnosticReportPath))!);
+            File.WriteAllText(diagnosticReportPath, RenderDiagnostic(text, misses, expected, noisy, clean, book, analyzer), new UTF8Encoding(false));
+            Console.WriteLine($"NoisyChannel diagnostic report written to: {Path.GetFullPath(diagnosticReportPath)}");
+        }
         Console.WriteLine($"Detected regions: {regions.Count}");
         Console.WriteLine($"Comparison report written to: {Path.GetFullPath(output)}");
         return regions.Count == 21 ? 0 : 3;
+    }
+
+    private static string RenderDiagnostic(string text, IReadOnlyList<Row> misses, IReadOnlyDictionary<int, Expected> expected,
+        NoisyChannelRegionReconstructor noisy, CleanTurkishLexicon clean, BookLexicon book, ITurkishMorphologyAnalyzer analyzer)
+    {
+        var b = new StringBuilder("# NoisyChannel Diagnostic\n\n");
+        b.AppendLine($"Miss count: {misses.Count}").AppendLine();
+        b.AppendLine("| Source | Expected | Root cause | Subreason | Generated? | Pruned? | Morphology | CleanLexicon | Minimum path |").AppendLine("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |");
+        var traces = new List<(Row Row, NoisyChannelDiagnosticTrace Trace)>();
+        foreach (var row in misses)
+        {
+            var trace = noisy.Diagnose(row.Region, expected[row.Region.Start].ExpectedText); traces.Add((row, trace));
+            var morph = trace.Evaluation?.Morphology.ToString() ?? "n/a";
+            var lex = trace.Evaluation?.Clean.ToString() ?? "n/a";
+            b.AppendLine($"| `{Escape(row.Region.RawText)}` | `{Escape(trace.Expected)}` | {trace.Classification} | {trace.Subreason} | {trace.Generated} | {trace.Pruned} | {morph} | {lex} | {(trace.MinimumPath is null ? "—" : string.Join("; ", trace.MinimumPath.Select(x => x.Operation)))} |");
+        }
+        foreach (var item in traces)
+        {
+            var t = item.Trace; b.AppendLine().AppendLine($"## `{Escape(item.Row.Region.RawText)}` → `{Escape(t.Expected)}`");
+            b.AppendLine($"- Initial normalized input: `{Escape(t.Initial)}`").AppendLine($"- Root cause: **{t.Classification}**").AppendLine($"- Subreason: **{t.Subreason}**");
+            b.AppendLine("\n### Expansion and pruning audit\n").AppendLine("| Depth | Generated | Retained | Pruned | Best retained cost | Expected generated | Expected retained | Best states |").AppendLine("| ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
+            foreach (var d in t.Depths) b.AppendLine($"| {d.Depth} | {d.Generated} | {d.Retained} | {d.Pruned} | {d.BestCost?.ToString("0.000") ?? "—"} | {d.ExpectedGenerated} | {d.ExpectedRetained} | {Escape(string.Join(", ", d.BestStates))} |");
+            b.AppendLine("\n### Closest states\n\n| State | Distance | Cost | Depth |\n| --- | ---: | ---: | ---: |");
+            foreach (var s in t.ClosestStates) b.AppendLine($"| `{Escape(s.Text)}` | {s.Distance} | {s.Cost:0.000} | {s.Depth} |");
+            b.AppendLine("\n### Minimum edit path\n");
+            if (t.MinimumPath is null) b.AppendLine("No path exists with the current operation set. The diagnostic reachability search found no state equal to the expected candidate.");
+            else { foreach (var p in t.MinimumPath) b.AppendLine($"{p.Number}. {Escape(p.Operation)}"); b.AppendLine($"\nTotal edit steps: {t.MinimumPath.Count}"); }
+            b.AppendLine("\n### Candidate evaluation\n");
+            if (t.Evaluation is null) b.AppendLine("Expected candidate was not available for scoring in the explored state set.");
+            else b.AppendLine($"CleanTurkishLexicon contains: {t.Evaluation.Clean}; frequency: {t.Evaluation.CleanFrequency}; BookLexicon contains: {t.Evaluation.Book}; TRmorph: {t.Evaluation.Morphology}; final score: {(double.IsNaN(t.Evaluation.Score) ? "—" : t.Evaluation.Score.ToString("0.000"))}; edit cost: {(double.IsNaN(t.Evaluation.Cost) ? "—" : t.Evaluation.Cost.ToString("0.000"))}");
+        }
+        b.AppendLine("\n## TRmorph and lexicon audit\n\n| Input | NFC | Turkish lowercase | TRmorph raw | TRmorph NFC | TRmorph lowercase | Clean contains | Clean frequency | Book contains | Book frequency |").AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
+        foreach (var word in new[] { "üç", "olduğu", "Cebimde", "geçen", "kendimi", "hiç", "özellikle", "yürümeye", "koltukta", "sohbet" })
+        {
+            var nfc = word.Normalize(); var lower = CleanTurkishLexicon.Normalize(nfc); var rawValid = analyzer.IsValidWord(word); var nfcValid = analyzer.IsValidWord(nfc); var lowerValid = analyzer.IsValidWord(lower);
+            b.AppendLine($"| `{word}` | `{nfc}` | `{lower}` | {rawValid} | {nfcValid} | {lowerValid} | {clean.Contains(lower)} | {clean.GetFrequency(lower)} | {book.Contains(word)} | {book.GetCount(word)} |");
+        }
+        b.AppendLine("\n## Final architectural classification\n\n");
+        b.AppendLine(traces.Any(x => x.Trace.MinimumPath is null) ? "B) Candidate generation needs a small general operation extension" : "A) Candidate generation architecture is sufficient; tuning/search issue");
+        return b.ToString();
     }
 
     private static IReadOnlyDictionary<int, Expected> LoadExpected(string path, string text)

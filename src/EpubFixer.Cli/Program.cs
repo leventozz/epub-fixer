@@ -282,17 +282,19 @@ static int RunDebugOcrReconstruction(string[] arguments)
     if (arguments.Length < 2) { PrintUsage(); return 1; }
     string? expected = null;
     string? report = null;
+    string? diagnosticReport = null;
     for (var i = 2; i < arguments.Length; i += 2)
     {
         if (i + 1 >= arguments.Length) { PrintUsage(); return 1; }
         if (string.Equals(arguments[i], "--expected", StringComparison.OrdinalIgnoreCase)) expected = arguments[i + 1];
         else if (string.Equals(arguments[i], "--report", StringComparison.OrdinalIgnoreCase)) report = arguments[i + 1];
+        else if (string.Equals(arguments[i], "--diagnostic-report", StringComparison.OrdinalIgnoreCase)) diagnosticReport = arguments[i + 1];
         else { PrintUsage(); return 1; }
     }
     try
     {
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
-        return new OcrReconstructionComparison().Run(arguments[1], expected, report, analyzer);
+        return new OcrReconstructionComparison().Run(arguments[1], expected, report, analyzer, diagnosticReport);
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or TurkishMorphologyException)
     {
@@ -747,7 +749,7 @@ static bool PathsReferToSameFile(string firstPath, string secondPath)
 static void PrintUsage()
 {
     Console.Error.WriteLine("       epubfixer debug-ocr-region <input.txt> [--report <report.md>] [--output <output.txt>]");
-    Console.Error.WriteLine("       epubfixer debug-ocr-reconstruction <input.txt> [--expected <expected.json>] [--report <report.md>]");
+    Console.Error.WriteLine("       epubfixer debug-ocr-reconstruction <input.txt> [--expected <expected.json>] [--report <report.md>] [--diagnostic-report <report.md>]");
     Console.Error.WriteLine(
         "Usage: epubfixer analyze <book.epub> "
         + "[--apply-inline] "
