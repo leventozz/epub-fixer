@@ -2,10 +2,14 @@ using System.Security.Cryptography;
 using EpubFixer.Core.Correction;
 using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Decision.Models;
+using EpubFixer.Core.Decision;
 using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Fix.Models;
 using EpubFixer.Core.Morphology;
+using EpubFixer.Core.Mutation;
+using EpubFixer.Core.Mutation.Models;
+using EpubFixer.Core.Ocr;
 
 namespace EpubFixer.Core.Fix;
 
@@ -19,7 +23,7 @@ public sealed class EpubFixService
             ?? throw new ArgumentNullException(nameof(morphologyAnalyzer));
     }
 
-    public EpubFixResult Fix(string inputPath, string outputPath)
+    public EpubFixResult Fix(string inputPath, string outputPath, bool applyOcrCorrections = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(inputPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
@@ -97,6 +101,17 @@ public sealed class EpubFixService
         var v2CrossResult = new CrossParagraphHyphenationCorrectionApplier().Apply(v2CrossPlans);
 
         var finalStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+        OcrMutationResult? ocrMutation = null;
+        if (applyOcrCorrections)
+        {
+            var analysis = new OcrAnalysisService().AnalyzeCorrections(finalStream, morphologyAnalyzer);
+            var report = new OcrCorrectionDecisionEvaluator().Evaluate(analysis);
+            var plan = new OcrCorrectionMutationPlanner().Create(report.Decisions, finalStream);
+            ocrMutation = new OcrCorrectionMutationApplier().Apply(package, plan);
+            if (!ocrMutation.Succeeded)
+                throw new InvalidDataException("OCR mutation failed: " + string.Join(", ", ocrMutation.Failures.Select(item => item.Reason)));
+            finalStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+        }
         var finalState = HyphenationPipeline.Analyze(finalStream);
         var v2Kinds = new V2DetectionKindCounts(
             v2Auto.Count(d => d.Evidence.Candidate.DetectionKind == HyphenationDetectionKind.Inline),
@@ -144,7 +159,10 @@ public sealed class EpubFixService
                 v2InlinePlans.Length + v2CrossPlans.Length,
                 v2InlineResult,
                 v2CrossResult,
-                v2Kinds.DocumentBoundary);
+                v2Kinds.DocumentBoundary)
+            {
+                OcrMutation = ocrMutation
+            };
         }
         finally
         {

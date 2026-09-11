@@ -20,5 +20,6 @@ public enum OcrCorrectionDecisionReason
     EvidenceOnlyEditDistanceTooHigh,
     ConsumedByCompositeRepair,
     ApostropheSuffixChangeUnsafe,
-    SameApostropheBaseReviewOnly
+    SameApostropheBaseReviewOnly,
+    ProperNameStructuralAmbiguity
 }

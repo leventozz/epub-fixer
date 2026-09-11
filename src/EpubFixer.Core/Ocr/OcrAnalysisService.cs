@@ -5,6 +5,7 @@ using EpubFixer.Core.Decision.Models;
 using EpubFixer.Core.Detection;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Epub;
+using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr.Models;
 using EpubFixer.Core.Lexicon;
@@ -31,6 +32,17 @@ public sealed class OcrAnalysisService
         var package = new EpubPackageReader().Read(epubPath);
         ApplyExistingHyphenation(package, analyzer);
         var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+        var analysis = new OcrAnomalyDetector().Analyze(stream, analyzer);
+        var lexicon = new BookLexiconBuilder().Build(stream);
+        return new OcrCorrectionCandidateGenerator().Generate(analysis, stream, lexicon, analyzer);
+    }
+
+    public OcrCorrectionAnalysisReport AnalyzeCorrections(
+        LogicalTextStream stream,
+        ITurkishMorphologyAnalyzer analyzer)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(analyzer);
         var analysis = new OcrAnomalyDetector().Analyze(stream, analyzer);
         var lexicon = new BookLexiconBuilder().Build(stream);
         return new OcrCorrectionCandidateGenerator().Generate(analysis, stream, lexicon, analyzer);

@@ -169,6 +169,31 @@ public sealed class OcrCorrectionDecisionEvaluatorTests
         Assert.Equal(OcrCorrectionDecisionKind.Review, tied.DecisionKind);
     }
 
+    [Fact]
+    public void TitleCaseStructuralProperNameCompetitor_DowngradesToReview()
+    {
+        var decision = Evaluate(TitleCaseStructuralOccurrence("Bıırg",
+            ProposalFrom("Bıırg", "Berg", true, 1, 2, 2),
+            ProposalFrom("Bıırg", "Burg", false, 403, 2, 1)));
+
+        Assert.Equal(OcrCorrectionDecisionKind.Review, decision.DecisionKind);
+        Assert.Null(decision.SelectedProposal);
+        Assert.Equal("Berg", decision.ProvisionalSelectedProposal!.Proposal.ProposedText);
+        Assert.Contains(OcrCorrectionDecisionReason.ProperNameStructuralAmbiguity, decision.DecisionReasons);
+        Assert.Contains(decision.CompetingProposals, item => item.Proposal.ProposedText == "Burg");
+    }
+
+    [Fact]
+    public void LowercaseStructuralGeometry_DoesNotUseTitleCaseGuard()
+    {
+        var decision = Evaluate(TitleCaseStructuralOccurrence("bıırg",
+            ProposalFrom("bıırg", "berg", true, 1, 2, 2),
+            ProposalFrom("bıırg", "burg", false, 403, 2, 1)));
+
+        Assert.Equal(OcrCorrectionDecisionKind.AutoFixCandidate, decision.DecisionKind);
+        Assert.Equal("berg", decision.SelectedProposal!.Proposal.ProposedText);
+    }
+
     private static OcrCorrectionDecision Evaluate(OcrCorrectionOccurrence occurrence)
     {
         var analysis = new OcrCorrectionAnalysisReport(
@@ -192,6 +217,14 @@ public sealed class OcrCorrectionDecisionEvaluatorTests
         return new OcrCorrectionOccurrence(evidence, candidate, "", source, "", proposals);
     }
 
+    private static OcrCorrectionOccurrence TitleCaseStructuralOccurrence(string source, params OcrCorrectionCandidate[] proposals)
+    {
+        var candidate = Candidate(source);
+        var evidence = new OcrWordEvidence(candidate, 0, source, 0, false,
+            [OcrDetectionReason.SuspiciousCharacterSequence, OcrDetectionReason.MorphologyInvalid], OcrConfidence.Medium);
+        return new OcrCorrectionOccurrence(evidence, candidate, "", source, "", proposals);
+    }
+
     private static OcrWordCandidate Candidate(string text) => new(text, 0, [], "test.xhtml", "", "");
 
     private static OcrCorrectionCandidate Proposal(
@@ -201,4 +234,16 @@ public sealed class OcrCorrectionDecisionEvaluatorTests
         int editDistance = 1) =>
         new(Candidate("source"), OcrConfidence.EvidenceOnly, text, reasons ?? [OcrCorrectionGenerationReason.BookLexiconNeighbor],
             editDistance, editDistance, true, frequency, 1, [Candidate("source")], 0, false);
+
+    private static OcrCorrectionCandidate ProposalFrom(
+        string source,
+        string text,
+        bool trMorphValid,
+        int frequency,
+        int editDistance,
+        int cost) =>
+        new(Candidate(source), OcrConfidence.Medium, text,
+            [OcrCorrectionGenerationReason.StructuralNormalization, OcrCorrectionGenerationReason.GlyphSubstitution,
+             OcrCorrectionGenerationReason.BookLexiconNeighbor], editDistance, cost, trMorphValid, frequency, 1,
+            [Candidate(source)], 0, false);
 }

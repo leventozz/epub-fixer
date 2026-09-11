@@ -16,6 +16,7 @@ using EpubFixer.Core.Fix.Models;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
+using EpubFixer.Core.Mutation.Models;
 using EpubFixer.TrMorph;
 
 return Run(args);
@@ -37,8 +38,14 @@ static int Run(string[] arguments)
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
             var result = new EpubFixService(analyzer).Fix(
                 options.EpubPath,
-                options.OutputEpubPath!);
+                options.OutputEpubPath!,
+                options.ApplyOcrCorrections);
             PrintFixSummary(result);
+            if (options.OcrMutationReportPath is not null && result.OcrMutation is not null)
+            {
+                WriteOcrMutationReport(options.OcrMutationReportPath, result.OcrMutation);
+                Console.WriteLine($"OCR mutation report written to: {options.OcrMutationReportPath}");
+            }
             return 0;
         }
 
@@ -219,6 +226,7 @@ static void ValidateOutputPaths(CliOptions options)
         options.OcrReportPath,
         options.OcrCorrectionReportPath,
         options.OcrDecisionReportPath,
+        options.OcrMutationReportPath,
         options.OutputEpubPath
     }.Where(path => path is not null).Cast<string>().ToArray();
 
@@ -268,6 +276,15 @@ static void PrintFixSummary(EpubFixResult result)
     Console.WriteLine($"  Skipped: {skipped}");
     Console.WriteLine();
     Console.WriteLine($"Total applied corrections: {totalApplied}");
+    if (result.OcrMutation is not null)
+    {
+        Console.WriteLine();
+        Console.WriteLine("OCR mutation:");
+        Console.WriteLine($"  Planned: {result.OcrMutation.PlannedCount}");
+        Console.WriteLine($"  Applied: {result.OcrMutation.AppliedCount}");
+        Console.WriteLine($"  Failed: {result.OcrMutation.Failures.Count}");
+        Console.WriteLine($"  Conflicts: {result.OcrMutation.ConflictCount}");
+    }
     Console.WriteLine();
     Console.WriteLine($"Remaining candidates: {result.RemainingCandidateCount}");
     Console.WriteLine($"Remaining AutoFix candidates: {result.RemainingAutoFixCandidateCount}");
@@ -293,6 +310,34 @@ static void PrintFixSummary(EpubFixResult result)
 
     Console.WriteLine("Read-back validation: successful.");
     Console.WriteLine("Output written successfully.");
+}
+
+static void WriteOcrMutationReport(string path, OcrMutationResult result)
+{
+    var builder = new StringBuilder();
+    builder.AppendLine("# OCR Correction Mutation V1");
+    builder.AppendLine();
+    builder.AppendLine($"- Planned mutations: {result.PlannedCount}");
+    builder.AppendLine($"- Applied mutations: {result.AppliedCount}");
+    builder.AppendLine($"- Failed mutations: {result.Failures.Count}");
+    builder.AppendLine($"- Conflict count: {result.ConflictCount}");
+    builder.AppendLine($"- Single-source mutations: {result.SingleSourceCount}");
+    builder.AppendLine($"- Multi-source mutations: {result.MultiSourceCount}");
+    builder.AppendLine();
+    builder.AppendLine("## All Applied OCR Mutations");
+    builder.AppendLine();
+    builder.AppendLine("| # | Document | Source | Replacement | DecisionRule | Confidence | SourceSpans | Applied | FailureReason |");
+    builder.AppendLine("|---:|---|---|---|---|---|---:|---|---|");
+    var index = 1;
+    foreach (var mutation in result.AppliedMutations)
+    {
+        builder.AppendLine($"| {index++} | {mutation.DocumentPath} | {mutation.OriginalSourceText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.ReplacementText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.DecisionRule} | {mutation.Confidence} | {mutation.SourceSpans.Count} | true | |");
+    }
+    builder.AppendLine();
+    builder.AppendLine("## Mutation Risk Audit");
+    builder.AppendLine();
+    builder.AppendLine("Risk flags are preserved from Decision V1.2 metadata; no correction intelligence is applied by this layer.");
+    File.WriteAllText(path, builder.ToString(), new UTF8Encoding(false));
 }
 
 static void PrintSummary(EpubPackage package)
@@ -620,7 +665,7 @@ static void PrintUsage()
         + "[--ocr-correction-report <ocr-candidates.md>] "
         + "[--ocr-decision-report <ocr-decisions.md>] "
         + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
-    Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub>");
+    Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub> [--apply-ocr-corrections] [--ocr-mutation-report <report.md>]");
 }
 
 internal sealed record CliOptions(
@@ -639,6 +684,8 @@ internal sealed record CliOptions(
     bool ApplyInline,
     bool ApplyParagraph)
 {
+    public bool ApplyOcrCorrections { get; init; }
+    public string? OcrMutationReportPath { get; init; }
     public static bool TryParse(string[] arguments, out CliOptions options)
     {
         options = null!;
@@ -650,13 +697,26 @@ internal sealed record CliOptions(
 
         if (string.Equals(arguments[0], "fix", StringComparison.OrdinalIgnoreCase))
         {
-            if (arguments.Length != 4
+            if (arguments.Length < 4
                 || !string.Equals(arguments[2], "-o", StringComparison.OrdinalIgnoreCase)
                 || string.IsNullOrWhiteSpace(arguments[3]))
             {
                 return false;
             }
 
+            var applyOcr = false;
+            string? mutationReport = null;
+            var fixIndex = 4;
+            while (fixIndex < arguments.Length)
+            {
+                if (string.Equals(arguments[fixIndex], "--apply-ocr-corrections", StringComparison.OrdinalIgnoreCase) && !applyOcr)
+                { applyOcr = true; fixIndex++; continue; }
+                if (string.Equals(arguments[fixIndex], "--ocr-mutation-report", StringComparison.OrdinalIgnoreCase)
+                    && mutationReport is null && fixIndex + 1 < arguments.Length && !string.IsNullOrWhiteSpace(arguments[fixIndex + 1]))
+                { mutationReport = arguments[fixIndex + 1]; fixIndex += 2; continue; }
+                return false;
+            }
+            if (mutationReport is not null && !applyOcr) return false;
             options = new CliOptions(
                 CliCommand.Fix,
                 arguments[1],
@@ -671,7 +731,8 @@ internal sealed record CliOptions(
                 null,
                 null,
                 false,
-                false);
+                false)
+            { ApplyOcrCorrections = applyOcr, OcrMutationReportPath = mutationReport };
             return true;
         }
 

@@ -140,9 +140,41 @@ public sealed class OcrCorrectionDecisionEvaluator
         reasons.Add(structuralWinner.Proposal.GenerationReasons.Contains(OcrCorrectionGenerationReason.BookLexiconNeighbor)
             ? OcrCorrectionDecisionReason.StructuralLexiconRepair
             : OcrCorrectionDecisionReason.DirectStructuralRepair);
+
+        if (sourceCase == OcrCasePattern.TitleCase)
+        {
+            var properNameCompetitors = evidence
+                .Where(item => !ReferenceEquals(item, structuralWinner)
+                    && IsTitleCaseSafetyCompetitor(structuralWinner, item))
+                .ToArray();
+            if (properNameCompetitors.Length > 0)
+            {
+                reasons.Add(OcrCorrectionDecisionReason.ProperNameStructuralAmbiguity);
+                reasons.Add(OcrCorrectionDecisionReason.AmbiguousCandidates);
+                var review = Create(occurrence, sourceCase, OcrCorrectionDecisionKind.Review, null,
+                    [structuralWinner, .. properNameCompetitors], reasons);
+                return review with { ProvisionalSelectedProposal = structuralWinner };
+            }
+        }
+
         return Create(occurrence, sourceCase, OcrCorrectionDecisionKind.AutoFixCandidate, structuralWinner,
             structural.Where(item => !ReferenceEquals(item, structuralWinner)).ToArray(), reasons);
     }
+
+    private static bool IsTitleCaseSafetyCompetitor(
+        OcrCorrectionProposalSafetyEvidence selected,
+        OcrCorrectionProposalSafetyEvidence competitor) =>
+        competitor.CaseCompatible
+        && !competitor.Proposal.IsPartialStructuralRepair
+        && competitor.Proposal.BookFrequency > 0
+        && competitor.Proposal.EditDistance <= selected.Proposal.EditDistance
+        && competitor.Proposal.GenerationCost <= selected.Proposal.GenerationCost
+        && SameSourceSpans(selected.Proposal, competitor.Proposal);
+
+    private static bool SameSourceSpans(OcrCorrectionCandidate left, OcrCorrectionCandidate right) =>
+        left.ConsumedSources.Count == right.ConsumedSources.Count
+        && left.ConsumedSources.Zip(right.ConsumedSources)
+            .All(pair => SameGeometry(pair.First, pair.Second));
 
     private static OcrCorrectionDecision? EvaluateApostrophe(
         OcrCorrectionOccurrence occurrence,

@@ -1,6 +1,7 @@
 using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Detection.Models;
+using EpubFixer.Core.Mutation.Models;
 
 namespace EpubFixer.Core.Fix.Models;
 
@@ -13,7 +14,7 @@ public sealed record EpubIntegrityResult(
     bool MimetypePackagingValid,
     bool ReadBackValidated);
 
-public sealed record EpubFixResult(
+public sealed partial record EpubFixResult(
     string InputPath,
     string OutputPath,
     int OriginalCandidateCount,
@@ -32,6 +33,11 @@ public sealed record EpubFixResult(
     HyphenationCorrectionApplyResult V2InlineApplyResult,
     HyphenationCorrectionApplyResult V2CrossParagraphApplyResult,
     int V2UnsupportedDocumentBoundaryCount);
+
+public partial record EpubFixResult
+{
+    public OcrMutationResult? OcrMutation { get; init; }
+}
 
 public sealed record V2DetectionKindCounts(
     int Inline,

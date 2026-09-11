@@ -1,4 +1,5 @@
 using System.Text;
+using EpubFixer.Core.Decision;
 using EpubFixer.Core.Decision.Models;
 using EpubFixer.Core.Ocr.Models;
 
@@ -17,7 +18,7 @@ internal static class OcrDecisionReporting
         var decisions = report.Decisions;
         var audit = BuildAudit(decisions);
         var builder = new StringBuilder();
-        builder.AppendLine("# OCR Correction Decision V1.1");
+        builder.AppendLine("# OCR Correction Decision V1.2");
         builder.AppendLine();
         builder.AppendLine($"- Total anomalies: {decisions.Count}");
         builder.AppendLine($"- With proposals: {decisions.Count(item => item.SourceOccurrence.Proposals.Count > 0)}");
@@ -26,19 +27,19 @@ internal static class OcrDecisionReporting
             builder.AppendLine($"- {kind}: {decisions.Count(item => item.DecisionKind == kind)}");
         builder.AppendLine();
 
-        builder.AppendLine("## V1 → V1.1 comparison");
+        builder.AppendLine("## V1.1 → V1.2 comparison");
         builder.AppendLine();
         builder.AppendLine("| Metric | V1 | V1.1 |");
         builder.AppendLine("|---|---:|---:|");
-        AppendComparison(builder, "AutoFixCandidate", 217, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
-        AppendComparison(builder, "Review", 287, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
+        AppendComparison(builder, "AutoFixCandidate", 123, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
+        AppendComparison(builder, "Review", 381, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
         AppendComparison(builder, "Defer", 389, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Defer));
         AppendComparison(builder, "HIGH AutoFix", 72, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.High));
         AppendComparison(builder, "MEDIUM AutoFix", 38, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.Medium));
-        AppendComparison(builder, "EvidenceOnly AutoFix", 107, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.EvidenceOnly));
+        AppendComparison(builder, "EvidenceOnly AutoFix", 13, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.EvidenceOnly));
         foreach (var rule in new[] { OcrCorrectionDecisionReason.DirectStructuralRepair, OcrCorrectionDecisionReason.StructuralLexiconRepair, OcrCorrectionDecisionReason.AdjacentCompositeRepair, OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon, OcrCorrectionDecisionReason.SameApostropheBase })
         {
-            var oldCount = rule switch { OcrCorrectionDecisionReason.DirectStructuralRepair => 15, OcrCorrectionDecisionReason.StructuralLexiconRepair => 97, OcrCorrectionDecisionReason.AdjacentCompositeRepair => 2, OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon => 98, _ => 5 };
+            var oldCount = rule switch { OcrCorrectionDecisionReason.DirectStructuralRepair => 15, OcrCorrectionDecisionReason.StructuralLexiconRepair => 97, OcrCorrectionDecisionReason.AdjacentCompositeRepair => 2, OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon => 9, _ => 0 };
             AppendComparison(builder, rule.ToString(), oldCount, decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.DecisionReasons.Contains(rule)));
         }
         builder.AppendLine();
@@ -79,6 +80,7 @@ internal static class OcrDecisionReporting
         builder.AppendLine($"- AutoFix using multi-source span: {selected.Count(item => item.Proposal.ConsumesMultipleOccurrences)}");
         builder.AppendLine($"- AutoFix EvidenceOnly: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceOccurrence.Source.Confidence == OcrConfidence.EvidenceOnly)}");
         builder.AppendLine($"- AutoFix TitleCase: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.SourceCase == OcrCasePattern.TitleCase)}");
+        builder.AppendLine($"- TitleCase Structural Ambiguity Review: {decisions.Count(item => item.DecisionReasons.Contains(OcrCorrectionDecisionReason.ProperNameStructuralAmbiguity))}");
         builder.AppendLine($"- AutoFix apostrophe same-base: {decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate && item.DecisionReasons.Contains(OcrCorrectionDecisionReason.SameApostropheBase))}");
         builder.AppendLine($"- ConsumedByCompositeRepair count: {decisions.Count(item => item.DecisionReasons.Contains(OcrCorrectionDecisionReason.ConsumedByCompositeRepair))}");
         builder.AppendLine($"- EvidenceOnly rejected by short-token guard: {decisions.Count(item => item.DecisionReasons.Contains(OcrCorrectionDecisionReason.EvidenceOnlyTooShort))}");
@@ -95,11 +97,84 @@ internal static class OcrDecisionReporting
             builder.AppendLine($"| {row.Number} | {Cell(row.Source)} | {Cell(row.SelectedProposal)} | {row.SourceConfidence} | {row.DecisionRule} | {Cell(row.DecisionReasons)} | {Cell(row.RiskFlags)} | {row.TrMorph} | {row.BookFrequency} | {row.EditDistance} | {row.Cost} | {row.StructuralSteps} | {row.Partial} | {row.SourceSpans} | {row.CaseCompatible} | {row.SameApostropheBase} | {row.GeneratorRank} |");
         builder.AppendLine();
 
+        AppendTitleCaseStructuralAudit(builder, decisions);
+
         builder.AppendLine("## Decision Regression Examples");
         builder.AppendLine();
         foreach (var query in Targets)
             AppendTarget(builder, query, report);
         return builder.ToString();
+    }
+
+    private static void AppendTitleCaseStructuralAudit(
+        StringBuilder builder,
+        IReadOnlyList<OcrCorrectionDecision> decisions)
+    {
+        builder.AppendLine("## TitleCase Structural AutoFix Audit");
+        builder.AppendLine();
+        var rows = decisions
+            .Where(IsTitleCaseStructuralAudit)
+            .OrderBy(item => item.SourceOccurrence.Source.Candidate.LogicalStart)
+            .ToArray();
+        builder.AppendLine($"Baseline TitleCase structural AutoFix occurrences: {rows.Length}");
+        builder.AppendLine();
+        foreach (var decision in rows)
+        {
+            var source = decision.SourceOccurrence.Source;
+            var provisional = decision.ProvisionalSelectedProposal ?? decision.SelectedProposal;
+            builder.AppendLine($"### `{Cell(decision.SourceOccurrence.WorkingSource.Text)}`");
+            builder.AppendLine();
+            builder.AppendLine($"- Source: {Cell(source.Candidate.Text)}");
+            builder.AppendLine($"- Context: {Cell($"{source.Candidate.ContextBefore}⟦{source.Candidate.Text}⟧{source.Candidate.ContextAfter}")}");
+            builder.AppendLine($"- SourceConfidence: {source.Confidence}");
+            builder.AppendLine($"- SourceReasons: {Cell(string.Join(", ", source.DetectionReasons))}");
+            builder.AppendLine($"- V1.1 provisional decision rule: {StructuralRule(decision)}");
+            builder.AppendLine($"- V1.2 final decision: {decision.DecisionKind}");
+            builder.AppendLine($"- V1.2 decision reasons: {Cell(string.Join(", ", decision.DecisionReasons))}");
+            if (provisional is not null && provisional.Proposal.BookFrequency == 0)
+                builder.AppendLine("- Audit flags: TitleCaseZeroFrequency");
+            AppendProposal(builder, "V1.1 provisional selected proposal", provisional);
+            builder.AppendLine("- All case-compatible competing proposals:");
+            foreach (var competitor in decision.SourceOccurrence.Proposals
+                .Select(proposal => new OcrCorrectionProposalSafetyEvidence(
+                    proposal,
+                    OcrCorrectionDecisionEvaluator.GetCasePattern(proposal.ProposedText),
+                    IsCaseCompatibleForAudit(decision, proposal),
+                    SameApostropheBaseForAudit(source.Candidate.Text, proposal.ProposedText)))
+                .Where(item => item.CaseCompatible && (provisional is null || !ReferenceEquals(item.Proposal, provisional.Proposal))))
+            {
+                AppendProposal(builder, "  - Proposal", competitor);
+            }
+            builder.AppendLine();
+        }
+    }
+
+    private static bool IsTitleCaseStructuralAudit(OcrCorrectionDecision decision) =>
+        decision.SourceCase == OcrCasePattern.TitleCase
+        && (decision.DecisionReasons.Contains(OcrCorrectionDecisionReason.DirectStructuralRepair)
+            || decision.DecisionReasons.Contains(OcrCorrectionDecisionReason.StructuralLexiconRepair)
+            || decision.DecisionReasons.Contains(OcrCorrectionDecisionReason.AdjacentCompositeRepair)
+            || decision.DecisionReasons.Contains(OcrCorrectionDecisionReason.ProperNameStructuralAmbiguity));
+
+    private static string StructuralRule(OcrCorrectionDecision decision) =>
+        decision.DecisionReasons.FirstOrDefault(reason => reason is
+            OcrCorrectionDecisionReason.DirectStructuralRepair
+            or OcrCorrectionDecisionReason.StructuralLexiconRepair
+            or OcrCorrectionDecisionReason.AdjacentCompositeRepair
+            or OcrCorrectionDecisionReason.ProperNameStructuralAmbiguity).ToString();
+
+    private static bool IsCaseCompatibleForAudit(OcrCorrectionDecision decision, OcrCorrectionCandidate proposal)
+    {
+        var sourceCase = OcrCorrectionDecisionEvaluator.GetCasePattern(decision.SourceOccurrence.WorkingSource.Text);
+        return sourceCase == OcrCorrectionDecisionEvaluator.GetCasePattern(proposal.ProposedText);
+    }
+
+    private static bool SameApostropheBaseForAudit(string source, string proposal)
+    {
+        var sourceIndex = source.IndexOfAny(['\'', '’']);
+        var proposalIndex = proposal.IndexOfAny(['\'', '’']);
+        return sourceIndex > 0 && proposalIndex > 0
+            && string.Equals(source[..sourceIndex], proposal[..proposalIndex], StringComparison.Ordinal);
     }
 
     private static void AppendTarget(StringBuilder builder, string query, OcrCorrectionDecisionAnalysisReport report)
@@ -143,6 +218,8 @@ internal static class OcrDecisionReporting
         builder.AppendLine($"  - BookFrequency: {proposal.BookFrequency}");
         builder.AppendLine($"  - EditDistance: {proposal.EditDistance}");
         builder.AppendLine($"  - Cost: {proposal.GenerationCost}");
+        builder.AppendLine($"  - Structural steps: {proposal.StructuralTransformationCount}");
+        builder.AppendLine($"  - Generator rank: {proposal.ProposalRank}");
         builder.AppendLine($"  - Generation reasons: {Cell(string.Join(", ", proposal.GenerationReasons))}");
         builder.AppendLine($"  - Partial: {proposal.IsPartialStructuralRepair}");
         builder.AppendLine($"  - Source spans: {proposal.SourceSpanCount}");
@@ -168,7 +245,7 @@ internal static class OcrDecisionReporting
             OcrCorrectionDecisionReason.EvidenceOnlyDominantLexicon,
             OcrCorrectionDecisionReason.SameApostropheBase
         }.Select(rule => new AuditRule(rule, rows.Where(row => row.DecisionReasons.Contains(rule.ToString())).Select(row => row.Number).ToArray())).ToArray();
-        var riskNames = new[] { "TRmorphInvalid", "EvidenceOnly", "TitleCase", "NonTopRank", "BookFrequencyZero", "MultiSource", "SameApostropheBase" };
+        var riskNames = new[] { "TRmorphInvalid", "EvidenceOnly", "TitleCase", "NonTopRank", "BookFrequencyZero", "TitleCaseZeroFrequency", "MultiSource", "SameApostropheBase" };
         var risks = riskNames.Select(name => new AuditRiskGroup(name, rows.Count(row => row.RiskFlags.Split(',', StringSplitOptions.RemoveEmptyEntries).Contains(name, StringComparer.Ordinal)))).ToArray();
         return new Audit(rows, rules, risks);
     }
@@ -199,6 +276,7 @@ internal static class OcrDecisionReporting
             if (decision.SourceCase == OcrCasePattern.TitleCase) flags.Add("TitleCase");
             if (proposal.ProposalRank != 1) flags.Add("NonTopRank");
             if (proposal.BookFrequency == 0) flags.Add("BookFrequencyZero");
+            if (decision.SourceCase == OcrCasePattern.TitleCase && proposal.BookFrequency == 0) flags.Add("TitleCaseZeroFrequency");
             if (proposal.ConsumesMultipleOccurrences) flags.Add("MultiSource");
             if (selected.SameApostropheBase) flags.Add("SameApostropheBase");
             var rule = decision.DecisionReasons.FirstOrDefault(item => item is

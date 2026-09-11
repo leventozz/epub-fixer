@@ -89,8 +89,8 @@ public sealed class OcrCorrectionV111RealRegressionTests
         var report = new OcrCorrectionDecisionEvaluator().Evaluate(candidates);
 
         Assert.Equal(893, report.Decisions.Count);
-        Assert.Equal(123, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
-        Assert.Equal(381, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
+        Assert.Equal(120, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate));
+        Assert.Equal(384, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Review));
         Assert.Equal(389, report.Decisions.Count(item => item.DecisionKind == OcrCorrectionDecisionKind.Defer));
 
         AssertDecision(report, "y1pranmışt1", OcrCorrectionDecisionKind.AutoFixCandidate, "yıpranmıştı");
@@ -104,6 +104,19 @@ public sealed class OcrCorrectionV111RealRegressionTests
         AssertDecision(report, "Avııstıırya'nın", OcrCorrectionDecisionKind.AutoFixCandidate, "Avusturya'nın");
         AssertDecision(report, "l<ilb'de", OcrCorrectionDecisionKind.AutoFixCandidate, "Kilb'de");
         AssertDecision(report, "Joana'mn", OcrCorrectionDecisionKind.Review, null);
+        Assert.Equal(2, report.Decisions.Count(item => item.SourceOccurrence.Source.Candidate.Text == "Bıırg"
+            && item.DecisionKind == OcrCorrectionDecisionKind.Review));
+        Assert.All(report.Decisions.Where(item => item.SourceOccurrence.Source.Candidate.Text == "Bıırg"), decision =>
+        {
+            Assert.Contains(OcrCorrectionDecisionReason.ProperNameStructuralAmbiguity, decision.DecisionReasons);
+            Assert.Equal("Berg", decision.ProvisionalSelectedProposal!.Proposal.ProposedText);
+            Assert.Contains(decision.CompetingProposals, item => item.Proposal.ProposedText == "Burg");
+        });
+        var gul = Assert.Single(report.Decisions, item => item.SourceOccurrence.Source.Candidate.Text == "Gu-1.");
+        Assert.Equal(OcrCorrectionDecisionKind.Review, gul.DecisionKind);
+        Assert.Contains(OcrCorrectionDecisionReason.ProperNameStructuralAmbiguity, gul.DecisionReasons);
+        Assert.Equal("Gul", gul.ProvisionalSelectedProposal!.Proposal.ProposedText);
+        Assert.Contains(gul.CompetingProposals, item => item.Proposal.ProposedText == "Gu");
         Assert.All(report.Decisions.Where(item => item.DecisionKind == OcrCorrectionDecisionKind.AutoFixCandidate), item =>
         {
             if (item.DecisionReasons.Contains(OcrCorrectionDecisionReason.CaseCompatible))
@@ -112,7 +125,11 @@ public sealed class OcrCorrectionV111RealRegressionTests
         var markdown = OcrDecisionReporting.SerializeMarkdown(report);
         Assert.Contains("## AutoFix Audit Risk Groups", markdown);
         Assert.Contains("## All AutoFix Candidates", markdown);
-        Assert.Equal(123, markdown.Split('\n').Count(line => Regex.IsMatch(line, "^\\|\\s*\\d+\\s*\\|")));
+        Assert.Equal(120, markdown.Split('\n').Count(line => Regex.IsMatch(line, "^\\|\\s*\\d+\\s*\\|")));
+        Assert.Contains("# OCR Correction Decision V1.2", markdown);
+        Assert.Contains("## TitleCase Structural AutoFix Audit", markdown);
+        Assert.Contains("Baseline TitleCase structural AutoFix occurrences: 16", markdown);
+        Assert.Contains("TitleCase Structural Ambiguity Review: 3", markdown);
 
         foreach (var query in new[] { "Eiles", "Metis", "Akzente", "Stallburg", "Eine", "Stefan" })
             Assert.DoesNotContain(report.Decisions, item => item.SourceOccurrence.Source.Candidate.Text == query
