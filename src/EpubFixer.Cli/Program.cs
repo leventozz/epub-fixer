@@ -28,6 +28,10 @@ static int Run(string[] arguments)
         return RunDebugOcrRegion(arguments);
     if (arguments.Length > 0 && string.Equals(arguments[0], "debug-ocr-reconstruction", StringComparison.OrdinalIgnoreCase))
         return RunDebugOcrReconstruction(arguments);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "reader-preview", StringComparison.OrdinalIgnoreCase))
+        return FullBookReaderPreview.Run(arguments);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "inspect-reader-preview-prewarm", StringComparison.OrdinalIgnoreCase))
+        return FullBookReaderPreview.InspectPrewarm(arguments);
 
     if (!CliOptions.TryParse(arguments, out var options))
     {

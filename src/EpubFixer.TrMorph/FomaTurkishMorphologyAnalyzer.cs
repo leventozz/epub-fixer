@@ -99,9 +99,20 @@ public sealed class FomaTurkishMorphologyAnalyzer : ITurkishMorphologyAnalyzer, 
                 batchRequests++;
                 batchedWords += missing.Count;
             }
-            foreach (var word in missing) input.WriteLine(word);
-            if (missing.Count > 0) input.Flush();
-            foreach (var word in missing) cache[word] = ReadResult();
+            if (missing.Count > 0)
+            {
+                // flookup may emit enough analyses to fill stdout before a large
+                // request has finished writing to stdin. Pump both redirected
+                // pipes concurrently so a real batch cannot deadlock.
+                var write = Task.Run(() =>
+                {
+                    foreach (var word in missing) input.WriteLine(word);
+                    input.Flush();
+                });
+                var results = missing.Select(_ => ReadResult()).ToArray();
+                write.GetAwaiter().GetResult();
+                for (var index = 0; index < missing.Count; index++) cache[missing[index]] = results[index];
+            }
             return unique.ToDictionary(word => word, word => cache[word], StringComparer.Ordinal);
         }
     }
