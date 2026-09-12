@@ -23,7 +23,12 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
 
 ## Morphology baseline
 
-- `odun-kesmek.morphology.json`: `fix --apply-ocr-corrections` kosusundaki oracle-prefill
-  morfoloji cagri profili ve cikti logical text SHA-256 degeri.
+- `odun-kesmek.morphology.json`: `fix --apply-ocr-corrections` kosusu icin Faz 1 oncesi ve
+  sonrasi morfoloji cagri profili. Bu dosya wall-clock hizlanma iddiasi degildir; ayni makinede
+  sicak Debug kosularinda olculen sonuc hizlanma olmadigini gosterir.
+- Faz 1 sonrasi profil: 4 stage-level batch request, 0 hot-loop `IsValidWord`/`Analyze`
+  cagrisi. Faz 1 oncesi profil: 13.177 batch request, 40.224 hit.
+- Faz 1'in performans degeri wall-clock kazanci degil, morfolojinin politika sicak dongusunden
+  cikarilmasi ve ikinci kosuda disk cache ile flookup'in hic baslamamasidir.
 - `goldenLogicalTextSha256`: EPUB zip dosyasinin degil, yazilan paketin
   `LogicalTextStreamBuilder.Build(package.SpineDocuments).Text` degerinin SHA-256 hash'idir.
