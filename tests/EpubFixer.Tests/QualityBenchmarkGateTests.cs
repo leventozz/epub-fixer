@@ -14,11 +14,18 @@ public sealed class QualityBenchmarkGateTests
         Assert.Empty(gate.Failures);
     }
 
+    [Fact]
+    public void Evaluate_DefaultOptionsUseRoadmapThresholds()
+    {
+        var gate = new QualityBenchmarkGateEvaluator()
+            .Evaluate(CleanResult() with { KnownErrors = 200, CorrectlyFixed = 97, WronglyFixed = 3, Deferred = 100 });
+
+        Assert.False(gate.Passed);
+        Assert.Contains(gate.Failures, failure => failure.Metric == "Recall" && failure.Expected == "60.00%");
+        Assert.Contains(gate.Failures, failure => failure.Metric == "Precision" && failure.Expected == "98.00%");
+    }
+
     [Theory]
-    [InlineData("Missed")]
-    [InlineData("KnownDeferred")]
-    [InlineData("WronglyFixed")]
-    [InlineData("Deferred")]
     [InlineData("ProtectedViolated")]
     [InlineData("ProtectedChanged")]
     [InlineData("UnexpectedTextChanges")]
@@ -28,10 +35,6 @@ public sealed class QualityBenchmarkGateTests
         var result = CleanResult();
         result = metric switch
         {
-            "Missed" => result with { Missed = 1 },
-            "KnownDeferred" => result with { KnownDeferred = 1 },
-            "WronglyFixed" => result with { WronglyFixed = 1 },
-            "Deferred" => result with { Deferred = 1 },
             "ProtectedViolated" => result with { ProtectedViolated = 1 },
             "ProtectedChanged" => result with { ProtectedChanged = 1 },
             "UnexpectedTextChanges" => result with { UnexpectedTextChanges = 1 },
@@ -45,27 +48,51 @@ public sealed class QualityBenchmarkGateTests
         Assert.Contains(gate.Failures, failure => failure.Metric == metric);
     }
 
-    [Theory]
-    [InlineData("DetectionRecall")]
-    [InlineData("AutoFixCoverage")]
-    [InlineData("ProtectionRate")]
-    public void Evaluate_ImperfectRateFails(string metric)
+    [Fact]
+    public void Evaluate_DetectionRateImperfectDoesNotFail()
     {
-        var result = metric switch
-        {
-            "DetectionRecall" => CleanResult() with { DetectionRecall = 0.5d },
-            "AutoFixCoverage" => CleanResult() with { AutoFixCoverage = 0.5d },
-            "ProtectionRate" => CleanResult() with { ProtectionRate = 0.5d },
-            _ => throw new ArgumentOutOfRangeException(nameof(metric))
-        };
+        var result = CleanResult() with { DetectionRecall = 0.5d, AutoFixCoverage = 0.5d, ProtectionRate = 0.5d };
 
         var gate = new QualityBenchmarkGateEvaluator().Evaluate(result);
 
+        Assert.True(gate.Passed);
+    }
+
+    [Fact]
+    public void Evaluate_PrecisionBelowThresholdFails()
+    {
+        var gate = new QualityBenchmarkGateEvaluator().Evaluate(CleanResult() with { WronglyFixed = 1 });
         Assert.False(gate.Passed);
-        var failure = Assert.Single(gate.Failures);
-        Assert.Equal(metric, failure.Metric);
-        Assert.Equal("100.00%", failure.Expected);
-        Assert.Equal("50.00%", failure.Actual);
+        Assert.Contains(gate.Failures, failure => failure.Metric == "Precision");
+    }
+
+    [Fact]
+    public void Evaluate_PrecisionAtThresholdPasses()
+    {
+        var result = CleanResult() with { CorrectlyFixed = 98, WronglyFixed = 2 };
+
+        var gate = new QualityBenchmarkGateEvaluator(new QualityBenchmarkGateOptions(MinimumPrecision: 0.98, MinimumRecall: 0))
+            .Evaluate(result);
+
+        Assert.True(gate.Passed);
+    }
+
+    [Fact]
+    public void Evaluate_RecallBelowThresholdFails()
+    {
+        var gate = new QualityBenchmarkGateEvaluator().Evaluate(CleanResult() with { CorrectlyFixed = 0, Deferred = 1 });
+        Assert.False(gate.Passed);
+        Assert.Contains(gate.Failures, failure => failure.Metric == "Recall");
+    }
+
+    [Fact]
+    public void Evaluate_ProtectedViolatedAlwaysFailsEvenWithCustomOptions()
+    {
+        var gate = new QualityBenchmarkGateEvaluator(new QualityBenchmarkGateOptions(0, 0))
+            .Evaluate(CleanResult() with { ProtectedViolated = 1 });
+
+        Assert.False(gate.Passed);
+        Assert.Contains(gate.Failures, failure => failure.Metric == "ProtectedViolated");
     }
 
     [Fact]
@@ -81,6 +108,40 @@ public sealed class QualityBenchmarkGateTests
         var gate = new QualityBenchmarkGateEvaluator().Evaluate(result);
 
         Assert.True(gate.Passed);
+    }
+
+    [Fact]
+    public void Evaluate_NullPrecisionDoesNotFail()
+    {
+        var result = CleanResult() with { CorrectlyFixed = 0, WronglyFixed = 0 };
+
+        var gate = new QualityBenchmarkGateEvaluator(new QualityBenchmarkGateOptions(MinimumPrecision: 0.98, MinimumRecall: 0))
+            .Evaluate(result);
+
+        Assert.True(gate.Passed);
+    }
+
+    [Fact]
+    public void GateOptions_LoadedFromProfileFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"quality-gate-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, """
+            {
+              "current": { "minimumPrecision": 0.91, "minimumRecall": 0.42 }
+            }
+            """);
+        try
+        {
+            var options = QualityBenchmarkGateProfileLoader.LoadCurrent(path);
+
+            Assert.NotNull(options);
+            Assert.Equal(0.91, options.MinimumPrecision);
+            Assert.Equal(0.42, options.MinimumRecall);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]

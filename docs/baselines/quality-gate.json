@@ -1,0 +1,12 @@
+{
+  "target": {
+    "minimumPrecision": 0.98,
+    "minimumRecall": 0.6
+  },
+  "current": {
+    "minimumPrecision": 0.98,
+    "minimumRecall": 0.925,
+    "measuredOn": "2026-09-12",
+    "note": "R0.2 OCR-class records added; measured current recall is 148/160 with OCR classes detected but deferred."
+  }
+}

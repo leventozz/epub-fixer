@@ -10,7 +10,8 @@ public sealed class NoisyChannelRegionReconstructor(
     CleanTurkishLexicon cleanLexicon,
     BookLexicon bookLexicon,
     ITurkishMorphologyAnalyzer analyzer,
-    OcrEditCostModel? costs = null) : IOcrRegionReconstructor
+    OcrEditCostModel? costs = null,
+    SearchBudget? budget = null) : IOcrRegionReconstructor
 {
     internal const int MaxDepth = 4;
     internal const int BeamWidth = 256;
@@ -51,7 +52,7 @@ public sealed class NoisyChannelRegionReconstructor(
         for (var depth = 0; depth < MaxDepth; depth++)
         {
             var expanded = new Dictionary<string, State>(StringComparer.Ordinal);
-            foreach (var pair in beam) foreach (var next in Expand(pair.Key, pair.Value)) if (!expanded.TryGetValue(next.Text, out var old) || next.Cost < old.Cost) expanded[next.Text] = next;
+            foreach (var pair in beam) foreach (var next in Expand(pair.Key, pair.Value)) { budget?.Visit(); if (!expanded.TryGetValue(next.Text, out var old) || next.Cost < old.Cost) expanded[next.Text] = next; }
             foreach (var item in expanded) if (!all.TryGetValue(item.Key, out var old) || item.Value.Cost < old.Cost) all[item.Key] = item.Value;
             var retained = expanded.OrderByDescending(x => RetentionKey(x.Key, x.Value, depth + 1, cache)).ThenBy(x => x.Value.Cost).ThenBy(x => x.Key, StringComparer.Ordinal).Take(BeamWidth).ToArray(); beam = retained.ToDictionary(x => x.Key, x => x.Value, StringComparer.Ordinal);
             if (trace) rows.Add(new(depth + 1, expanded.Count, beam.Count, expanded.Count - beam.Count, beam.Count == 0 ? null : beam.Values.Min(x => x.Cost), expected is not null && expanded.ContainsKey(expected), expected is not null && beam.ContainsKey(expected), beam.Values.OrderBy(x => x.Cost).ThenBy(x => x.Text, StringComparer.Ordinal).Take(8).Select(x => x.Text).ToArray()));
@@ -63,9 +64,15 @@ public sealed class NoisyChannelRegionReconstructor(
 
         double RetentionKey(string text, State state, int currentDepth, Dictionary<string, LexicalEvidence> values)
         {
-            var e = GetEvidence(text, values); var exact = e.Clean || e.Book; var completion = currentDepth < MaxDepth && Expand(text, state).Any(n => n.Text != text && (GetEvidence(n.Text, values).Clean || GetEvidence(n.Text, values).Book)); var frequency = Math.Min(0.25, Math.Log10(e.CleanFrequency + 1) / 24);
-            return (exact ? 1000 : completion ? 500 : 0) - state.Cost + (e.Clean ? 1 : 0) + (e.Book ? .5 : 0) + frequency;
+            var e = GetEvidence(text, values); var exact = e.Clean || e.Book; var projection = CreateRetentionProjection(text); var projected = projection == text ? null : GetEvidence(projection, values); var projectionExact = projected is not null && (projected.Clean || projected.Book); var frequency = Math.Min(0.25, Math.Log10(e.CleanFrequency + 1) / 24); var editProgress = state.Evidence.Count(item => item.Contains("substitution", StringComparison.Ordinal) || item.Contains("deletion", StringComparison.Ordinal) || item.Contains("merge", StringComparison.Ordinal)) * 0.05;
+            return (exact ? 1000 : projectionExact ? 250 : 0) - state.Cost + editProgress + (e.Clean ? 1 : 0) + (e.Book ? .5 : 0) + frequency;
         }
+    }
+
+    private static string CreateRetentionProjection(string text)
+    {
+        var compact = new string(text.Where(character => !char.IsWhiteSpace(character) && character is not '-' and not '\u00ad').ToArray());
+        return compact.TrimStart('1');
     }
 
     private LexicalEvidence GetEvidence(string text, Dictionary<string, LexicalEvidence> cache)

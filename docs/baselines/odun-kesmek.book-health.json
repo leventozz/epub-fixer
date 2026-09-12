@@ -1,0 +1,62 @@
+{
+  "dataset": "odun-kesmek",
+  "measuredOn": "2026-09-12",
+  "commit": "4594274",
+  "definitionVersion": 2,
+  "source": {
+    "totalTokens": 46973,
+    "unresolvableTokens": 2832,
+    "suspiciousTokens": 230,
+    "unresolvableRate": 60.28995380324867,
+    "worstExamples": [
+      "Burg",
+      "Auersberger",
+      "Joana'nın",
+      "Gentz",
+      "Joana",
+      "Auersberger'in",
+      "Ekdal",
+      "Billroth",
+      "Graben'de",
+      "Auersbergerler'in",
+      "Kilb'de",
+      "Auersbergerler",
+      "Auersber",
+      "Auersberger'e",
+      "Joana'yı",
+      "Schreker",
+      "Kilb'e",
+      "Kilb'deki",
+      "Auers",
+      "Webern"
+    ]
+  },
+  "output": {
+    "totalTokens": 46663,
+    "unresolvableTokens": 2674,
+    "suspiciousTokens": 169,
+    "unresolvableRate": 57.304502496624735,
+    "worstExamples": [
+      "Burg",
+      "Auersberger",
+      "Joana'nın",
+      "Gentz",
+      "Joana",
+      "Auersberger'in",
+      "Ekdal",
+      "Auersbergerler'in",
+      "Auersbergerler",
+      "Billroth",
+      "Graben'de",
+      "Kilb'de",
+      "Auersberger'e",
+      "Joana'yı",
+      "Schreker",
+      "Kilb'e",
+      "Kilb'deki",
+      "Webern",
+      "Joana'ya",
+      "Kilb"
+    ]
+  }
+}

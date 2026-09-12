@@ -388,7 +388,7 @@ Kapının eşiklerinin değiştirilmesi (R0.4), dedektörlerin iyileştirilmesi,
 Genişletmeden sonra yeni sınıflarda recall ≈ 0 çıkacaktır. Bu bir hata değil, Faz 0'ın üretmesi
 istenen sinyalin ta kendisidir: benchmark koşusu bugün yalnızca tireleme hattını çalıştırıyor
 (`QualityBenchmarkRunner`, OCR düzeltme hattına hiç girmiyor — B3). Bu gözlem raporda açıkça
-yazılmalı ve bölüm 7'deki R0.5 önerisine bağlanmalıdır.
+yazılmalı; bu boşluğu kapatan kalem bölüm 8'deki R0.5'tir.
 
 ---
 
@@ -561,31 +561,55 @@ kırmızı olur ve anlamını yitirir. Çözüm iki profil:
 - [ ] `dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- test-data/odun-kesmek` çıkış kodu 0.
 
 ### Kapsam dışı
-Motorun recall'unu yükseltmek; dedektörleri benchmark'a bağlamak (R0.5 önerisi).
+Motorun recall'unu yükseltmek; dedektörleri benchmark'a bağlamak (R0.5).
 
 ---
 
-## 8. Öneri: R0.5 — OCR dedektörlerini benchmark'a bağla
+## 8. R0.5 — OCR dedektörlerini benchmark'a bağla
 
-**Yol haritasında yok; eklenmesini öneriyorum.**
+> Yol haritasına Faz 0'ın beşinci kalemi olarak eklendi (D3 onaylandı).
 
+### Amaç
 `QualityBenchmarkRunner` bugün yalnızca tireleme hattını koşuyor: `HyphenationDetector` →
 `HyphenationEvidenceEvaluator` → `HyphenationDecisionEvaluator`. R0.2 ile eklenen
 `GlyphConfusion`, `SpuriousSpace`, `GarbageInsertion`, `Fragmentation` kayıtları için
 "detected" sayısı **yapısal olarak** 0 kalır — hiçbir dedektör bu kayıtlara bakmıyor.
+O halde sınıf kırılımı yalnızca "OCR hattı benchmark'a bağlı değil" bilgisini tekrar eder;
+motor iyileştikçe sayının hareket etmesi için hattın bağlı olması gerekir.
 
-Bu durumda R0.2'nin sınıf kırılımı ve R0.4'ün recall'u yalnızca "OCR hattı benchmark'a bağlı
-değil" bilgisini tekrar eder; motor iyileştikçe sayının hareket etmesi için hattın bağlı olması
-gerekir.
+### Dosya haritası
+```
+benchmarks/.../OcrDetectionSource.cs                  (yeni)
+benchmarks/.../QualityBenchmarkMatcher.cs             (ikinci kaynak eklenir)
+benchmarks/.../QualityBenchmarkRunner.cs              (OCR dedektörleri koşuya girer)
+tests/EpubFixer.Tests/QualityBenchmarkMatcherTests.cs (genişletilir)
+```
 
-- **Kapsam:** Bir known error, `OcrAnomalyDetector` veya `OcrRegionDetector` çıktısındaki bir span
-  onun logical aralığını kapsıyorsa "detected" sayılır. Eşleştirme `QualityBenchmarkMatcher`'ın
-  yanına ikinci bir kaynak olarak eklenir; mevcut tireleme eşleştirmesi **değişmez**.
-- **Boyut:** M. **Bağımlılık:** R0.2.
-- **Neden Faz 0'da:** Faz 4'e kadar bekletilirse, Faz 1–3 boyunca elde yön gösteren sayı olmaz —
-  ki Faz 0'ın varlık sebebi tam olarak budur.
+### Kural
+Bir known error şu iki koşuldan **biri** sağlanırsa "detected" sayılır:
+1. Mevcut tireleme eşleştirmesi (`QualityBenchmarkMatcher.IsMatch`) — **davranışı değişmez**.
+2. `OcrAnomalyDetector` veya `OcrRegionDetector` çıktısındaki bir span, kaydın logical aralığını
+   kapsıyor (kesişme değil, **kapsama**: `span.Start <= error.Start && span.End >= error.End`).
 
-Bu kalem onaylanırsa yol haritasına da eklenmeli.
+`Detected` sayacı böylece "bir dedektör bu hatayı gördü mü" sorusunu cevaplar; "doğru düzeltildi mi"
+sorusu `CorrectlyFixed`'in işidir ve karışmaz.
+
+### Yazılacak testler
+1. `Matcher_HyphenationMatchingIsUnchanged` (regresyon kilidi)
+2. `Matcher_OcrSpanCoveringKnownErrorCountsAsDetected`
+3. `Matcher_OcrSpanOverlappingButNotCoveringIsNotDetected`
+4. `Matcher_ErrorDetectedByBothSourcesIsCountedOnce`
+5. `Runner_ReportsNonZeroDetectionForOcrClasses` (gerçek veri kümesiyle duman testi)
+
+### Kabul kriteri
+- [ ] `Hyphenation` sınıfının detection sayıları R0.5 öncesiyle **birebir aynı**.
+- [ ] En az bir OCR sınıfında `detected > 0`.
+- [ ] TRmorph dedektör koşusunda batch kullanılır; benchmark süresi 120 sn bütçesini aşmaz.
+- [ ] R0.4'ün `current` profili bu kalemden **sonra** yeniden ölçülüp güncellenir.
+
+### Kapsam dışı
+Dedektörlerin iyileştirilmesi, OCR düzeltme hattının benchmark'ta **uygulanması** (o R4.2'dir —
+burada yalnızca *tespit* ölçülür, mutasyon değil).
 
 ---
 
@@ -623,29 +647,17 @@ Bu kalem onaylanırsa yol haritasına da eklenmeli.
 
 ---
 
-## 10. Açık kararlar
+## 10. Kararlar (2026-09-12'de verildi)
 
-Bunlar agent'ın tek başına vermemesi gereken kararlardır. Cevaplar bu belgeye işlenmeli.
+| # | Karar | Sonuç | Nereye işlendi |
+|---|---|---|---|
+| D1 | §5 acil ara çözümü (RetentionKey lookahead kaldırma) R0.3 kapsamında, ayrı commit'te | **Onaylandı** | Bölüm 6 |
+| D2 | Kapı `current` / `target` profili + yalnızca-yukarı cırcır kuralı | **Onaylandı** | Bölüm 7 |
+| D3 | R0.5 (OCR dedektörlerini benchmark'a bağlama) Faz 0'a eklensin | **Onaylandı** | Bölüm 8 + yol haritası |
+| D4 | R0.2'de yalnızca tartışmasız kayıtlar ground truth'a; tereddütlüler `ground-truth-review.json`'a | **Onaylandı** | Bölüm 5 |
 
-**D1 — §5 acil ara çözümü Faz 0'da uygulansın mı?**
-Yol haritası §5, `NoisyChannelRegionReconstructor.RetentionKey` içindeki iç `Expand` çağrısının
-kaldırılmasını öneriyor (~500× hızlanma, kalite sorununu çözmez).
-*Öneri: evet, R0.3'ün bir parçası olarak ama ayrı commit'te.* Aksi halde T2'nin state tavanı
-bugünkü kodda astronomik çıkar ve teste yazılacak makul bir tavan bulunamaz.
-*Hayır denirse:* T2 tavanı bugünkü ölçülen değere ayarlanır ve testin başına "bu tavan R3.2'de
-düşürülecek" notu yazılır.
-
-**D2 — Kapı profili (`current` / `target` cırcır kuralı) kabul mü?**
-*Öneri: evet.* Tek profil hedefe ayarlanırsa kapı Faz 4'e kadar sürekli kırmızı olur; bugünkü
-değere ayarlanırsa hedef kaybolur. İki profil ikisini de korur.
-
-**D3 — R0.5 (OCR dedektörlerini benchmark'a bağlama) Faz 0'a eklensin mi?**
-*Öneri: evet.* Eklenmezse Faz 1–3 boyunca sınıf bazlı recall sabit 0 kalır.
-
-**D4 — R0.2 etiketlemesini kim yapacak?**
-*Öneri: agent önerir ve etiketler, ama yalnızca tartışmasız olanları ground truth'a alır;
-tereddütlü olanlar `ground-truth-review.json`'a gider ve insan gözden geçirir.* Ground truth'un
-doğruluğu, büyüklüğünden önemlidir.
+Yeni bir karar ihtiyacı doğarsa agent kendi başına karara varmaz; gerekçeyi bildirip bekler ve
+karar bu tabloya eklenir.
 
 ---
 
@@ -723,11 +735,35 @@ Kurallar:
 - SearchBudget enjeksiyonu davranışı değiştirmemeli: bütçe null iken çıktı bugünküyle birebir aynı.
   Bunu bir testle kilitle.
 - T1 üretim hattını (EpubFixService.Fix) ölçer, deneysel NoisyChannel hattını değil.
-- D1 kararına bak: §5 acil ara çözümü uygulanacaksa ayrı commit'te ve raporda açıkça belirtilerek.
-- Kapsam R0.3 ile sınırlı. Performansı iyileştirme (D1 istisnası dışında), algoritmayı değiştirme.
+- §5 acil ara çözümü (RetentionKey içindeki iç Expand çağrısının kaldırılması) bu kaleme dahildir;
+  ayrı commit'te yap ve öncesi/sonrası ölçümü raporla. Top-1 sonuçları değişirse dur ve bildir.
+- Kapsam R0.3 ile sınırlı. §5 dışında performansa dokunma, algoritmayı değiştirme.
 
-Bitirdiğinde: ölçülen gerçek süreler, seçilen state tavanı ve gerekçesi, eklenen testler,
-kabul kriterinin durumu.
+Bitirdiğinde: ölçülen gerçek süreler (§5 öncesi/sonrası), seçilen state tavanı ve gerekçesi,
+eklenen testler, kabul kriterinin durumu.
+```
+
+### R0.5
+```
+EpubFixer projesinde docs/ocr-correction-roadmap.md yol haritasındaki R0.5 kalemini uygulayacaksın.
+R0.2 bitmiş olmalı; bitmediyse başlamadan bildir.
+
+Önce şunları oku:
+- docs/phase-0-plan.md — bölüm 2 ve bölüm 8 (R0.5). Kapsama kuralı (kesişme değil kapsama) oradadır.
+- docs/ocr-correction-roadmap.md — R0.5 maddesi ve B3 tespiti
+- benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkMatcher.cs
+- benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkRunner.cs
+- src/EpubFixer.Core/Ocr/OcrAnomalyDetector.cs ve OcrRegionDetector.cs
+
+Kurallar:
+- Test-first.
+- Mevcut tireleme eşleştirmesinin davranışı değişmemeli; bunu bir regresyon testiyle kilitle.
+- "Detected" tespit demektir, düzeltme değil; CorrectlyFixed semantiğine dokunma.
+- TRmorph'u batch kullan; benchmark koşusu 120 sn bütçesini aşmamalı.
+- Kapsam R0.5 ile sınırlı. Dedektörleri iyileştirme, OCR mutasyonunu benchmark'a sokma (o R4.2).
+
+Bitirdiğinde: sınıf başına detection sayıları (öncesi/sonrası), eklenen testler, kabul kriterinin
+durumu ve R0.4'ün current profilinin yeniden ölçülmesi gerekip gerekmediği.
 ```
 
 ### R0.4
@@ -749,7 +785,8 @@ Kurallar:
   ve opsiyonlarla gevşetilemez. Bunu bir testle kilitle.
 - Eski AddPerfectRateFailure davranışı kasıtlı olarak kaldırılıyor; ona bağlı testleri sil ve
   yerine yeni davranışı kilitleyen test yaz.
-- current profil değerleri gerçek koşudan gelmeli, tahminden değil.
+- current profil değerleri gerçek koşudan gelmeli, tahminden değil. R0.5 senden sonra biterse
+  current profili onun sonunda yeniden ölçülecek; bunu raporunda not düş.
 - Kapsam R0.4 ile sınırlı. Motoru iyileştirme, dedektör bağlama (R0.5) işine girme.
 
 Bitirdiğinde: ölçülen precision/recall değerleri, current profile yazılan eşikler, eklenen ve

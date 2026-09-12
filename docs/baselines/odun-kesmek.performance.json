@@ -1,0 +1,10 @@
+{
+  "dataset": "odun-kesmek",
+  "measuredOn": "2026-09-12",
+  "commit": "4594274",
+  "machine": "local Windows development machine",
+  "fixWithOcrCorrectionsSeconds": 24.166,
+  "budgetSeconds": 120,
+  "measuredStatesForFixtureRegion": 225617,
+  "maxStatesPerRegion": 2000000
+}

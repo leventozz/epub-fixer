@@ -12,7 +12,10 @@ public sealed record KnownErrorOccurrence(
     string DocumentPath,
     string Original,
     string Expected,
-    IReadOnlyList<GroundTruthSourceSpan> SourceSpans);
+    IReadOnlyList<GroundTruthSourceSpan> SourceSpans)
+{
+    public OcrErrorClass ErrorClass { get; init; } = OcrErrorClass.Unclassified;
+}
 
 public sealed record ProtectedOccurrence(
     string Id,

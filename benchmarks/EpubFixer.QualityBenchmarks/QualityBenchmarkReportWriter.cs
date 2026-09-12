@@ -48,6 +48,24 @@ public static class QualityBenchmarkReportWriter
         writer.WriteLine($"  Correctly fixed: {result.CorrectlyFixed}");
         writer.WriteLine($"  Wrongly fixed: {result.WronglyFixed}");
         writer.WriteLine($"  Deferred/still incorrect: {result.Deferred}");
+        writer.WriteLine($"  Precision: {FormatRate(result.Precision)}");
+        writer.WriteLine($"  Recall: {FormatRate(result.Recall)}");
+
+        writer.WriteLine();
+        writer.WriteLine("Per-class breakdown:");
+        writer.WriteLine("  class            known  detected  correct  wrong  precision  recall");
+        foreach (var breakdown in result.ClassBreakdowns)
+        {
+            writer.WriteLine(
+                "  "
+                + breakdown.ErrorClass.ToString().PadRight(15)
+                + breakdown.Known.ToString(CultureInfo.InvariantCulture).PadLeft(5)
+                + breakdown.Detected.ToString(CultureInfo.InvariantCulture).PadLeft(10)
+                + breakdown.Correct.ToString(CultureInfo.InvariantCulture).PadLeft(9)
+                + breakdown.Wrong.ToString(CultureInfo.InvariantCulture).PadLeft(7)
+                + FormatRate(breakdown.Precision).PadLeft(11)
+                + FormatRate(breakdown.Recall).PadLeft(8));
+        }
 
         foreach (var failure in result.CorrectionFailures)
         {

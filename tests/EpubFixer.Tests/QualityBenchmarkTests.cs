@@ -39,13 +39,14 @@ public sealed class QualityBenchmarkTests
 
         var result = new QualityBenchmarkRunner().Run(dataset);
 
-        Assert.Equal(148, result.KnownErrors);
-        Assert.Equal(148, result.Detected);
+        Assert.Equal(160, result.KnownErrors);
+        Assert.True(result.Detected > 148);
         Assert.Equal(148, result.CorrectlyFixed);
         Assert.Equal(0, result.WronglyFixed);
-        Assert.Equal(0, result.Deferred);
+        Assert.Equal(12, result.Deferred);
         Assert.Equal(9, result.ProtectedOccurrences);
         Assert.Equal(0, result.ProtectedChanged);
+        Assert.Contains(result.ClassBreakdowns, item => item.ErrorClass == OcrErrorClass.GarbageInsertion && item.Detected > 0);
     }
 
     [Fact]
@@ -152,6 +153,72 @@ public sealed class QualityBenchmarkTests
         Assert.Equal(2, occurrences.Count);
         Assert.Equal(["error-1", "error-2"], occurrences.Select(item => item.Id));
         Assert.Equal([480, 2104], occurrences.Select(item => item.SourceSpans[0].Start));
+    }
+
+    [Fact]
+    public void Loader_ReadsSchemaVersionOne_DefaultsErrorClassToUnclassified()
+    {
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(ValidGroundTruthJson);
+
+        var result = new QualityBenchmarkDatasetLoader().Load(dataset.Path);
+
+        Assert.Equal(OcrErrorClass.Unclassified, Assert.Single(result.GroundTruth.KnownErrors).ErrorClass);
+    }
+
+    [Fact]
+    public void Loader_ReadsSchemaVersionTwo()
+    {
+        const string json = """
+            {
+              "schemaVersion": 2,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "ge-^:cn",
+                  "expected": "geçen",
+                  "errorClass": "GarbageInsertion",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 79, "start": 1889, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var result = new QualityBenchmarkDatasetLoader().Load(dataset.Path);
+
+        Assert.Equal(OcrErrorClass.GarbageInsertion, Assert.Single(result.GroundTruth.KnownErrors).ErrorClass);
+    }
+
+    [Fact]
+    public void Loader_RejectsSchemaVersionTwoWithoutErrorClass()
+    {
+        const string json = """
+            {
+              "schemaVersion": 2,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "ge-^:cn",
+                  "expected": "geçen",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 79, "start": 1889, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("errorClass", exception.Message);
     }
 
     [Fact]

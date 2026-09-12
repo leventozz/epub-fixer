@@ -199,6 +199,21 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
   precision hesabı sınıf kırılımlı raporlanır.
 - **Bağımlılık:** R0.2 (sınıf kırılımı için). **Boyut:** S.
 
+#### R0.5 — OCR dedektörlerini benchmark'a bağla
+
+- **Amaç:** `QualityBenchmarkRunner` yalnızca tireleme hattını koşuyor (B3). R0.2 ile eklenen
+  zor sınıflarda "detected" sayısı yapısal olarak 0 kalır; sınıf kırılımı motor iyileştikçe
+  hareket etmez. Faz 1–3 boyunca elde yön gösteren sayı olması için hattın bağlı olması gerekir.
+- **Kapsam:** Bir known error, `OcrAnomalyDetector` veya `OcrRegionDetector` çıktısındaki bir span
+  onun logical aralığını **kapsıyorsa** (kesişme değil) "detected" sayılır. Mevcut tireleme
+  eşleştirmesi değişmez. Tespit ölçülür, mutasyon değil (o R4.2).
+- **Kabul:** `Hyphenation` sınıfının sayıları birebir aynı kalır; en az bir OCR sınıfında
+  `detected > 0`; benchmark koşusu 120 sn bütçesini aşmaz.
+- **Bağımlılık:** R0.2. **Boyut:** M.
+
+> Faz 0'ın uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
+> [phase-0-plan.md](phase-0-plan.md).
+
 ---
 
 ### Faz 1 — Morfolojiyi sıcak döngüden çıkar
@@ -540,6 +555,7 @@ Tek başına ~500× hızlanma verir. **Kalite sorununu (B2) çözmez** — yaln�
 R0.1 ─┐
 R0.3 ─┤ (bağımsız, önce)
 R0.2 ─┴─► R0.4 ─────────────────────────────┐
+  └─────► R0.5                              │
                                              │
 R1.1 ─► R1.2                                 │
   └───► R1.3                                 │

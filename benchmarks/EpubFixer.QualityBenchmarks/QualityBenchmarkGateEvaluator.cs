@@ -5,23 +5,25 @@ namespace EpubFixer.QualityBenchmarks;
 
 public sealed class QualityBenchmarkGateEvaluator
 {
+    private readonly QualityBenchmarkGateOptions options;
+
+    public QualityBenchmarkGateEvaluator(QualityBenchmarkGateOptions? options = null)
+    {
+        this.options = options ?? new QualityBenchmarkGateOptions();
+    }
+
     public QualityBenchmarkGateResult Evaluate(QualityBenchmarkResult result)
     {
         ArgumentNullException.ThrowIfNull(result);
 
         var failures = new List<QualityBenchmarkGateFailure>();
-        AddZeroFailure(failures, "Missed", result.Missed);
-        AddZeroFailure(failures, "KnownDeferred", result.KnownDeferred);
-        AddZeroFailure(failures, "WronglyFixed", result.WronglyFixed);
-        AddZeroFailure(failures, "Deferred", result.Deferred);
         AddZeroFailure(failures, "ProtectedViolated", result.ProtectedViolated);
         AddZeroFailure(failures, "ProtectedChanged", result.ProtectedChanged);
         AddZeroFailure(failures, "UnexpectedTextChanges", result.UnexpectedTextChanges);
         AddZeroFailure(failures, "NonTextChanges", result.NonTextChanges);
 
-        AddPerfectRateFailure(failures, "DetectionRecall", result.DetectionRecall);
-        AddPerfectRateFailure(failures, "AutoFixCoverage", result.AutoFixCoverage);
-        AddPerfectRateFailure(failures, "ProtectionRate", result.ProtectionRate);
+        AddMinimumRateFailure(failures, "Precision", result.Precision, options.MinimumPrecision);
+        AddMinimumRateFailure(failures, "Recall", result.Recall, options.MinimumRecall);
 
         return new QualityBenchmarkGateResult(failures.Count == 0, failures);
     }
@@ -29,24 +31,26 @@ public sealed class QualityBenchmarkGateEvaluator
     private static void AddZeroFailure(
         ICollection<QualityBenchmarkGateFailure> failures,
         string metric,
-        int actual)
+        int actual,
+        int expected = 0)
     {
-        if (actual != 0)
+        if (actual > expected)
         {
-            failures.Add(new QualityBenchmarkGateFailure(metric, "0", actual.ToString(CultureInfo.InvariantCulture)));
+            failures.Add(new QualityBenchmarkGateFailure(metric, expected.ToString(CultureInfo.InvariantCulture), actual.ToString(CultureInfo.InvariantCulture)));
         }
     }
 
-    private static void AddPerfectRateFailure(
+    private static void AddMinimumRateFailure(
         ICollection<QualityBenchmarkGateFailure> failures,
         string metric,
-        double? actual)
+        double? actual,
+        double minimum)
     {
-        if (actual.HasValue && actual.Value != 1d)
+        if (actual.HasValue && actual.Value < minimum)
         {
             failures.Add(new QualityBenchmarkGateFailure(
                 metric,
-                "100.00%",
+                (minimum * 100).ToString("F2", CultureInfo.InvariantCulture) + "%",
                 (actual.Value * 100).ToString("F2", CultureInfo.InvariantCulture) + "%"));
         }
     }

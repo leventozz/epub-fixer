@@ -1,17 +1,24 @@
 using System.Text.Json;
 using System.Text;
+using System.Text.Json.Serialization;
 using EpubFixer.QualityBenchmarks.Models;
 
 namespace EpubFixer.QualityBenchmarks;
 
 public sealed class QualityBenchmarkDatasetLoader
 {
-    public const int SupportedSchemaVersion = 1;
+    public const int MinimumSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
+
+    static QualityBenchmarkDatasetLoader()
+    {
+        SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    }
 
     public QualityBenchmarkDataset Load(string datasetDirectory)
     {
@@ -79,11 +86,11 @@ public sealed class QualityBenchmarkDatasetLoader
         GroundTruthDocument groundTruth,
         string groundTruthPath)
     {
-        if (groundTruth.SchemaVersion != SupportedSchemaVersion)
+        if (groundTruth.SchemaVersion < MinimumSchemaVersion || groundTruth.SchemaVersion > CurrentSchemaVersion)
         {
             throw InvalidGroundTruth(
                 groundTruthPath,
-                $"schemaVersion must be {SupportedSchemaVersion}");
+                $"schemaVersion must be between {MinimumSchemaVersion} and {CurrentSchemaVersion}");
         }
 
         if (groundTruth.KnownErrors is null)
@@ -116,6 +123,12 @@ public sealed class QualityBenchmarkDatasetLoader
             RequireText(occurrence.DocumentPath, $"{fieldPrefix}.documentPath", groundTruthPath);
             RequireText(occurrence.Original, $"{fieldPrefix}.original", groundTruthPath);
             RequireText(occurrence.Expected, $"{fieldPrefix}.expected", groundTruthPath);
+            if (groundTruth.SchemaVersion >= 2 && occurrence.ErrorClass == OcrErrorClass.Unclassified)
+            {
+                throw InvalidGroundTruth(
+                    groundTruthPath,
+                    $"{fieldPrefix}.errorClass is required and must not be Unclassified for schemaVersion 2");
+            }
 
             if (occurrence.SourceSpans is null || occurrence.SourceSpans.Count == 0)
             {

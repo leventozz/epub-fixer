@@ -5,7 +5,9 @@ using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Lexicon;
+using EpubFixer.Core.Ocr;
 using EpubFixer.QualityBenchmarks.Models;
+using EpubFixer.TrMorph;
 
 namespace EpubFixer.QualityBenchmarks;
 
@@ -36,7 +38,8 @@ public sealed class QualityBenchmarkRunner
 
         var detectionResult = new QualityBenchmarkMatcher().Match(
             dataset.GroundTruth.KnownErrors,
-            candidates);
+            candidates,
+            CreateOcrDetections(package.LogicalText));
         var protectionResult = new QualityBenchmarkProtectionEvaluator().Evaluate(
             dataset.GroundTruth.ProtectedOccurrences,
             decisions);
@@ -131,7 +134,86 @@ public sealed class QualityBenchmarkRunner
                 .ToArray(),
             NonTextChangeDetails = inlineIntegrity.NonTextChanges
                 .Concat(crossIntegrity.NonTextChanges)
-                .ToArray()
+                .ToArray(),
+            ClassBreakdowns = CreateClassBreakdowns(
+                dataset.GroundTruth.KnownErrors,
+                detectionResult.MissedOccurrences,
+                correctionResult.Failures)
         };
     }
+
+    private static IReadOnlyList<OcrDetectionSource> CreateOcrDetections(EpubFixer.Core.Epub.Models.LogicalTextStream stream)
+    {
+        using var analyzer = new FomaTurkishMorphologyAnalyzer();
+        var anomaly = new OcrAnomalyDetector().Analyze(stream, analyzer).Candidates
+            .SelectMany(item => item.Candidate.Sources.Select(span =>
+                new OcrDetectionSource(span.DocumentPath, span.TextNodeIndex, span.Start, span.Start + span.Length)));
+        var regions = new OcrRegionDetector().Detect(stream.Text, analyzer)
+            .SelectMany(item => CreateSourceDetections(stream, item.Start, item.EndExclusive));
+        return anomaly.Concat(regions)
+            .OrderBy(item => item.Start)
+            .ThenBy(item => item.EndExclusive)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<OcrDetectionSource> CreateSourceDetections(
+        EpubFixer.Core.Epub.Models.LogicalTextStream stream,
+        int start,
+        int endExclusive)
+    {
+        var detections = new List<OcrDetectionSource>();
+        for (var index = start; index < endExclusive; index++)
+        {
+            var source = stream.GetSourceLocationAt(index);
+            if (detections.Count > 0
+                && string.Equals(detections[^1].DocumentPath, source.DocumentPath, StringComparison.Ordinal)
+                && detections[^1].TextNodeIndex == source.TextNodeIndex
+                && detections[^1].EndExclusive == source.Start)
+            {
+                var previous = detections[^1];
+                detections[^1] = previous with { EndExclusive = source.Start + source.Length };
+            }
+            else
+            {
+                detections.Add(new OcrDetectionSource(
+                    source.DocumentPath,
+                    source.TextNodeIndex,
+                    source.Start,
+                    source.Start + source.Length));
+            }
+        }
+
+        return detections;
+    }
+
+    private static IReadOnlyList<QualityBenchmarkClassBreakdown> CreateClassBreakdowns(
+        IReadOnlyList<KnownErrorOccurrence> knownErrors,
+        IReadOnlyList<KnownErrorOccurrence> missed,
+        IReadOnlyList<KnownErrorCorrectionFailure> failures)
+    {
+        var missedIds = missed.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
+        var failureIds = failures.Select(item => item.Occurrence.Id).ToHashSet(StringComparer.Ordinal);
+        return knownErrors
+            .GroupBy(item => item.ErrorClass)
+            .OrderBy(group => group.Key)
+            .Select(group =>
+            {
+                var known = group.Count();
+                var detected = group.Count(item => !missedIds.Contains(item.Id));
+                var wrong = group.Count(item => failures.Any(failure =>
+                    string.Equals(failure.Occurrence.Id, item.Id, StringComparison.Ordinal)
+                    && string.Equals(failure.Classification, "WronglyFixed", StringComparison.Ordinal)));
+                var correct = group.Count(item => !failureIds.Contains(item.Id));
+                return new QualityBenchmarkClassBreakdown(
+                    group.Key,
+                    known,
+                    detected,
+                    correct,
+                    wrong,
+                    correct + wrong == 0 ? null : (double)correct / (correct + wrong),
+                    known == 0 ? null : (double)correct / known);
+            })
+            .ToArray();
+    }
+
 }

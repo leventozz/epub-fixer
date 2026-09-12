@@ -33,6 +33,16 @@ public sealed record QualityBenchmarkResult(
 
     public int Deferred { get; init; }
 
+    public double? Precision => CorrectlyFixed + WronglyFixed == 0
+        ? null
+        : (double)CorrectlyFixed / (CorrectlyFixed + WronglyFixed);
+
+    public double? Recall => KnownErrors == 0
+        ? null
+        : (double)CorrectlyFixed / KnownErrors;
+
+    public IReadOnlyList<QualityBenchmarkClassBreakdown> ClassBreakdowns { get; init; } = [];
+
     public IReadOnlyList<KnownErrorCorrectionFailure> CorrectionFailures { get; init; } = [];
 
     public int ProtectedChanged { get; init; }
@@ -73,3 +83,12 @@ public sealed record NonTextChange(
     string Region,
     string Mutation,
     string Reason);
+
+public sealed record QualityBenchmarkClassBreakdown(
+    OcrErrorClass ErrorClass,
+    int Known,
+    int Detected,
+    int Correct,
+    int Wrong,
+    double? Precision,
+    double? Recall);

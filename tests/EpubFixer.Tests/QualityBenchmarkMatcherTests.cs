@@ -135,6 +135,52 @@ public sealed class QualityBenchmarkMatcherTests
         Assert.Equal(1d, result.DetectionRecall);
     }
 
+    [Fact]
+    public void Match_OcrSpanCoveringKnownErrorCountsAsDetected()
+    {
+        var knownError = CreateOcrOccurrence("ocr-1", start: 10, length: 5);
+
+        var result = new QualityBenchmarkMatcher().Match(
+            [knownError],
+            [],
+            [new OcrDetectionSource("chapter.xhtml", 0, 9, 16)]);
+
+        Assert.Equal(1, result.Detected);
+        Assert.Empty(result.MissedOccurrences);
+    }
+
+    [Fact]
+    public void Match_OcrSpanOverlappingButNotCoveringIsNotDetected()
+    {
+        var knownError = CreateOcrOccurrence("ocr-1", start: 10, length: 5);
+
+        var result = new QualityBenchmarkMatcher().Match(
+            [knownError],
+            [],
+            [new OcrDetectionSource("chapter.xhtml", 0, 12, 20)]);
+
+        Assert.Equal(0, result.Detected);
+        Assert.Same(knownError, Assert.Single(result.MissedOccurrences));
+    }
+
+    [Fact]
+    public void Match_ErrorDetectedByBothSourcesIsCountedOnce()
+    {
+        using var epub = CreateSingleDocumentEpub("<p>Auersber-ger</p>");
+        var candidate = Assert.Single(Detect(epub));
+        var knownError = CreateInlineOccurrence("error-1", candidate);
+        var span = Assert.Single(knownError.SourceSpans);
+
+        var result = new QualityBenchmarkMatcher().Match(
+            [knownError],
+            [candidate],
+            [new OcrDetectionSource(span.DocumentPath, span.TextNodeIndex, span.Start, span.Start + span.Length)]);
+
+        Assert.Equal(1, result.KnownErrors);
+        Assert.Equal(1, result.Detected);
+        Assert.Equal(0, result.Missed);
+    }
+
     private static KnownErrorOccurrence CreateInlineOccurrence(
         string id,
         HyphenationCandidate candidate)
@@ -154,6 +200,14 @@ public sealed class QualityBenchmarkMatcherTests
                         + candidate.RightSource.Length)
             ]);
     }
+
+    private static KnownErrorOccurrence CreateOcrOccurrence(string id, int start, int length) =>
+        new(
+            id,
+            "chapter.xhtml",
+            "bozuk",
+            "düzgün",
+            [new GroundTruthSourceSpan("chapter.xhtml", 0, start, length)]);
 
     private static IReadOnlyList<HyphenationCandidate> Detect(TemporaryEpub epub)
     {
