@@ -1,4 +1,5 @@
 using System.Globalization;
+using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr;
@@ -7,7 +8,7 @@ using EpubFixer.Core.Ocr.Models;
 namespace EpubFixer.Cli.OcrReconstruction;
 
 public sealed class NoisyChannelRegionReconstructor(
-    CleanTurkishLexicon cleanLexicon,
+    ITurkishFrequencyList cleanLexicon,
     BookLexicon bookLexicon,
     ITurkishMorphologyAnalyzer analyzer,
     OcrEditCostModel? costs = null,

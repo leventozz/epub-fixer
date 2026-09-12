@@ -32,6 +32,8 @@ static int Run(string[] arguments)
         return RunDebugOcrReconstruction(arguments);
     if (arguments.Length > 0 && string.Equals(arguments[0], "measure", StringComparison.OrdinalIgnoreCase))
         return new MeasureCommand().Run(arguments, Console.Out, Console.Error);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "debug-vocabulary", StringComparison.OrdinalIgnoreCase))
+        return new VocabularyReportCommand().Run(arguments, Console.Out, Console.Error);
     if (arguments.Length > 0 && string.Equals(arguments[0], "reader-preview", StringComparison.OrdinalIgnoreCase))
         return FullBookReaderPreview.Run(arguments);
     if (arguments.Length > 0 && string.Equals(arguments[0], "inspect-reader-preview-prewarm", StringComparison.OrdinalIgnoreCase))
@@ -775,6 +777,7 @@ static void PrintUsage()
     Console.Error.WriteLine("       epubfixer debug-ocr-region <input.txt> [--report <report.md>] [--output <output.txt>]");
     Console.Error.WriteLine("       epubfixer debug-ocr-reconstruction <input.txt> [--fast] [--targets <ids>] [--expected <expected.json>] [--report <report.md>] [--diagnostic-report <report.md>]");
     MeasureCommand.PrintUsage(Console.Error);
+    VocabularyReportCommand.PrintUsage(Console.Error);
     Console.Error.WriteLine(
         "Usage: epubfixer analyze <book.epub> "
         + "[--apply-inline] "

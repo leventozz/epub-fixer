@@ -1,9 +1,10 @@
+using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
 
 namespace EpubFixer.Cli.OcrReconstruction;
 
-public sealed class SymSpellRegionReconstructor(CleanTurkishLexicon lexicon) : IOcrRegionReconstructor
+public sealed class SymSpellRegionReconstructor(ITurkishFrequencyList lexicon) : IOcrRegionReconstructor
 {
     private readonly SymSpellChecker checker = BuildChecker(lexicon);
 
@@ -27,10 +28,10 @@ public sealed class SymSpellRegionReconstructor(CleanTurkishLexicon lexicon) : I
             .Take(maxCandidates).Select((x, i) => new ReconstructionCandidate(x.Text, x.Score, i + 1, ReconstructionSource.SymSpell, [x.Evidence])).ToArray();
     }
 
-    private static SymSpellChecker BuildChecker(CleanTurkishLexicon lexicon)
+    private static SymSpellChecker BuildChecker(ITurkishFrequencyList lexicon)
     {
-        var checker = new SymSpellChecker(lexicon.Entries.Count, 2);
-        foreach (var item in lexicon.Entries) checker.CreateDictionaryEntry(item.Key, item.Value);
+        var checker = new SymSpellChecker(lexicon.Words.Count, 2);
+        foreach (var word in lexicon.Words) checker.CreateDictionaryEntry(word, lexicon.GetFrequency(word));
         return checker;
     }
 

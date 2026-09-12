@@ -18,6 +18,7 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
 ## Commands
 
 - `dotnet run --project src/EpubFixer.Cli -- measure test-data/odun-kesmek/input.epub`
+- `dotnet run --project src/EpubFixer.Cli -- debug-vocabulary test-data/odun-kesmek/input.epub --json docs/baselines/odun-kesmek.vocabulary.json`
 - `dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- test-data/odun-kesmek`
 - `dotnet test tests/EpubFixer.Tests --filter "FullyQualifiedName~MorphologyCallTraceTests" --logger "console;verbosity=detailed"`
 
@@ -32,3 +33,11 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
   cikarilmasi ve ikinci kosuda disk cache ile flookup'in hic baslamamasidir.
 - `goldenLogicalTextSha256`: EPUB zip dosyasinin degil, yazilan paketin
   `LogicalTextStreamBuilder.Build(package.SpineDocuments).Text` degerinin SHA-256 hash'idir.
+
+## Phase 2 vocabulary and language-model baselines
+
+- `odun-kesmek.vocabulary.json`: kitap haznesinin boyutu, kaynak kirilimi, held-out kapsama,
+  hedef kapsamasi, supheli girdi sayisi ve ornek kitap girdileri.
+- `odun-kesmek.language-model.json`: ayni temiz token akisi uzerinden kurulan unigram/bigram
+  tur ve token sayilari ile held-out bigram isabet orani. Stupid backoff normalize olasilik
+  olmadigi icin perplexity raporlanmaz.

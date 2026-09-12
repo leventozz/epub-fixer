@@ -32,10 +32,7 @@ public sealed class NoisyChannelV2Tests
     }
 
     private static CorruptedTextRegion Region(string text) => new(text, 0, text.Length, [text], "", "", []);
-    private static CleanTurkishLexicon LoadClean(string content)
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"clean-{Guid.NewGuid():N}.txt"); File.WriteAllText(path, content);
-        try { return CleanTurkishLexicon.Load(path, new AlwaysFalseAnalyzer()); } finally { File.Delete(path); }
-    }
+    private static TurkishFrequencyList LoadClean(string content) =>
+        TurkishFrequencyList.FromLines(content.Split('\n', StringSplitOptions.RemoveEmptyEntries));
     private sealed class AlwaysFalseAnalyzer : ITurkishMorphologyAnalyzer { public bool IsValidWord(string word) => false; }
 }

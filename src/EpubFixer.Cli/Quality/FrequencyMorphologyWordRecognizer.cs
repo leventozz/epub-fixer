@@ -1,4 +1,5 @@
 using System.Text;
+using EpubFixer.Cli.Lexicon;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Quality;
@@ -7,7 +8,7 @@ namespace EpubFixer.Cli.Quality;
 
 public sealed class FrequencyMorphologyWordRecognizer : IWordRecognizer
 {
-    private readonly HashSet<string> frequencyWords;
+    private readonly ITurkishFrequencyList frequencyWords;
     private readonly IReadOnlyDictionary<string, bool> morphology;
 
     public FrequencyMorphologyWordRecognizer(
@@ -19,7 +20,7 @@ public sealed class FrequencyMorphologyWordRecognizer : IWordRecognizer
         ArgumentException.ThrowIfNullOrWhiteSpace(frequencyListPath);
         ArgumentNullException.ThrowIfNull(parser);
 
-        frequencyWords = LoadFrequencyWords(frequencyListPath);
+        frequencyWords = FileTurkishFrequencyListSource.Load(frequencyListPath);
         var uniqueTokens = tokens
             .Select(TurkishWordNormalizer.Normalize)
             .SelectMany(WithApostropheStem)
@@ -40,27 +41,6 @@ public sealed class FrequencyMorphologyWordRecognizer : IWordRecognizer
 
     public static string DefaultFrequencyListPath =>
         Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt");
-
-    private static HashSet<string> LoadFrequencyWords(string path)
-    {
-        var words = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var line in File.ReadLines(path, Encoding.UTF8))
-        {
-            var fields = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-            if (fields.Length == 0)
-            {
-                continue;
-            }
-
-            var word = TurkishWordNormalizer.Normalize(fields[0]);
-            if (IsLexical(word))
-            {
-                words.Add(word);
-            }
-        }
-
-        return words;
-    }
 
     private static bool IsLexical(string value)
     {

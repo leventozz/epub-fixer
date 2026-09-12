@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using EpubFixer.Cli.Lexicon;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Morphology;
@@ -26,8 +27,7 @@ public sealed class OcrReconstructionComparison
         var detector = new OcrRegionDetector();
         var regions = detector.Detect(text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(text)));
         var book = new BookLexiconBuilder().Build(text);
-        var cleanPath = Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt");
-        var clean = CleanTurkishLexicon.Load(cleanPath, analyzer);
+        var clean = FileTurkishFrequencyListSource.Load();
         var reconstructors = new IOcrRegionReconstructor[]
         {
             new CurrentRegionReconstructor(book, analyzer),
@@ -157,7 +157,7 @@ public sealed class OcrReconstructionComparison
     }
 
     private static string RenderDiagnostic(string text, IReadOnlyList<Row> rows, IReadOnlyDictionary<int, Expected> expected, IReadOnlySet<string> formerMisses,
-        NoisyChannelRegionReconstructor noisy, CleanTurkishLexicon clean, BookLexicon book, ITurkishMorphologyAnalyzer analyzer)
+        NoisyChannelRegionReconstructor noisy, ITurkishFrequencyList clean, BookLexicon book, ITurkishMorphologyAnalyzer analyzer)
     {
         var misses = rows.Where(r => expected.TryGetValue(r.Region.Start, out var e) && formerMisses.Contains(r.Region.RawText)).ToArray();
         var b = new StringBuilder("# NoisyChannel Diagnostic V2\n\n");
@@ -189,7 +189,7 @@ public sealed class OcrReconstructionComparison
         b.AppendLine("\n## TRmorph and lexicon audit\n\n| Input | NFC | Turkish lowercase | TRmorph raw | TRmorph NFC | TRmorph lowercase | Clean contains | Clean frequency | Book contains | Book frequency |").AppendLine("| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |");
         foreach (var word in new[] { "üç", "olduğu", "Cebimde", "geçen", "kendimi", "hiç", "özellikle", "yürümeye", "koltukta", "sohbet" })
         {
-            var nfc = word.Normalize(); var lower = CleanTurkishLexicon.Normalize(nfc); var rawValid = analyzer.IsValidWord(word); var nfcValid = analyzer.IsValidWord(nfc); var lowerValid = analyzer.IsValidWord(lower);
+            var nfc = word.Normalize(); var lower = TurkishWordNormalizer.Normalize(nfc); var rawValid = analyzer.IsValidWord(word); var nfcValid = analyzer.IsValidWord(nfc); var lowerValid = analyzer.IsValidWord(lower);
             b.AppendLine($"| `{word}` | `{nfc}` | `{lower}` | {rawValid} | {nfcValid} | {lowerValid} | {clean.Contains(lower)} | {clean.GetFrequency(lower)} | {book.Contains(word)} | {book.GetCount(word)} |");
         }
         return b.ToString();

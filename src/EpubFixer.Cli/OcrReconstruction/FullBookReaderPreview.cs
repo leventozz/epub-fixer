@@ -19,6 +19,7 @@ using EpubFixer.Core.Mutation;
 using EpubFixer.Core.Mutation.Models;
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
+using EpubFixer.Cli.Lexicon;
 using EpubFixer.TrMorph;
 
 namespace EpubFixer.Cli.OcrReconstruction;
@@ -72,8 +73,7 @@ internal static class FullBookReaderPreview
             var detector = new OcrRegionDetector();
             var regions = detector.Detect(stream.Text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(stream.Text)));
             var book = new BookLexiconBuilder().Build(stream);
-            var cleanPath = Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt");
-            var clean = CleanTurkishLexicon.Load(cleanPath, analyzer);
+            var clean = FileTurkishFrequencyListSource.Load();
             var noisy = new NoisyChannelRegionReconstructor(clean, book, analyzer);
 
             Console.WriteLine($"Phase: NoisyChannel prewarm and Top5 generation ({regions.Count} regions)");
@@ -175,7 +175,7 @@ internal static class FullBookReaderPreview
         var detector = new OcrRegionDetector();
         var regions = detector.Detect(stream.Text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(stream.Text)));
         var book = new BookLexiconBuilder().Build(stream);
-        var clean = CleanTurkishLexicon.Load(Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt"), analyzer);
+        var clean = FileTurkishFrequencyListSource.Load();
         var noisy = new NoisyChannelRegionReconstructor(clean, book, analyzer);
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var pending = new List<(string Word, string Source)>();
@@ -388,7 +388,7 @@ internal static class FullBookReaderPreview
     }
 
     private static string RenderAudit(string inputPath, string outputPath, IReadOnlyList<PreviewRow> rows,
-        LogicalTextStream stream, BookLexicon book, CleanTurkishLexicon clean, ITurkishMorphologyAnalyzer analyzer,
+        LogicalTextStream stream, BookLexicon book, ITurkishFrequencyList clean, ITurkishMorphologyAnalyzer analyzer,
         EpubWriteResult writeResult, string validation, TimeSpan total, TimeSpan generation, TimeSpan reranking,
         TimeSpan mutation, TurkishMorphologyCacheStatistics stats)
     {
@@ -436,7 +436,7 @@ internal static class FullBookReaderPreview
     }
 
     private static void AppendRow(StringBuilder builder, PreviewRow row, LogicalTextStream stream,
-        BookLexicon book, CleanTurkishLexicon clean, ITurkishMorphologyAnalyzer analyzer)
+        BookLexicon book, ITurkishFrequencyList clean, ITurkishMorphologyAnalyzer analyzer)
     {
         var top = row.Top1;
         builder.AppendLine($"### #{row.Index}: `{Escape(row.Region.RawText)}`\n")

@@ -1,4 +1,4 @@
-namespace EpubFixer.Cli.OcrReconstruction;
+namespace EpubFixer.Core.Ocr;
 
 public sealed record OcrEditCostModel(
     double Keep = 0,

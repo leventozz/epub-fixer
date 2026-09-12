@@ -40,13 +40,8 @@ public sealed class NoisyChannelDiagnosticTests
 
     private static CorruptedTextRegion Region(string text) => new(text, 0, text.Length, [text], "", "", []);
 
-    private static CleanTurkishLexicon LoadClean(string content)
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"clean-{Guid.NewGuid():N}.txt");
-        File.WriteAllText(path, content);
-        try { return CleanTurkishLexicon.Load(path, new FakeAnalyzer()); }
-        finally { File.Delete(path); }
-    }
+    private static TurkishFrequencyList LoadClean(string content) =>
+        TurkishFrequencyList.FromLines(content.Split('\n', StringSplitOptions.RemoveEmptyEntries));
 
     private sealed class FakeAnalyzer : ITurkishMorphologyAnalyzer
     {

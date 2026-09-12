@@ -260,9 +260,14 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
 - **Dikkat:** `OcrRegionDetector` ve `OcrAnomalyDetector` **kendi girdileri dışındaki** formları
   da soruyor (örn. `TrimBoundaryPunctuation` sonrası). Ön-doldurma bunları da kapsamalı;
   R1.1'deki "bilinmeyende exception" kuralı bu eksikleri açığa çıkaracaktır.
-- **Kabul:** Mevcut tüm testler yeşil; `TurkishMorphologyCacheStatistics.ProcessInvocations`
-  full koşuda ≤ 1.
-- **Bağımlılık:** R1.1. **Boyut:** M.
+- **Kabul:** Mevcut tüm testler yeşil; full koşuda flookup tek process ve `BatchRequests` sabit.
+  (Yol haritası burada önce `ProcessInvocations ≤ 1` diyordu; o alan constructor'da `1` atanıp hiç
+  artmadığı için bir şey ölçmüyor — bkz. phase-1-plan.md karar D6.)
+- **Bağımlılık:** R1.1. **Boyut:** M — okunan koda göre gerçekçi boyut **L**.
+
+> Faz 1'in uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
+> [phase-1-plan.md](phase-1-plan.md). Plan, yol haritasında olmayan bir **R1.0 (ölçüm)** kalemi
+> ekler ve onu kritik yolun başına koyar.
 
 ---
 
@@ -313,6 +318,14 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
   bunu doğrulayan bir mimari testi eklenir.
 - **Bağımlılık:** yok (Faz 3'ten **önce** yapılırsa Faz 3 doğru yere yazılır — sıralaması önemli).
 - **Boyut:** M.
+
+> Faz 2'nin uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
+> [phase-2-plan.md](phase-2-plan.md). Plan üç noktada yol haritasından ayrılır ve gerekçelerini
+> karar tablosuna yazar: **R2.3 fazın başına alınır** (D12), `BookContextIndex` **taşınmaz**
+> (D13, R4.3'te siliniyor), Core'un mimari testi bugünkü dört EPUB I/O dosyası için **izin
+> listesiyle** yazılır (D14). Ayrıca yol haritasında olmayan bir **R2.4 (bilgi tabanı + ölçüm)**
+> kalemi ekler ve "kitabın token'larının %95'i haznede" ölçütünü döngüsel olduğu için held-out +
+> hedef kapsaması ikilisiyle değiştirir (D19).
 
 ---
 
