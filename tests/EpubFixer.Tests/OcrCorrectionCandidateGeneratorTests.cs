@@ -16,7 +16,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
             report,
             stream,
             new BookLexiconBuilder().Build(stream),
-            new ValidMorphologyAnalyzer());
+            new ValidMorphologyOracle());
 
         var occurrence = Assert.Single(result.Occurrences);
         var proposal = Assert.Single(occurrence.Proposals, item => item.ProposedText == "oyuncu");
@@ -36,7 +36,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
             report,
             stream,
             new BookLexiconBuilder().Build(stream),
-            new ValidMorphologyAnalyzer());
+            new ValidMorphologyOracle());
 
         Assert.All(result.Occurrences, occurrence => Assert.InRange(occurrence.Proposals.Count, 0, 10));
         Assert.All(result.Occurrences.SelectMany(item => item.Proposals), item => Assert.InRange(item.EditDistance, 0, 2));
@@ -50,7 +50,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
             report,
             stream,
             new BookLexiconBuilder().Build(stream),
-            new ValidMorphologyAnalyzer());
+            new ValidMorphologyOracle());
 
         var occurrence = Assert.Single(result.Occurrences, item => item.Source.Candidate.Text.StartsWith("y1pranmışt1", StringComparison.Ordinal));
         Assert.Contains(occurrence.Proposals, item => item.ProposedText == "yıpranmıştı");
@@ -59,7 +59,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [Fact]
     public void Generate_ComposesMultipleGlyphsOnPunctuationFreeCore()
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["yıpranmıştı"]);
+        var analyzer = new RecordingMorphologyOracle(["yıpranmıştı"]);
         var report = Analyze("y1pranmışt1.", out var stream, analyzer);
         analyzer.Clear();
 
@@ -77,7 +77,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [Fact]
     public void Generate_KeepsApostropheInsideLexicalCore()
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["Joana'nın"]);
+        var analyzer = new RecordingMorphologyOracle(["Joana'nın"]);
         var report = Analyze("Joana'1n Joana'nın", out var stream, analyzer);
 
         var occurrence = Assert.Single(Generate(report, stream, analyzer).Occurrences,
@@ -90,7 +90,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [Fact]
     public void Generate_RetainsBaseFormFamilyCandidateAndFindsBookProposal()
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["Joana'nın", "Joana'ya"]);
+        var analyzer = new RecordingMorphologyOracle(["Joana'nın", "Joana'ya"]);
         var report = Analyze("Joana'mn Joana'nın Joana'ya", out var stream, analyzer);
 
         var occurrence = Assert.Single(Generate(report, stream, analyzer).Occurrences,
@@ -105,7 +105,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [Fact]
     public void Generate_EnforcesStructuralDepthProposalLimitAndDeterministicOrdering()
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["alblcldl"]);
+        var analyzer = new RecordingMorphologyOracle(["alblcldl"]);
         var report = Analyze("a1b1c1d1", out var stream, analyzer);
 
         var first = Generate(report, stream, analyzer);
@@ -121,7 +121,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [Fact]
     public void Generate_ComposesOnlyEligibleImmediatelyAdjacentFragment()
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["ilgili", "ilgiliydi"]);
+        var analyzer = new RecordingMorphologyOracle(["ilgili", "ilgiliydi"]);
         var report = Analyze("ilgi-1 iydi ilgili", out var stream, analyzer);
 
         var result = Generate(report, stream, analyzer);
@@ -138,7 +138,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [Fact]
     public void Generate_DoesNotComposeAcrossNormalTextOrSentenceBoundary()
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["ilgiliydi"]);
+        var analyzer = new RecordingMorphologyOracle(["ilgiliydi"]);
         var normalReport = Analyze("ilgi-1 normal iydi", out var normalStream, analyzer);
         var sentenceReport = Analyze("ilgi-1. iydi", out var sentenceStream, analyzer);
 
@@ -151,7 +151,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [InlineData(true)]
     public void Generate_DoesNotComposeAcrossParagraphOrDocumentBoundary(bool documentBoundary)
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["ilgiliydi"]);
+        var analyzer = new RecordingMorphologyOracle(["ilgiliydi"]);
         using var epub = documentBoundary
             ? TemporaryEpub.Create(
                 [new TestDocument("first", "first.xhtml", Xhtml("<p>ilgi-1</p>")),
@@ -171,7 +171,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     [Fact]
     public void Generate_ExpandsAttachedCaretAndAppliesGenericGlyphSubstitution()
     {
-        var analyzer = new RecordingMorphologyAnalyzer(["şiddetli"]);
+        var analyzer = new RecordingMorphologyOracle(["şiddetli"]);
         var report = Analyze("bir ^iddetli", out var stream, analyzer);
 
         var occurrence = Assert.Single(Generate(report, stream, analyzer).Occurrences,
@@ -193,7 +193,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
         string expected,
         int structuralSteps)
     {
-        var analyzer = new RecordingMorphologyAnalyzer([expected]);
+        var analyzer = new RecordingMorphologyOracle([expected]);
         var report = Analyze(source, out var stream, analyzer);
 
         var proposal = Assert.Single(Generate(report, stream, analyzer).Occurrences
@@ -214,7 +214,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
             report,
             stream,
             new BookLexiconBuilder().Build(stream),
-            new ValidMorphologyAnalyzer());
+            new ValidMorphologyOracle());
 
         Assert.Single(result.Occurrences);
         Assert.Empty(result.Occurrences[0].Proposals);
@@ -226,10 +226,10 @@ public sealed class OcrCorrectionCandidateGeneratorTests
             [new TestDocument("chapter", "chapter.xhtml", Xhtml($"<p>{text}</p>"))],
             [new TestSpineItem("chapter")]);
         stream = new EpubPackageReader().Read(epub.Path).LogicalText;
-        return new OcrAnomalyDetector().Analyze(stream, new ValidMorphologyAnalyzer(invalid));
+        return new OcrAnomalyDetector().Analyze(stream, new ValidMorphologyOracle(invalid));
     }
 
-    private static OcrAnalysisReport Analyze(string text, out EpubFixer.Core.Epub.Models.LogicalTextStream stream, ITurkishMorphologyAnalyzer analyzer)
+    private static OcrAnalysisReport Analyze(string text, out EpubFixer.Core.Epub.Models.LogicalTextStream stream, IMorphologyOracle analyzer)
     {
         using var epub = TemporaryEpub.Create(
             [new TestDocument("chapter", "chapter.xhtml", Xhtml($"<p>{text}</p>"))],
@@ -241,7 +241,7 @@ public sealed class OcrCorrectionCandidateGeneratorTests
     private static OcrCorrectionAnalysisReport Generate(
         OcrAnalysisReport report,
         EpubFixer.Core.Epub.Models.LogicalTextStream stream,
-        ITurkishMorphologyAnalyzer analyzer) =>
+        IMorphologyOracle analyzer) =>
         new OcrCorrectionCandidateGenerator().Generate(report, stream,
             new BookLexiconBuilder().Build(stream), analyzer);
 
@@ -250,22 +250,26 @@ public sealed class OcrCorrectionCandidateGeneratorTests
 
     private static string Xhtml(string body) => $"<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><body>{body}</body></html>";
 
-    private sealed class ValidMorphologyAnalyzer : ITurkishMorphologyAnalyzer
+    private sealed class ValidMorphologyOracle : IMorphologyOracle
     {
         private readonly HashSet<string> _invalid;
-        public ValidMorphologyAnalyzer(IEnumerable<string>? invalid = null) => _invalid = (invalid ?? []).ToHashSet(StringComparer.Ordinal);
-        public bool IsValidWord(string word) => !_invalid.Contains(word);
+        public ValidMorphologyOracle(IEnumerable<string>? invalid = null) => _invalid = (invalid ?? []).ToHashSet(StringComparer.Ordinal);
+        public bool IsValid(string word) => !_invalid.Contains(word);
+        public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word) => IsValid(word) ? [new TurkishMorphologicalAnalysis(word, new HashSet<string>(StringComparer.Ordinal))] : [];
+        public bool IsKnown(string word) => true;
     }
 
-    private sealed class RecordingMorphologyAnalyzer(IEnumerable<string> valid) : ITurkishMorphologyAnalyzer
+    private sealed class RecordingMorphologyOracle(IEnumerable<string> valid) : IMorphologyOracle
     {
         private readonly HashSet<string> _valid = valid.ToHashSet(StringComparer.Ordinal);
         public List<string> Inputs { get; } = [];
-        public bool IsValidWord(string word)
+        public bool IsValid(string word)
         {
             Inputs.Add(word);
             return _valid.Contains(word);
         }
+        public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word) => IsValid(word) ? [new TurkishMorphologicalAnalysis(word, new HashSet<string>(StringComparer.Ordinal))] : [];
+        public bool IsKnown(string word) => true;
         public void Clear() => Inputs.Clear();
     }
 }

@@ -15,12 +15,60 @@ public sealed class OcrAnomalyDetector
     private static readonly Regex SequencePattern = new(@"ıı|l1|-;|-^|;\.|<", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex EmptyParenthesesPattern = new(@"\(\)", RegexOptions.Compiled);
 
-    public OcrAnalysisReport Analyze(LogicalTextStream stream, ITurkishMorphologyAnalyzer analyzer)
+    public OcrAnalysisReport Analyze(LogicalTextStream stream, IMorphologyOracle oracle)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(analyzer);
+        ArgumentNullException.ThrowIfNull(oracle);
 
         var lexicon = new BookLexiconBuilder().Build(stream);
+        var collected = CollectCandidates(stream);
+
+        var evidence = new List<OcrWordEvidence>();
+        var rareSuppressed = new List<OcrWordEvidence>();
+        var invalidTotal = 0;
+        foreach (var draft in collected.Candidates)
+        {
+            var candidate = CreateCandidate(stream, draft.Start, draft.Length);
+            var frequency = lexicon.GetCount(candidate.Text);
+            var baseForm = lexicon.GetBaseForm(candidate.Text);
+            var baseFormFrequency = lexicon.GetBaseFormCount(candidate.Text);
+            var valid = IsMorphologyInput(candidate.Text) && oracle.IsValid(candidate.Text);
+            if (!valid) invalidTotal++;
+            var reasons = draft.Reasons.ToHashSet();
+            if (!valid) reasons.Add(OcrDetectionReason.MorphologyInvalid);
+            if (frequency == 1) reasons.Add(OcrDetectionReason.RareInBook);
+
+            var structural = reasons.Any(reason => reason is not OcrDetectionReason.MorphologyInvalid and not OcrDetectionReason.RareInBook);
+            if (!structural && !(reasons.Contains(OcrDetectionReason.MorphologyInvalid) && reasons.Contains(OcrDetectionReason.RareInBook)))
+            {
+                continue;
+            }
+
+            var confidence = structural
+                ? reasons.Any(reason => reason is OcrDetectionReason.SuspiciousCharacter or OcrDetectionReason.EmbeddedDigit)
+                    ? OcrConfidence.High
+                    : OcrConfidence.Medium
+                : OcrConfidence.EvidenceOnly;
+            evidence.Add(new OcrWordEvidence(candidate, frequency, baseForm, baseFormFrequency,
+                valid, reasons.OrderBy(item => item).ToArray(), confidence));
+        }
+
+        var strongInvalid = evidence.Count(item => !item.TrMorphValid && item.Confidence == OcrConfidence.High);
+        return new OcrAnalysisReport(collected.ExaminedCount, invalidTotal, strongInvalid, evidence,
+            rareSuppressed, lexicon.UniqueApostropheBaseForms);
+    }
+
+    public IEnumerable<string> EnumerateMorphologyQueries(LogicalTextStream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        return CollectCandidates(stream).Candidates
+            .Select(candidate => stream.Text.Substring(candidate.Start, candidate.Length))
+            .Where(IsMorphologyInput);
+    }
+
+    internal CandidateCollection CollectCandidates(LogicalTextStream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
         var wordTokens = new WordTokenizer().Tokenize(stream);
         var candidates = new Dictionary<(int Start, int Length), CandidateDraft>();
         var examined = new HashSet<(int, int)>();
@@ -82,39 +130,7 @@ public sealed class OcrAnomalyDetector
                 candidates.Remove(key);
         }
 
-        var evidence = new List<OcrWordEvidence>();
-        var rareSuppressed = new List<OcrWordEvidence>();
-        var invalidTotal = 0;
-        foreach (var draft in candidates.Values.OrderBy(item => item.Start))
-        {
-            var candidate = CreateCandidate(stream, draft.Start, draft.Length);
-            var frequency = lexicon.GetCount(candidate.Text);
-            var baseForm = lexicon.GetBaseForm(candidate.Text);
-            var baseFormFrequency = lexicon.GetBaseFormCount(candidate.Text);
-            var valid = IsMorphologyInput(candidate.Text) && analyzer.IsValidWord(candidate.Text);
-            if (!valid) invalidTotal++;
-            var reasons = draft.Reasons.ToHashSet();
-            if (!valid) reasons.Add(OcrDetectionReason.MorphologyInvalid);
-            if (frequency == 1) reasons.Add(OcrDetectionReason.RareInBook);
-
-            var structural = reasons.Any(reason => reason is not OcrDetectionReason.MorphologyInvalid and not OcrDetectionReason.RareInBook);
-            if (!structural && !(reasons.Contains(OcrDetectionReason.MorphologyInvalid) && reasons.Contains(OcrDetectionReason.RareInBook)))
-            {
-                continue;
-            }
-
-            var confidence = structural
-                ? reasons.Any(reason => reason is OcrDetectionReason.SuspiciousCharacter or OcrDetectionReason.EmbeddedDigit)
-                    ? OcrConfidence.High
-                    : OcrConfidence.Medium
-                : OcrConfidence.EvidenceOnly;
-            evidence.Add(new OcrWordEvidence(candidate, frequency, baseForm, baseFormFrequency,
-                valid, reasons.OrderBy(item => item).ToArray(), confidence));
-        }
-
-        var strongInvalid = evidence.Count(item => !item.TrMorphValid && item.Confidence == OcrConfidence.High);
-        return new OcrAnalysisReport(examined.Count, invalidTotal, strongInvalid, evidence,
-            rareSuppressed, lexicon.UniqueApostropheBaseForms);
+        return new CandidateCollection(candidates.Values.OrderBy(item => item.Start).ToArray(), examined.Count);
     }
 
     private static bool IsMorphologyInput(string text) => text.EnumerateRunes().Any(Rune.IsLetter);
@@ -237,10 +253,14 @@ public sealed class OcrAnomalyDetector
         }
     }
 
-    private sealed class CandidateDraft(int start, int length)
+    internal sealed class CandidateDraft(int start, int length)
     {
         public int Start { get; } = start;
         public int Length { get; } = length;
         public HashSet<OcrDetectionReason> Reasons { get; } = new();
     }
+
+    internal sealed record CandidateCollection(
+        IReadOnlyList<CandidateDraft> Candidates,
+        int ExaminedCount);
 }

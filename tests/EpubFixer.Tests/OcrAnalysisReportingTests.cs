@@ -15,7 +15,7 @@ public sealed class OcrAnalysisReportingTests
             [new TestSpineItem("chapter")]);
         var report = new OcrAnomalyDetector().Analyze(
             new EpubPackageReader().Read(epub.Path).LogicalText,
-            new ValidMorphologyAnalyzer());
+            new ValidMorphologyOracle());
 
         var markdown = OcrAnalysisReporting.SerializeMarkdown(report);
 
@@ -31,7 +31,7 @@ public sealed class OcrAnalysisReportingTests
             [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>Eiles Eiles'e Eiles'le y1pranmışt1.</p>"))],
             [new TestSpineItem("chapter")]);
         var stream = new EpubPackageReader().Read(epub.Path).LogicalText;
-        var analyzer = new SelectiveMorphologyAnalyzer(["yıpranmıştı"]);
+        var analyzer = new SelectiveMorphologyOracle(["yıpranmıştı"]);
         var source = new OcrAnomalyDetector().Analyze(stream, analyzer);
         var report = new OcrCorrectionCandidateGenerator().Generate(
             source, stream, new BookLexiconBuilder().Build(stream), analyzer);
@@ -55,14 +55,18 @@ public sealed class OcrAnalysisReportingTests
     private static string Xhtml(string body) =>
         $"<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><body>{body}</body></html>";
 
-    private sealed class ValidMorphologyAnalyzer : ITurkishMorphologyAnalyzer
+    private sealed class ValidMorphologyOracle : IMorphologyOracle
     {
-        public bool IsValidWord(string word) => true;
+        public bool IsValid(string word) => true;
+        public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word) => [new(word, new HashSet<string>(StringComparer.Ordinal))];
+        public bool IsKnown(string word) => true;
     }
 
-    private sealed class SelectiveMorphologyAnalyzer(IEnumerable<string> valid) : ITurkishMorphologyAnalyzer
+    private sealed class SelectiveMorphologyOracle(IEnumerable<string> valid) : IMorphologyOracle
     {
         private readonly HashSet<string> _valid = valid.ToHashSet(StringComparer.Ordinal);
-        public bool IsValidWord(string word) => _valid.Contains(word);
+        public bool IsValid(string word) => _valid.Contains(word);
+        public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word) => IsValid(word) ? [new TurkishMorphologicalAnalysis(word, new HashSet<string>(StringComparer.Ordinal))] : [];
+        public bool IsKnown(string word) => true;
     }
 }

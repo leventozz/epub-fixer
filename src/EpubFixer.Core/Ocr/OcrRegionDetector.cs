@@ -11,14 +11,14 @@ public sealed class OcrRegionDetector
     private static readonly HashSet<char> BoundaryPunctuation = [',', '.', ':', ';', '!', '?'];
     private static readonly HashSet<char> OcrGlyphs = ['ı', 'i', 'l', '1'];
 
-    public IReadOnlyList<CorruptedTextRegion> Detect(string text, ITurkishMorphologyAnalyzer analyzer)
+    public IReadOnlyList<CorruptedTextRegion> Detect(string text, IMorphologyOracle oracle)
     {
-        ArgumentNullException.ThrowIfNull(text); ArgumentNullException.ThrowIfNull(analyzer);
+        ArgumentNullException.ThrowIfNull(text); ArgumentNullException.ThrowIfNull(oracle);
         var fragments = FragmentPattern.Matches(text).Cast<Match>().Select(m => new Fragment(m.Index, m.Length, m.Value)).ToArray();
         var seeds = new List<Seed>();
         for (var i = 0; i < fragments.Length; i++)
         {
-            var f = fragments[i]; var core = TrimBoundaryPunctuation(f.Value); var invalid = core.Length > 0 && !analyzer.IsValidWord(core);
+            var f = fragments[i]; var core = TrimBoundaryPunctuation(f.Value); var invalid = core.Length > 0 && !oracle.IsValid(core);
             var reasons = new HashSet<OcrRegionDetectionReason>();
             if (IsIsolatedGlyph(core)) reasons.Add(OcrRegionDetectionReason.IsolatedOcrGlyph);
             if (HasEmbeddedGarbage(core)) { reasons.Add(OcrRegionDetectionReason.EmbeddedGarbageGlyph); reasons.Add(OcrRegionDetectionReason.SuspiciousPunctuation); }
@@ -41,8 +41,8 @@ public sealed class OcrRegionDetector
         {
             var first = seed.First; var last = seed.Last; var isolated = CountIsolated(first, last, fragments);
             var allowContinuation = seed.Reasons.Contains(OcrRegionDetectionReason.SuspiciousPunctuation) || seed.Reasons.Contains(OcrRegionDetectionReason.MalformedHyphenContinuation);
-            while (first > 0 && CanExpand(first - 1, first, fragments, text, analyzer, isolated, false, allowContinuation)) { first--; if (IsIsolatedGlyph(TrimBoundaryPunctuation(fragments[first].Value))) isolated++; }
-            while (last + 1 < fragments.Length && CanExpand(last, last + 1, fragments, text, analyzer, isolated, true, allowContinuation)) { last++; if (IsIsolatedGlyph(TrimBoundaryPunctuation(fragments[last].Value))) isolated++; }
+            while (first > 0 && CanExpand(first - 1, first, fragments, text, oracle, isolated, false, allowContinuation)) { first--; if (IsIsolatedGlyph(TrimBoundaryPunctuation(fragments[first].Value))) isolated++; }
+            while (last + 1 < fragments.Length && CanExpand(last, last + 1, fragments, text, oracle, isolated, true, allowContinuation)) { last++; if (IsIsolatedGlyph(TrimBoundaryPunctuation(fragments[last].Value))) isolated++; }
             var start = Math.Min(seed.Start, fragments[first].Index); var end = Math.Max(seed.End, fragments[last].End);
             while (start > 0 && text[start - 1] is '(' or '[') start--;
             if (start >= 2 && char.IsWhiteSpace(text[start - 1]) && text[start - 2] is '(' or '[') start -= 2;
@@ -61,22 +61,31 @@ public sealed class OcrRegionDetector
         return regions;
     }
 
+    public IEnumerable<string> EnumerateMorphologyQueries(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        return FragmentPattern.Matches(text)
+            .Cast<Match>()
+            .Select(match => TrimBoundaryPunctuation(match.Value))
+            .Where(value => value.Length > 0);
+    }
+
     private static CorruptedTextRegion CreateRegion(string text, int start, int end, IEnumerable<OcrRegionDetectionReason> reasons)
     {
         while (end > start && BoundaryPunctuation.Contains(text[end - 1])) end--;
         var raw = text[start..end]; var fragments = FragmentPattern.Matches(raw).Cast<Match>().Select(m => m.Value).ToArray();
         return new CorruptedTextRegion(raw, start, end, fragments, text[Math.Max(0, start - 80)..start], text[end..Math.Min(text.Length, end + 80)], reasons.ToArray());
     }
-    private static bool CanExpand(int left, int right, Fragment[] fragments, string text, ITurkishMorphologyAnalyzer analyzer, int isolated, bool rightward, bool allowContinuation)
+    private static bool CanExpand(int left, int right, Fragment[] fragments, string text, IMorphologyOracle oracle, int isolated, bool rightward, bool allowContinuation)
     {
         var gap = text[fragments[left].End..fragments[right].Index]; if (gap.Any(c => c is '\r' or '\n')) return true;
         if (!gap.Any(char.IsWhiteSpace) || !gap.All(c => c is ' ' or '\t')) return false;
         var value = TrimBoundaryPunctuation(fragments[rightward ? right : left].Value);
         if (IsIsolatedGlyph(value) || HasEmbeddedGarbage(value) || HasSuspiciousInternalPunctuation(value)) return true;
-        if (rightward && isolated > 0 && value.Length <= 10 && OcrGlyphs.Contains(value[0]) && !analyzer.IsValidWord(value)) return true;
+        if (rightward && isolated > 0 && value.Length <= 10 && OcrGlyphs.Contains(value[0]) && !oracle.IsValid(value)) return true;
         if (isolated > 0 && value.Length <= 3 && (value.Equals("iç", StringComparison.Ordinal) || value.Equals("iye", StringComparison.Ordinal))) return true;
-        if (rightward && isolated > 0 && !analyzer.IsValidWord(value) && value.Length <= 6 && value.All(char.IsLower)) return true;
-        return rightward && allowContinuation && !analyzer.IsValidWord(value) && value.Length <= 6 && value.All(char.IsLower);
+        if (rightward && isolated > 0 && !oracle.IsValid(value) && value.Length <= 6 && value.All(char.IsLower)) return true;
+        return rightward && allowContinuation && !oracle.IsValid(value) && value.Length <= 6 && value.All(char.IsLower);
     }
     private static int CountIsolated(int first, int last, Fragment[] fragments) => Enumerable.Range(first, last - first + 1).Count(i => IsIsolatedGlyph(TrimBoundaryPunctuation(fragments[i].Value)));
     private static bool IsSeamPair(string left, string right)

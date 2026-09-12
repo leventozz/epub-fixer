@@ -2,6 +2,8 @@ using EpubFixer.QualityBenchmarks.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using EpubFixer.Core.Epub;
+using EpubFixer.Core.Morphology;
+using EpubFixer.Core.Ocr;
 using EpubFixer.TrMorph;
 
 namespace EpubFixer.QualityBenchmarks;
@@ -99,7 +101,12 @@ public sealed class QualityBenchmarkApplication
             var dataset = new QualityBenchmarkDatasetLoader().Load(datasetDirectory);
             var package = new EpubPackageReader().Read(dataset.InputEpubPath);
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
-            var proposals = new GroundTruthProposer().Propose(package.LogicalText, analyzer);
+            var detector = new OcrRegionDetector();
+            var builder = new BatchMorphologyOracleBuilder(analyzer);
+            var oracle = builder.Build(
+                new OcrAnomalyDetector().EnumerateMorphologyQueries(package.LogicalText)
+                    .Concat(detector.EnumerateMorphologyQueries(package.LogicalText.Text)));
+            var proposals = new GroundTruthProposer().Propose(package.LogicalText, oracle);
             var options = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,

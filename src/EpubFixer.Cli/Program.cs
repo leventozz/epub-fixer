@@ -18,6 +18,7 @@ using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
 using EpubFixer.Core.Mutation.Models;
 using EpubFixer.TrMorph;
+using EpubFixer.Cli.Morphology;
 using EpubFixer.Cli.OcrReconstruction;
 using EpubFixer.Cli.Quality;
 
@@ -48,8 +49,10 @@ static int Run(string[] arguments)
 
         if (options.Command == CliCommand.Fix)
         {
-            using var analyzer = new FomaTurkishMorphologyAnalyzer();
-            var result = new EpubFixService(analyzer).Fix(
+            using var builder = new CachingMorphologyOracleBuilder(
+                new FomaMorphologyOracleBuilder(),
+                new MorphologyOracleCache(options.EpubPath));
+            var result = new EpubFixService(builder).Fix(
                 options.EpubPath,
                 options.OutputEpubPath!,
                 options.ApplyOcrCorrections);
@@ -67,8 +70,10 @@ static int Run(string[] arguments)
     OcrCorrectionDecisionAnalysisReport? decisionReport = null;
     if (options.OcrCorrectionReportPath is not null || options.OcrDecisionReportPath is not null)
     {
-        using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
-        correctionReport = new OcrAnalysisService().AnalyzeCorrections(options.EpubPath, ocrAnalyzer);
+        using var ocrBuilder = new CachingMorphologyOracleBuilder(
+            new FomaMorphologyOracleBuilder(),
+            new MorphologyOracleCache(options.EpubPath));
+        correctionReport = new OcrAnalysisService().AnalyzeCorrections(options.EpubPath, ocrBuilder);
         if (options.OcrCorrectionReportPath is not null)
         {
             File.WriteAllText(options.OcrCorrectionReportPath, OcrCorrectionAnalysisReporting.SerializeMarkdown(correctionReport), new UTF8Encoding(false));
@@ -87,8 +92,10 @@ static int Run(string[] arguments)
         if (correctionReport is not null) ocrReport = correctionReport.SourceAnalysis;
         else
         {
-            using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
-            ocrReport = new OcrAnalysisService().Analyze(options.EpubPath, ocrAnalyzer);
+            using var ocrBuilder = new CachingMorphologyOracleBuilder(
+                new FomaMorphologyOracleBuilder(),
+                new MorphologyOracleCache(options.EpubPath));
+            ocrReport = new OcrAnalysisService().Analyze(options.EpubPath, ocrBuilder);
         }
         File.WriteAllText(options.OcrReportPath, OcrAnalysisReporting.SerializeMarkdown(ocrReport), new UTF8Encoding(false));
         Console.WriteLine($"OCR report written to: {options.OcrReportPath}");
@@ -185,9 +192,13 @@ static int Run(string[] arguments)
                 var protectedOccurrences = GroundTruthProtectedOccurrenceLoader.Load(
                     options.GroundTruthPath!);
                 using var analyzer = new FomaTurkishMorphologyAnalyzer();
+                var oracleBuilder = new BatchMorphologyOracleBuilder(analyzer);
+                var hyphenationAnalyzer = new HyphenationMorphologyAnalyzer();
+                var oracle = oracleBuilder.Build(
+                    hyphenationAnalyzer.EnumerateMorphologyQueries(afterCrossParagraphPipeline.Evidence));
                 var morphology = new HyphenationMorphologyAnalyzer().Analyze(
                     afterCrossParagraphPipeline.Evidence,
-                    analyzer);
+                    oracle);
                 File.WriteAllText(
                     options.TrMorphReportPath,
                     TrMorphReport.Serialize(
@@ -244,7 +255,9 @@ static int RunDebugOcrRegion(string[] arguments)
     {
         var text = File.ReadAllText(input, new UTF8Encoding(false, true));
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
-        var regions = new OcrRegionDetector().Detect(text, analyzer);
+        var oracleBuilder = new BatchMorphologyOracleBuilder(analyzer);
+        var detector = new OcrRegionDetector();
+        var regions = detector.Detect(text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(text)));
         var targets = new[] { "ya\n\ndn", "ı,ırarını", "ı ıç", "kendi-ıni", "dikkat-:;i zlikle", "1 ı iç", ":,ohbet", "koli ukta", "(le", "ı ızellikle", "ı ılduğu", "Ce-lıimde", "( 1 iye", "--:<lbaha", "Anacadde-si'ni", "Schwarzen-herg", "ge-^:cn", "Simmerin-ger", "yü-ıiimeye" };
         var clean = new[] { "de yıllarca,", "düşünüyorum,", "eve,", "başladığında,", "dolaştım,", "denilebilir, o en", "o zamanlar.", "ve içtim,", "anlatılmaz,", "yoktu,", "oldum,", "ettim,", "Jeannie", "Billroth", "Auersberger", "Rennweg", "Schwarzenberg", "Wahring", "Simmeringer", "Joana'ya" };
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);

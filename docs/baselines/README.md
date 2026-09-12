@@ -19,3 +19,11 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
 
 - `dotnet run --project src/EpubFixer.Cli -- measure test-data/odun-kesmek/input.epub`
 - `dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- test-data/odun-kesmek`
+- `dotnet test tests/EpubFixer.Tests --filter "FullyQualifiedName~MorphologyCallTraceTests" --logger "console;verbosity=detailed"`
+
+## Morphology baseline
+
+- `odun-kesmek.morphology.json`: `fix --apply-ocr-corrections` kosusundaki oracle-prefill
+  morfoloji cagri profili ve cikti logical text SHA-256 degeri.
+- `goldenLogicalTextSha256`: EPUB zip dosyasinin degil, yazilan paketin
+  `LogicalTextStreamBuilder.Build(package.SpineDocuments).Text` degerinin SHA-256 hash'idir.

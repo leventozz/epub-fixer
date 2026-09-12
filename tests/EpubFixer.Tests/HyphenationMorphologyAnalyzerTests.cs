@@ -17,7 +17,7 @@ public sealed class HyphenationMorphologyAnalyzerTests
         var candidates = new HyphenationDetector().Detect(stream);
         var lexicon = new BookLexiconBuilder().Build(stream);
         var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon, stream);
-        var analyzer = new FakeAnalyzer("sabah");
+        var analyzer = new FakeMorphologyOracle(["sabah"]);
 
         var result = new HyphenationMorphologyAnalyzer().Analyze(evidence, analyzer);
 
@@ -29,17 +29,6 @@ public sealed class HyphenationMorphologyAnalyzerTests
         Assert.Contains("yanabc", analyzer.Queried);
         Assert.False(result[1].TRmorphValid);
         Assert.Equal(evidence[0].Context.HasAdjacentHyphen, result[0].HasAdjacentHyphen);
-    }
-
-    private sealed class FakeAnalyzer(params string[] validWords) : ITurkishMorphologyAnalyzer
-    {
-        private readonly HashSet<string> valid = validWords.ToHashSet(StringComparer.Ordinal);
-        public List<string> Queried { get; } = [];
-        public bool IsValidWord(string word)
-        {
-            Queried.Add(word);
-            return valid.Contains(word);
-        }
     }
 
     private static TemporaryEpub CreateSingleDocumentEpub(string body) =>

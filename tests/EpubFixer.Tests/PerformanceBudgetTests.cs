@@ -63,7 +63,7 @@ public sealed class PerformanceBudgetTests
         {
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
             var elapsed = System.Diagnostics.Stopwatch.StartNew();
-            _ = new EpubFixService(analyzer).Fix(input, output, applyOcrCorrections: true);
+            _ = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer)).Fix(input, output, applyOcrCorrections: true);
             elapsed.Stop();
 
             Assert.True(elapsed.Elapsed.TotalSeconds <= 120, $"Fix took {elapsed.Elapsed.TotalSeconds:0.00}s.");

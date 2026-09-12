@@ -22,7 +22,7 @@ internal sealed class EpubOutputValidator
         EpubPackage expectedPackage,
         HyphenationPipelineState expectedFinalState,
         EpubWriteResult writeResult,
-        ITurkishMorphologyAnalyzer morphologyAnalyzer)
+        IMorphologyOracleBuilder morphologyOracleBuilder)
     {
         var inputHashAfter = SHA256.HashData(File.ReadAllBytes(inputPath));
 
@@ -53,7 +53,7 @@ internal sealed class EpubOutputValidator
         var outputFinalState = HyphenationPipeline.Analyze(outputPackage.LogicalText);
         var outputFinalV2State = HyphenationPipeline.AnalyzeV2(
             outputPackage.LogicalText,
-            morphologyAnalyzer);
+            morphologyOracleBuilder);
         var expectedCandidates = expectedFinalState.Candidates.Select(CreateCandidateSignature).ToArray();
         var outputCandidates = outputFinalState.Candidates.Select(CreateCandidateSignature).ToArray();
 

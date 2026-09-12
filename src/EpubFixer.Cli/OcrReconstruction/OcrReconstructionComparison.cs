@@ -16,9 +16,15 @@ public sealed class OcrReconstructionComparison
     {
         var benchmarkWatch = Stopwatch.StartNew();
         var text = File.ReadAllText(inputPath, new UTF8Encoding(false, true));
+        var oracleBuilder = analyzer is IBatchTurkishMorphologicalParser parser
+            ? new BatchMorphologyOracleBuilder(parser)
+            : null;
         if (analyzer is IBatchTurkishMorphologicalParser detectionBatch)
             AnalyzeInChunks(detectionBatch, CollectDetectorInputs(text));
-        var regions = new OcrRegionDetector().Detect(text, analyzer);
+        if (oracleBuilder is null)
+            throw new ArgumentException("OCR reconstruction comparison requires a batched morphology parser.");
+        var detector = new OcrRegionDetector();
+        var regions = detector.Detect(text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(text)));
         var book = new BookLexiconBuilder().Build(text);
         var cleanPath = Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt");
         var clean = CleanTurkishLexicon.Load(cleanPath, analyzer);

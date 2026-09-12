@@ -58,17 +58,19 @@ internal static class FullBookReaderPreview
             var totalWatch = Stopwatch.StartNew();
             var sourceHash = SHA256.HashData(File.ReadAllBytes(inputPath));
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var oracleBuilder = new BatchMorphologyOracleBuilder(analyzer);
             var package = new EpubPackageReader().Read(inputPath);
 
             Console.WriteLine("Phase: frozen hyphenation V1/V2");
-            ApplyFrozenHyphenation(package, analyzer);
+            ApplyFrozenHyphenation(package, oracleBuilder);
             var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
             var postHyphenNodes = CaptureTextNodes(package);
 
             var batch = (IBatchTurkishMorphologicalParser)analyzer;
             Console.WriteLine("Phase: detector prewarm and corrupted-region detection");
             AnalyzeInChunks(batch, CollectDetectorInputs(stream.Text));
-            var regions = new OcrRegionDetector().Detect(stream.Text, analyzer);
+            var detector = new OcrRegionDetector();
+            var regions = detector.Detect(stream.Text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(stream.Text)));
             var book = new BookLexiconBuilder().Build(stream);
             var cleanPath = Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt");
             var clean = CleanTurkishLexicon.Load(cleanPath, analyzer);
@@ -166,10 +168,12 @@ internal static class FullBookReaderPreview
         }
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
         var package = new EpubPackageReader().Read(Path.GetFullPath(arguments[1]));
-        ApplyFrozenHyphenation(package, analyzer);
+        var oracleBuilder = new BatchMorphologyOracleBuilder(analyzer);
+        ApplyFrozenHyphenation(package, oracleBuilder);
         var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
         AnalyzeInChunks((IBatchTurkishMorphologicalParser)analyzer, CollectDetectorInputs(stream.Text));
-        var regions = new OcrRegionDetector().Detect(stream.Text, analyzer);
+        var detector = new OcrRegionDetector();
+        var regions = detector.Detect(stream.Text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(stream.Text)));
         var book = new BookLexiconBuilder().Build(stream);
         var clean = CleanTurkishLexicon.Load(Path.Combine(AppContext.BaseDirectory, "Resources", "OcrReconstruction", "tr_50k.txt"), analyzer);
         var noisy = new NoisyChannelRegionReconstructor(clean, book, analyzer);
@@ -203,7 +207,7 @@ internal static class FullBookReaderPreview
         return 0;
     }
 
-    private static void ApplyFrozenHyphenation(EpubPackage package, ITurkishMorphologyAnalyzer analyzer)
+    private static void ApplyFrozenHyphenation(EpubPackage package, IMorphologyOracleBuilder oracleBuilder)
     {
         static (IReadOnlyList<HyphenationCorrectionPlan> Plans, IReadOnlyList<EpubFixer.Core.Detection.Models.HyphenationCandidate> Candidates) Analyze(LogicalTextStream value)
         {
@@ -214,12 +218,14 @@ internal static class FullBookReaderPreview
             return (new HyphenationCorrectionPlanner().Plan(decisions), candidates);
         }
 
-        static IReadOnlyList<HyphenationCorrectionPlan> AnalyzeV2(LogicalTextStream value, ITurkishMorphologyAnalyzer morph)
+        static IReadOnlyList<HyphenationCorrectionPlan> AnalyzeV2(LogicalTextStream value, IMorphologyOracleBuilder builder)
         {
             var candidates = new HyphenationDetector().Detect(value);
             var lexicon = new BookLexiconBuilder().Build(value);
             var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon, value);
-            var morphology = new EpubFixer.Core.Morphology.HyphenationMorphologyAnalyzer().Analyze(evidence, morph);
+            var analyzer = new EpubFixer.Core.Morphology.HyphenationMorphologyAnalyzer();
+            var oracle = builder.Build(analyzer.EnumerateMorphologyQueries(evidence));
+            var morphology = analyzer.Analyze(evidence, oracle);
             var decisions = new EpubFixer.Core.Decision.HyphenationV2DecisionEvaluator().Evaluate(evidence, morphology);
             return new HyphenationCorrectionPlanner().Plan(decisions);
         }
@@ -229,9 +235,9 @@ internal static class FullBookReaderPreview
         var v1Refreshed = Analyze(LogicalTextStreamBuilder.Build(package.SpineDocuments));
         new CrossParagraphHyphenationCorrectionApplier().Apply(v1Refreshed.Plans.Where(p => p.CorrectionKind == HyphenationCorrectionKind.CrossParagraph).ToArray());
 
-        var v2 = AnalyzeV2(LogicalTextStreamBuilder.Build(package.SpineDocuments), analyzer);
+        var v2 = AnalyzeV2(LogicalTextStreamBuilder.Build(package.SpineDocuments), oracleBuilder);
         new HyphenationCorrectionApplier().Apply(v2.Where(p => p.CorrectionKind == HyphenationCorrectionKind.Inline).ToArray());
-        var v2Refreshed = AnalyzeV2(LogicalTextStreamBuilder.Build(package.SpineDocuments), analyzer);
+        var v2Refreshed = AnalyzeV2(LogicalTextStreamBuilder.Build(package.SpineDocuments), oracleBuilder);
         new CrossParagraphHyphenationCorrectionApplier().Apply(v2Refreshed.Where(p => p.CorrectionKind == HyphenationCorrectionKind.CrossParagraph).ToArray());
     }
 

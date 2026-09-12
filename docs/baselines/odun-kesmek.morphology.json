@@ -1,0 +1,16 @@
+{
+  "dataset": "odun-kesmek",
+  "measuredOn": "2026-09-12",
+  "commit": "867c769",
+  "machine": "local Windows development machine",
+  "scenario": "fix --apply-ocr-corrections",
+  "isValidWordCalls": 0,
+  "analyzeCalls": 0,
+  "analyzeBatchCalls": 4,
+  "batchRequests": 4,
+  "distinctWords": 13215,
+  "batchedWords": 13215,
+  "morphologyElapsedSeconds": 1.432,
+  "totalElapsedSeconds": 25.202,
+  "goldenLogicalTextSha256": "37b72bc8508ceb6a06e9f8a5c7f41f65503e5bb99c9a436b82c37e960b2018be"
+}

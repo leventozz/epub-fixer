@@ -5,6 +5,7 @@ using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Lexicon;
+using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr;
 using EpubFixer.QualityBenchmarks.Models;
 using EpubFixer.TrMorph;
@@ -145,10 +146,13 @@ public sealed class QualityBenchmarkRunner
     private static IReadOnlyList<OcrDetectionSource> CreateOcrDetections(EpubFixer.Core.Epub.Models.LogicalTextStream stream)
     {
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
-        var anomaly = new OcrAnomalyDetector().Analyze(stream, analyzer).Candidates
+        var builder = new BatchMorphologyOracleBuilder(analyzer);
+        var anomalyDetector = new OcrAnomalyDetector();
+        var anomaly = anomalyDetector.Analyze(stream, builder.Build(anomalyDetector.EnumerateMorphologyQueries(stream))).Candidates
             .SelectMany(item => item.Candidate.Sources.Select(span =>
                 new OcrDetectionSource(span.DocumentPath, span.TextNodeIndex, span.Start, span.Start + span.Length)));
-        var regions = new OcrRegionDetector().Detect(stream.Text, analyzer)
+        var regionDetector = new OcrRegionDetector();
+        var regions = regionDetector.Detect(stream.Text, builder.Build(regionDetector.EnumerateMorphologyQueries(stream.Text)))
             .SelectMany(item => CreateSourceDetections(stream, item.Start, item.EndExclusive));
         return anomaly.Concat(regions)
             .OrderBy(item => item.Start)

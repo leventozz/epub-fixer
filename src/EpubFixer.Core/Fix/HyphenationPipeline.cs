@@ -31,10 +31,12 @@ internal static class HyphenationPipeline
 
     public static HyphenationPipelineState AnalyzeV2(
         LogicalTextStream logicalText,
-        ITurkishMorphologyAnalyzer analyzer)
+        IMorphologyOracleBuilder morphologyOracleBuilder)
     {
         var state = Analyze(logicalText);
-        var morphology = new HyphenationMorphologyAnalyzer().Analyze(state.Evidence, analyzer);
+        var analyzer = new HyphenationMorphologyAnalyzer();
+        var oracle = morphologyOracleBuilder.Build(analyzer.EnumerateMorphologyQueries(state.Evidence));
+        var morphology = analyzer.Analyze(state.Evidence, oracle);
         var decisions = new HyphenationV2DecisionEvaluator().Evaluate(state.Evidence, morphology);
         var plans = new HyphenationCorrectionPlanner().Plan(decisions);
         return state with { Decisions = decisions, Plans = plans };

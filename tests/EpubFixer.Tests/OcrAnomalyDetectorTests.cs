@@ -16,7 +16,7 @@ public sealed class OcrAnomalyDetectorTests
 
         var report = new OcrAnomalyDetector().Analyze(
             new EpubPackageReader().Read(epub.Path).LogicalText,
-            new FakeMorphologyAnalyzer(["iıç", "ınetre", "Lckrarlayan", "nıktu"]));
+            new InvalidSetMorphologyOracle(["iıç", "ınetre", "Lckrarlayan", "nıktu"]));
 
         var texts = report.Candidates.Select(item => item.Candidate.Text).ToHashSet(StringComparer.Ordinal);
         Assert.Contains("ger-^ .ckten", texts);
@@ -148,7 +148,7 @@ public sealed class OcrAnomalyDetectorTests
 
         return new OcrAnomalyDetector().Analyze(
             new EpubPackageReader().Read(epub.Path).LogicalText,
-            new FakeMorphologyAnalyzer(invalid ?? []));
+            new InvalidSetMorphologyOracle(invalid ?? []));
     }
 
     private static bool IsStructural(OcrDetectionReason reason) =>
@@ -156,9 +156,11 @@ public sealed class OcrAnomalyDetectorTests
 
     private static string Xhtml(string body) => $"<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><body>{body}</body></html>";
 
-    private sealed class FakeMorphologyAnalyzer(IEnumerable<string> invalid) : ITurkishMorphologyAnalyzer
+    private sealed class InvalidSetMorphologyOracle(IEnumerable<string> invalid) : IMorphologyOracle
     {
         private readonly HashSet<string> invalid = invalid.ToHashSet(StringComparer.Ordinal);
-        public bool IsValidWord(string word) => !invalid.Contains(word);
+        public bool IsValid(string word) => !invalid.Contains(word);
+        public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word) => IsValid(word) ? [new TurkishMorphologicalAnalysis(word, new HashSet<string>(StringComparer.Ordinal))] : [];
+        public bool IsKnown(string word) => true;
     }
 }

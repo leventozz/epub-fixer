@@ -14,51 +14,55 @@ namespace EpubFixer.Core.Ocr;
 
 public sealed class OcrAnalysisService
 {
-    public OcrAnalysisReport Analyze(string epubPath, ITurkishMorphologyAnalyzer analyzer)
+    public OcrAnalysisReport Analyze(string epubPath, IMorphologyOracleBuilder morphologyOracleBuilder)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(epubPath);
-        ArgumentNullException.ThrowIfNull(analyzer);
+        ArgumentNullException.ThrowIfNull(morphologyOracleBuilder);
         var package = new EpubPackageReader().Read(epubPath);
 
-        ApplyExistingHyphenation(package, analyzer);
+        ApplyExistingHyphenation(package, morphologyOracleBuilder);
         var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-        return new OcrAnomalyDetector().Analyze(stream, analyzer);
+        var detector = new OcrAnomalyDetector();
+        var oracle = morphologyOracleBuilder.Build(detector.EnumerateMorphologyQueries(stream));
+        return detector.Analyze(stream, oracle);
     }
 
-    public OcrCorrectionAnalysisReport AnalyzeCorrections(string epubPath, ITurkishMorphologyAnalyzer analyzer)
+    public OcrCorrectionAnalysisReport AnalyzeCorrections(string epubPath, IMorphologyOracleBuilder morphologyOracleBuilder)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(epubPath);
-        ArgumentNullException.ThrowIfNull(analyzer);
+        ArgumentNullException.ThrowIfNull(morphologyOracleBuilder);
         var package = new EpubPackageReader().Read(epubPath);
-        ApplyExistingHyphenation(package, analyzer);
+        ApplyExistingHyphenation(package, morphologyOracleBuilder);
         var stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-        var analysis = new OcrAnomalyDetector().Analyze(stream, analyzer);
-        var lexicon = new BookLexiconBuilder().Build(stream);
-        return new OcrCorrectionCandidateGenerator().Generate(analysis, stream, lexicon, analyzer);
+        return AnalyzeCorrections(stream, morphologyOracleBuilder);
     }
 
     public OcrCorrectionAnalysisReport AnalyzeCorrections(
         LogicalTextStream stream,
-        ITurkishMorphologyAnalyzer analyzer)
+        IMorphologyOracleBuilder morphologyOracleBuilder)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(analyzer);
-        var analysis = new OcrAnomalyDetector().Analyze(stream, analyzer);
+        ArgumentNullException.ThrowIfNull(morphologyOracleBuilder);
+        var detector = new OcrAnomalyDetector();
+        var anomalyOracle = morphologyOracleBuilder.Build(detector.EnumerateMorphologyQueries(stream));
+        var analysis = detector.Analyze(stream, anomalyOracle);
         var lexicon = new BookLexiconBuilder().Build(stream);
-        return new OcrCorrectionCandidateGenerator().Generate(analysis, stream, lexicon, analyzer);
+        var generator = new OcrCorrectionCandidateGenerator();
+        var generationOracle = morphologyOracleBuilder.Build(generator.EnumerateMorphologyQueries(analysis, stream, lexicon));
+        return generator.Generate(analysis, stream, lexicon, generationOracle);
     }
 
-    private static void ApplyExistingHyphenation(EpubFixer.Core.Epub.Models.EpubPackage package, ITurkishMorphologyAnalyzer analyzer)
+    private static void ApplyExistingHyphenation(EpubFixer.Core.Epub.Models.EpubPackage package, IMorphologyOracleBuilder morphologyOracleBuilder)
     {
         var original = AnalyzeHyphenation(package.LogicalText);
         Apply(new HyphenationCorrectionApplier(), original.Plans.Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline));
         var afterInline = AnalyzeHyphenation(LogicalTextStreamBuilder.Build(package.SpineDocuments));
         Apply(new CrossParagraphHyphenationCorrectionApplier(), afterInline.Plans.Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.CrossParagraph));
         var afterV1 = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-        var v2Candidates = AnalyzeHyphenationV2(afterV1, analyzer);
+        var v2Candidates = AnalyzeHyphenationV2(afterV1, morphologyOracleBuilder);
         Apply(new HyphenationCorrectionApplier(), v2Candidates.Plans.Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.Inline));
         var afterV2Inline = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-        var refreshed = AnalyzeHyphenationV2(afterV2Inline, analyzer);
+        var refreshed = AnalyzeHyphenationV2(afterV2Inline, morphologyOracleBuilder);
         Apply(new CrossParagraphHyphenationCorrectionApplier(), refreshed.Plans.Where(plan => plan.CorrectionKind == HyphenationCorrectionKind.CrossParagraph));
     }
 
@@ -78,13 +82,15 @@ public sealed class OcrAnalysisService
         return new PipelineState(new HyphenationCorrectionPlanner().Plan(decisions));
     }
 
-    private static PipelineState AnalyzeHyphenationV2(EpubFixer.Core.Epub.Models.LogicalTextStream stream, ITurkishMorphologyAnalyzer analyzer)
+    private static PipelineState AnalyzeHyphenationV2(EpubFixer.Core.Epub.Models.LogicalTextStream stream, IMorphologyOracleBuilder morphologyOracleBuilder)
     {
         var baseState = AnalyzeHyphenation(stream);
         var candidates = new HyphenationDetector().Detect(stream);
         var lexicon = new EpubFixer.Core.Lexicon.BookLexiconBuilder().Build(stream);
         var evidence = new HyphenationEvidenceEvaluator().Evaluate(candidates, lexicon, stream);
-        var morphology = new EpubFixer.Core.Morphology.HyphenationMorphologyAnalyzer().Analyze(evidence, analyzer);
+        var analyzer = new EpubFixer.Core.Morphology.HyphenationMorphologyAnalyzer();
+        var oracle = morphologyOracleBuilder.Build(analyzer.EnumerateMorphologyQueries(evidence));
+        var morphology = analyzer.Analyze(evidence, oracle);
         var decisions = new EpubFixer.Core.Decision.HyphenationV2DecisionEvaluator().Evaluate(evidence, morphology);
         return new PipelineState(new HyphenationCorrectionPlanner().Plan(decisions));
     }

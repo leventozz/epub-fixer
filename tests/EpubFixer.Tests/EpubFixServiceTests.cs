@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Fix.Models;
+using EpubFixer.Core.Morphology;
 using EpubFixer.TrMorph;
 
 namespace EpubFixer.Tests;
@@ -23,7 +24,7 @@ public sealed class EpubFixServiceTests
         try
         {
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
-            var result = new EpubFixService(analyzer).Fix(inputPath, outputPath);
+            var result = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer)).Fix(inputPath, outputPath);
 
             Assert.Equal(448, result.OriginalCandidateCount);
             Assert.Equal(148, result.OriginalAutoFixCandidateCount);
@@ -66,7 +67,7 @@ public sealed class EpubFixServiceTests
 
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
         Assert.Throws<ArgumentException>(() =>
-            new EpubFixService(analyzer).Fix(epub.Path, epub.Path));
+            new EpubFixService(new BatchMorphologyOracleBuilder(analyzer)).Fix(epub.Path, epub.Path));
         Assert.Equal(inputHash, SHA256.HashData(File.ReadAllBytes(epub.Path)));
     }
 
@@ -83,7 +84,7 @@ public sealed class EpubFixServiceTests
         {
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
             Assert.Throws<IOException>(() =>
-                new EpubFixService(analyzer).Fix(epub.Path, outputPath));
+                new EpubFixService(new BatchMorphologyOracleBuilder(analyzer)).Fix(epub.Path, outputPath));
             Assert.Equal("do not replace", File.ReadAllText(outputPath));
         }
         finally

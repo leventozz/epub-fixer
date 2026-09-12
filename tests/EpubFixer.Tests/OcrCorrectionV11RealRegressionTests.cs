@@ -3,6 +3,7 @@ using EpubFixer.Core.Ocr.Models;
 using EpubFixer.Core.Decision;
 using EpubFixer.Core.Decision.Models;
 using EpubFixer.TrMorph;
+using EpubFixer.Core.Morphology;
 using System.Text.RegularExpressions;
 
 namespace EpubFixer.Tests;
@@ -15,7 +16,7 @@ public sealed class OcrCorrectionV111RealRegressionTests
         var epubPath = Path.Combine(AppContext.BaseDirectory, "test-data", "Odun Kesmek_recognized.epub");
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
 
-        var report = new OcrAnalysisService().AnalyzeCorrections(epubPath, analyzer);
+        var report = new OcrAnalysisService().AnalyzeCorrections(epubPath, new BatchMorphologyOracleBuilder(analyzer));
 
         Assert.Equal(46_927, report.SourceAnalysis.TotalExamined);
         Assert.Equal(893, report.SourceAnalysis.Candidates.Count);
@@ -85,7 +86,7 @@ public sealed class OcrCorrectionV111RealRegressionTests
     {
         var epubPath = Path.Combine(AppContext.BaseDirectory, "test-data", "Odun Kesmek_recognized.epub");
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
-        var candidates = new OcrAnalysisService().AnalyzeCorrections(epubPath, analyzer);
+        var candidates = new OcrAnalysisService().AnalyzeCorrections(epubPath, new BatchMorphologyOracleBuilder(analyzer));
         var report = new OcrCorrectionDecisionEvaluator().Evaluate(candidates);
 
         Assert.Equal(893, report.Decisions.Count);

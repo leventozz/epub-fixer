@@ -17,15 +17,15 @@ public sealed record GroundTruthProposal(
 public sealed class GroundTruthProposer
 {
     public IReadOnlyList<GroundTruthProposal> Propose(LogicalTextStream stream, int perClassTarget = 40)
-        => Propose(stream, new ConservativeMorphologyAnalyzer(), perClassTarget);
+        => Propose(stream, new ConservativeMorphologyOracle(), perClassTarget);
 
     public IReadOnlyList<GroundTruthProposal> Propose(
         LogicalTextStream stream,
-        ITurkishMorphologyAnalyzer analyzer,
+        IMorphologyOracle oracle,
         int perClassTarget = 40)
     {
         ArgumentNullException.ThrowIfNull(stream);
-        ArgumentNullException.ThrowIfNull(analyzer);
+        ArgumentNullException.ThrowIfNull(oracle);
         if (perClassTarget <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(perClassTarget));
@@ -35,7 +35,7 @@ public sealed class GroundTruthProposer
         var proposals = new List<GroundTruthProposal>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        foreach (var candidate in EnumerateDetectorCandidates(stream, analyzer))
+        foreach (var candidate in EnumerateDetectorCandidates(stream, oracle))
         {
             var original = stream.Text.Substring(candidate.Start, candidate.Length);
             var errorClass = Classify(original);
@@ -73,11 +73,11 @@ public sealed class GroundTruthProposer
 
     private static IEnumerable<(int Start, int Length)> EnumerateDetectorCandidates(
         LogicalTextStream stream,
-        ITurkishMorphologyAnalyzer analyzer)
+        IMorphologyOracle oracle)
     {
-        var anomaly = new OcrAnomalyDetector().Analyze(stream, analyzer).Candidates
+        var anomaly = new OcrAnomalyDetector().Analyze(stream, oracle).Candidates
             .Select(item => (item.Candidate.LogicalStart, item.Candidate.Text.Length));
-        var regions = new OcrRegionDetector().Detect(stream.Text, analyzer)
+        var regions = new OcrRegionDetector().Detect(stream.Text, oracle)
             .Select(item => (item.Start, item.EndExclusive - item.Start));
         return anomaly.Concat(regions)
             .Where(item => item.Item2 > 0)
@@ -149,8 +149,10 @@ public sealed class GroundTruthProposer
         original + "|" + string.Join(",", sourceSpans.Select(span =>
             $"{span.DocumentPath}:{span.TextNodeIndex}:{span.Start}:{span.Length}"));
 
-    private sealed class ConservativeMorphologyAnalyzer : ITurkishMorphologyAnalyzer
+    private sealed class ConservativeMorphologyOracle : IMorphologyOracle
     {
-        public bool IsValidWord(string word) => false;
+        public bool IsValid(string word) => false;
+        public IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word) => [];
+        public bool IsKnown(string word) => true;
     }
 }

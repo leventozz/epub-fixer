@@ -7,10 +7,10 @@ public sealed class HyphenationMorphologyAnalyzer
 {
     public IReadOnlyList<HyphenationMorphologyEvidence> Analyze(
         IReadOnlyList<HyphenationEvidence> evidence,
-        ITurkishMorphologyAnalyzer analyzer)
+        IMorphologyOracle oracle)
     {
         ArgumentNullException.ThrowIfNull(evidence);
-        ArgumentNullException.ThrowIfNull(analyzer);
+        ArgumentNullException.ThrowIfNull(oracle);
 
         var result = new HyphenationMorphologyEvidence[evidence.Count];
         for (var index = 0; index < evidence.Count; index++)
@@ -24,12 +24,21 @@ public sealed class HyphenationMorphologyAnalyzer
                 context.HasAdjacentHyphen,
                 context.HasAdjacentSuspiciousCharacter,
                 clean,
-                analyzer.IsValidWord(item.Candidate.LeftPart + item.Candidate.RightPart))
+                oracle.IsValid(item.Candidate.LeftPart + item.Candidate.RightPart))
             {
                 Evidence = item
             };
         }
 
         return Array.AsReadOnly(result);
+    }
+
+    public IEnumerable<string> EnumerateMorphologyQueries(IReadOnlyList<HyphenationEvidence> evidence)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+        foreach (var item in evidence)
+        {
+            yield return item.Candidate.LeftPart + item.Candidate.RightPart;
+        }
     }
 }
