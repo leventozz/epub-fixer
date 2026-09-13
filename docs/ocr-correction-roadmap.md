@@ -432,6 +432,14 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
   Top-1, Top-5, süre ve region başına state sayısıyla gösterir.
 - **Bağımlılık:** R3.4. **Boyut:** S.
 
+> Faz 3'ün uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
+> [phase-3-plan.md](phase-3-plan.md). Plan yol haritasından dört noktada ayrılır ve gerekçelerini
+> karar tablosuna yazar: yol haritasında olmayan bir **R3.0 (karışım kümesi + ağırlıklı hizalayıcı)**
+> kalemi eklenip kritik yolun başına konur (D26), `SymSpellLexiconMatcher` **Cli'da kalır** (D27),
+> kafese **identity ve literal arc'ları** girer (D29), `AcceptanceResult` **mutlak aralık** taşır
+> (D33). Ayrıca boşluk maliyetlerinin bu belgedeki "0.25 / 0.5" değerlerinin eskidiğini,
+> `OcrEditCostModel`'deki gerçek değerlerin **0.30 / 0.70** olduğunu kayda geçer (D28).
+
 ---
 
 ### Faz 4 — Üretim hattına bağlama
