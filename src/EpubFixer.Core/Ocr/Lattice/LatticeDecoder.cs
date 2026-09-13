@@ -23,8 +23,10 @@ public sealed class LatticeDecoder(
             .ToDictionary(
                 group => group.Key,
                 group => group.OrderBy(arc => arc.To).ThenBy(arc => arc.Kind).ThenBy(arc => arc.Word, StringComparer.Ordinal).ToArray());
+        var rankLimit = Math.Max(1, kBest);
+        var nextId = 0;
         var states = new List<PathState>[lattice.Window.Length + 1];
-        states[0] = [new PathState(string.Empty, 0, previousWord, [])];
+        states[0] = [new PathState(0, previousWord, null, nextId++)];
 
         for (var index = 0; index < states.Length; index++)
         {
@@ -34,29 +36,30 @@ public sealed class LatticeDecoder(
                 continue;
             }
 
+            current = Deduplicate(current, rankLimit);
+            states[index] = current;
             foreach (var state in current)
             {
                 foreach (var arc in arcs)
                 {
-                    var next = Append(state, arc);
+                    var next = Append(state, arc, nextId++);
                     states[arc.To] ??= [];
                     states[arc.To].Add(next);
-                    states[arc.To] = Deduplicate(states[arc.To]);
                 }
             }
         }
 
-        return (states[^1] ?? [])
-            .GroupBy(state => state.Text, StringComparer.Ordinal)
-            .Select(group => group.OrderBy(state => state.Cost).ThenBy(state => state.Text, StringComparer.Ordinal).First())
+        return Deduplicate(states[^1] ?? [], rankLimit)
+            .Select(BuildPath)
+            .GroupBy(path => path.Text, StringComparer.Ordinal)
+            .Select(group => group.OrderBy(path => path.Cost).ThenBy(path => path.Text, StringComparer.Ordinal).First())
             .OrderBy(state => state.Cost)
             .ThenBy(state => state.Text, StringComparer.Ordinal)
             .Take(kBest)
-            .Select(state => new DecodedPath(state.Text, state.Cost, state.Arcs))
             .ToArray();
     }
 
-    private PathState Append(PathState state, LatticeArc arc)
+    private PathState Append(PathState state, LatticeArc arc, int stateId)
     {
         var lmCost = 0.0;
         var previous = state.PreviousWord;
@@ -67,31 +70,36 @@ public sealed class LatticeDecoder(
         }
 
         return new PathState(
-            state.Text + arc.Word,
             state.Cost + arc.Cost + lmCost,
             previous,
-            state.Arcs.Append(arc).ToArray());
+            new Backpointer(state, arc),
+            stateId);
     }
 
-    private static List<PathState> Deduplicate(IEnumerable<PathState> states) =>
+    private static DecodedPath BuildPath(PathState state)
+    {
+        var arcs = new List<LatticeArc>();
+        for (var cursor = state.Backpointer; cursor is not null; cursor = cursor.Previous.Backpointer)
+        {
+            arcs.Add(cursor.Arc);
+        }
+
+        arcs.Reverse();
+        return new DecodedPath(string.Concat(arcs.Select(arc => arc.Word)), state.Cost, arcs);
+    }
+
+    private static List<PathState> Deduplicate(IEnumerable<PathState> states, int rankLimit) =>
         states
-            .GroupBy(state => (state.Text, state.PreviousWord), StateKeyComparer.Instance)
-            .Select(group => group.OrderBy(state => state.Cost).ThenBy(state => state.Text, StringComparer.Ordinal).First())
+            .GroupBy(state => state.PreviousWord, StringComparer.Ordinal)
+            .SelectMany(group => group
+                .OrderBy(state => state.Cost)
+                .ThenBy(state => state.StateId)
+                .Take(rankLimit))
             .OrderBy(state => state.Cost)
-            .ThenBy(state => state.Text, StringComparer.Ordinal)
+            .ThenBy(state => state.StateId)
             .ToList();
 
-    private sealed record PathState(string Text, double Cost, string? PreviousWord, IReadOnlyList<LatticeArc> Arcs);
+    private sealed record PathState(double Cost, string? PreviousWord, Backpointer? Backpointer, int StateId);
 
-    private sealed class StateKeyComparer : IEqualityComparer<(string Text, string? PreviousWord)>
-    {
-        public static StateKeyComparer Instance { get; } = new();
-
-        public bool Equals((string Text, string? PreviousWord) x, (string Text, string? PreviousWord) y) =>
-            string.Equals(x.Text, y.Text, StringComparison.Ordinal)
-            && string.Equals(x.PreviousWord, y.PreviousWord, StringComparison.Ordinal);
-
-        public int GetHashCode((string Text, string? PreviousWord) obj) =>
-            HashCode.Combine(StringComparer.Ordinal.GetHashCode(obj.Text), obj.PreviousWord is null ? 0 : StringComparer.Ordinal.GetHashCode(obj.PreviousWord));
-    }
+    private sealed record Backpointer(PathState Previous, LatticeArc Arc);
 }

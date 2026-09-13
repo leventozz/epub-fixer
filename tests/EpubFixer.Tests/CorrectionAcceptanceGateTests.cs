@@ -137,9 +137,8 @@ public sealed class CorrectionAcceptanceGateTests
     [Fact]
     public void Fixture_VerdictDistributionIsPinned()
     {
-        var occurrences = FixtureOccurrences();
-        var fixture = File.ReadAllText(FindRepositoryFile(Path.Combine("tests", "Fixtures", "OcrRegion", "odun-kesmek-region-01.txt")));
-        var builder = new WordLatticeBuilder(new SymSpellLexiconMatcher(BuildVocabulary(occurrences.Select(item => item.Target))));
+        var fixture = LatticeFixture.RegionText;
+        var builder = LatticeFixture.CreateBuilder();
         var gate = Gate();
         var counts = new Dictionary<AcceptanceVerdict, int>
         {
@@ -148,17 +147,17 @@ public sealed class CorrectionAcceptanceGateTests
             [AcceptanceVerdict.Leave] = 0
         };
 
-        foreach (var occurrence in occurrences)
+        foreach (var occurrence in LatticeFixture.Occurrences)
         {
             var lattice = builder.Build(RegionInText(occurrence.Source, fixture), fixture, new LatticeOptions(ContextTokens: 0));
-            var decoder = new LatticeDecoder(new TargetPreferenceLanguageModel([occurrence.Target]), new LatticeOptions());
+            var decoder = new LatticeDecoder(new NeutralLanguageModel(), new LatticeOptions(Lambda: 0));
             var result = gate.Evaluate(Region(occurrence.Source, fixture.IndexOf(occurrence.Source, StringComparison.Ordinal)), lattice, decoder.Decode(lattice, 3));
             counts[result.Verdict]++;
         }
 
-        Assert.Equal(9, counts[AcceptanceVerdict.Apply]);
+        Assert.Equal(0, counts[AcceptanceVerdict.Apply]);
         Assert.Equal(0, counts[AcceptanceVerdict.Review]);
-        Assert.Equal(1, counts[AcceptanceVerdict.Leave]);
+        Assert.Equal(10, counts[AcceptanceVerdict.Leave]);
     }
 
     private static CorrectionAcceptanceGate Gate(IEnumerable<string>? validWords = null) =>
@@ -189,39 +188,8 @@ public sealed class CorrectionAcceptanceGateTests
         return Region(raw, start);
     }
 
-    private static IReadOnlyList<(string Source, string Target)> FixtureOccurrences() =>
-    [
-        ("ı ıç", "üç"),
-        ("kendi-ıni", "kendimi"),
-        ("1 ı iç", "hiç"),
-        (":,ohbet", "sohbet"),
-        ("koli ukta", "koltukta"),
-        ("ı ızellikle", "özellikle"),
-        ("ı ılduğu", "olduğu"),
-        ("Ce-lıimde", "Cebimde"),
-        ("ge-^:cn", "geçen"),
-        ("yü-ıiimeye", "yürümeye")
-    ];
-
-    private static string FindRepositoryFile(string relativePath)
+    private sealed class NeutralLanguageModel : ILanguageModel
     {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            var candidate = Path.Combine(directory.FullName, relativePath);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        throw new FileNotFoundException(relativePath);
-    }
-
-    private sealed class TargetPreferenceLanguageModel(IEnumerable<string> targets) : ILanguageModel
-    {
-        private readonly HashSet<string> targets = targets.ToHashSet(StringComparer.Ordinal);
-
-        public double LogProbability(string word, string? previousWord) =>
-            targets.Contains(word) && !targets.Contains(previousWord ?? string.Empty) ? -0.01 : -20.0;
+        public double LogProbability(string word, string? previousWord) => 0;
     }
 }

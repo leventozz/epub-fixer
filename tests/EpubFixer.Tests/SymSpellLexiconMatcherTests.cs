@@ -11,26 +11,9 @@ public sealed class SymSpellLexiconMatcherTests
     [Fact]
     public void Match_FindsFixtureTargets()
     {
-        var matcher = new SymSpellLexiconMatcher(BuildVocabulary([
-            "üç", "kendimi", "hiç", "sohbet", "koltukta",
-            "özellikle", "olduğu", "Cebimde", "geçen", "yürümeye"
-        ]));
+        var matcher = new SymSpellLexiconMatcher(LatticeFixture.Vocabulary);
 
-        var pairs = new (string Source, string Target)[]
-        {
-            ("ı ıç", "üç"),
-            ("kendi-ıni", "kendimi"),
-            ("1 ı iç", "hiç"),
-            (":,ohbet", "sohbet"),
-            ("koli ukta", "koltukta"),
-            ("ı ızellikle", "özellikle"),
-            ("ı ılduğu", "olduğu"),
-            ("Ce-lıimde", "Cebimde"),
-            ("ge-^:cn", "geçen"),
-            ("yü-ıiimeye", "yürümeye")
-        };
-
-        foreach (var (source, target) in pairs)
+        foreach (var (source, target) in LatticeFixture.Occurrences)
         {
             var matches = matcher.Match(source, 3.0);
             Assert.Contains(matches, match => match.Word == target);

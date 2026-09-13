@@ -35,9 +35,6 @@ public sealed record LatticeWindow(string Window, int WindowOffset, LatticeBuild
             ? FindRightHardBoundary(fullText, region.EndExclusive)
             : hardBoundaryOffsets.Where(offset => offset >= region.EndExclusive).DefaultIfEmpty(fullText.Length).Min();
         var tokens = EnumerateTokens(fullText, leftBoundary, rightBoundary).ToArray();
-        var firstToken = Array.FindLastIndex(tokens, token => token.Start < region.Start);
-        var lastToken = Array.FindIndex(tokens, token => token.End > region.EndExclusive);
-
         var windowStart = region.Start;
         var windowEnd = region.EndExclusive;
         if (tokens.Length > 0)
@@ -46,8 +43,8 @@ public sealed record LatticeWindow(string Window, int WindowOffset, LatticeBuild
             var regionLast = Array.FindLastIndex(tokens, token => token.Start < region.EndExclusive);
             if (regionFirst >= 0 && regionLast >= regionFirst)
             {
-                firstToken = Math.Max(0, regionFirst - options.ContextTokens);
-                lastToken = Math.Min(tokens.Length - 1, regionLast + options.ContextTokens);
+                var firstToken = Math.Max(0, regionFirst - options.ContextTokens);
+                var lastToken = Math.Min(tokens.Length - 1, regionLast + options.ContextTokens);
                 windowStart = Math.Min(region.Start, tokens[firstToken].Start);
                 windowEnd = Math.Max(region.EndExclusive, tokens[lastToken].End);
             }

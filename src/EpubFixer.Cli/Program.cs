@@ -369,10 +369,36 @@ static int RunDebugLattice(string[] arguments)
         if (reportPath is not null)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
+            var reasonHistogram = decisions
+                .SelectMany(item => item.Result.Reasons)
+                .GroupBy(reason => reason, StringComparer.Ordinal)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.Ordinal)
+                .ToArray();
             var report = new StringBuilder("# Lattice OCR Report\n\n")
+                .AppendLine("## Summary")
+                .AppendLine()
+                .AppendLine($"- Apply: {reconstructor.Statistics.Applied}")
+                .AppendLine($"- Review: {reconstructor.Statistics.Reviewed}")
+                .AppendLine($"- Leave: {reconstructor.Statistics.Left}")
+                .AppendLine($"- Max visited states per region: {reconstructor.Statistics.MaxVisitedStates}")
+                .AppendLine()
+                .AppendLine("## Reason Histogram")
+                .AppendLine()
+                .AppendLine("| Reason | Count |")
+                .AppendLine("| --- | ---: |");
+            foreach (var group in reasonHistogram)
+            {
+                report.AppendLine($"| {group.Key} | {group.Count()} |");
+            }
+
+            report
+                .AppendLine()
+                .AppendLine("## Decisions")
+                .AppendLine()
                 .AppendLine("| Region | Verdict | Replacement | Reasons |")
                 .AppendLine("| --- | --- | --- | --- |");
-            foreach (var item in decisions.Where(item => item.Result.Verdict != AcceptanceVerdict.Leave))
+            foreach (var item in decisions)
             {
                 report.AppendLine($"| `{item.Region.RawText.Replace("|", "\\|")}` | {item.Result.Verdict} | `{item.Result.Replacement}` | {string.Join("; ", item.Result.Reasons)} |");
             }
@@ -383,7 +409,6 @@ static int RunDebugLattice(string[] arguments)
         {
             dataset = "odun-kesmek",
             measuredOn = DateTime.UtcNow.ToString("yyyy-MM-dd"),
-            commit = TryGetGitCommit(),
             options = new
             {
                 lambda = options.Lambda,
@@ -393,7 +418,9 @@ static int RunDebugLattice(string[] arguments)
                 maxWindowLength = options.MaxWindowLength,
                 maxArcLength = options.MaxArcLength,
                 contextTokens = options.ContextTokens,
-                budgetCap = options.BudgetCap
+                budgetCap = options.BudgetCap,
+                maxMatchesPerSpan = options.MaxMatchesPerSpan,
+                maxQueriesPerSpan = options.MaxQueriesPerSpan
             },
             regions = reconstructor.Statistics.Regions,
             built = reconstructor.Statistics.Built,
@@ -403,7 +430,14 @@ static int RunDebugLattice(string[] arguments)
             reviewed = reconstructor.Statistics.Reviewed,
             left = reconstructor.Statistics.Left,
             totalSeconds = watch.Elapsed.TotalSeconds,
-            averageArcsPerRegion = reconstructor.Statistics.Built == 0 ? 0 : reconstructor.Statistics.TotalArcs / (double)reconstructor.Statistics.Built
+            averageArcsPerRegion = reconstructor.Statistics.Built == 0 ? 0 : reconstructor.Statistics.TotalArcs / (double)reconstructor.Statistics.Built,
+            maxVisitedStates = reconstructor.Statistics.MaxVisitedStates,
+            reasonHistogram = decisions
+                .SelectMany(item => item.Result.Reasons)
+                .GroupBy(reason => reason, StringComparer.Ordinal)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal)
         };
 
         if (jsonPath is not null)
@@ -432,28 +466,6 @@ static IReadOnlyCollection<int> HardBoundaryOffsets(LogicalTextStream stream) =>
         .Distinct()
         .OrderBy(offset => offset)
         .ToArray();
-
-static string TryGetGitCommit()
-{
-    try
-    {
-        using var process = new System.Diagnostics.Process();
-        process.StartInfo = new System.Diagnostics.ProcessStartInfo("git", "rev-parse HEAD")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        return process.Start() && process.WaitForExit(2000) && process.ExitCode == 0
-            ? process.StandardOutput.ReadToEnd().Trim()
-            : "unavailable";
-    }
-    catch
-    {
-        return "unavailable";
-    }
-}
 
 static IEnumerable<int> Occurrences(string text, string value)
 {

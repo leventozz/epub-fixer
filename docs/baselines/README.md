@@ -42,5 +42,5 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
   tur ve token sayilari ile held-out bigram isabet orani. Stupid backoff normalize olasilik
   olmadigi icin perplexity raporlanmaz.
 - `odun-kesmek.lattice.json`: Faz 3 lattice motorunun full-book debug kosusu. Exact decoder
-  duzeltmesinden sonra kosu 7+ dakikada tamamlanmadigi icin dosya gecerli baseline degil,
-  abort edilmis olcumu kaydeder.
+  state birlestirme ve lattice fanout sinirlari sonrasi gecerlidir; kosu 563 OCR region icin
+  30 saniye butcesinin altinda tamamlanir ve gerekce histogramini raporlar.

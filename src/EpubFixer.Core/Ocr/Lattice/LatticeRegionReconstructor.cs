@@ -11,7 +11,7 @@ public sealed class LatticeRegionReconstructor(
     ICorrectionAcceptanceGate gate,
     LatticeOptions options) : IOcrRegionReconstructor
 {
-    public LatticeRunStatistics Statistics { get; private set; } = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    public LatticeRunStatistics Statistics { get; private set; } = new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     public IReadOnlyList<ReconstructionCandidate> Reconstruct(CorruptedTextRegion region, int maxCandidates = 5)
     {
@@ -59,6 +59,7 @@ public sealed class LatticeRegionReconstructor(
             Left = Statistics.Left + (result.Verdict == AcceptanceVerdict.Leave ? 1 : 0),
             TotalArcs = Statistics.TotalArcs + lattice.Arcs.Count,
             TotalVisitedStates = Statistics.TotalVisitedStates + lattice.VisitedStates,
+            MaxVisitedStates = Math.Max(Statistics.MaxVisitedStates, lattice.VisitedStates),
             TotalMilliseconds = Statistics.TotalMilliseconds + elapsed.TotalMilliseconds
         };
     }
@@ -74,4 +75,5 @@ public sealed record LatticeRunStatistics(
     int Left,
     long TotalArcs,
     long TotalVisitedStates,
+    int MaxVisitedStates,
     double TotalMilliseconds);

@@ -1,28 +1,35 @@
 {
   "dataset": "odun-kesmek",
   "measuredOn": "2026-09-13",
-  "commit": "uncommitted-after-83dd2b2",
-  "status": "aborted",
-  "reason": "After removing the decoder top-8 pruning, the full-book debug-lattice run did not complete within more than 7 minutes and was interrupted. No current valid full-book lattice baseline is available.",
   "options": {
     "lambda": 0.5,
     "maxPathCost": 2.5,
     "minMargin": 0.75,
     "maxOrdinarySubstitutions": 1,
     "maxWindowLength": 48,
-    "maxArcLength": 20,
+    "maxArcLength": 11,
     "contextTokens": 1,
-    "budgetCap": 3
+    "budgetCap": 3,
+    "maxMatchesPerSpan": 6,
+    "maxQueriesPerSpan": 24
   },
-  "measuredFields": {
-    "regions": null,
-    "built": null,
-    "skippedTooLong": null,
-    "budgetExceeded": null,
-    "applied": null,
-    "reviewed": null,
-    "left": null,
-    "totalSeconds": null,
-    "averageArcsPerRegion": null
+  "regions": 563,
+  "built": 562,
+  "skippedTooLong": 1,
+  "budgetExceeded": 0,
+  "applied": 60,
+  "reviewed": 20,
+  "left": 483,
+  "totalSeconds": 28.8247007,
+  "averageArcsPerRegion": 470.15480427046265,
+  "maxVisitedStates": 1713,
+  "reasonHistogram": {
+    "OriginalTokenIsValid": 418,
+    "Accepted": 60,
+    "NoChange": 40,
+    "MarginTooSmall": 20,
+    "CostAboveThreshold": 12,
+    "TooManyOrdinaryEdits": 12,
+    "NoPath": 1
   }
 }

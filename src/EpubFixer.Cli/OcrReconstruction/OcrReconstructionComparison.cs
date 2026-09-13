@@ -3,10 +3,13 @@ using System.Text.Json;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using EpubFixer.Cli.Lexicon;
+using EpubFixer.Cli.Ocr.Lattice;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr;
+using EpubFixer.Core.Ocr.Lattice;
+using EpubFixer.Core.Ocr.Lattice.Models;
 using EpubFixer.Core.Ocr.Models;
 
 namespace EpubFixer.Cli.OcrReconstruction;
@@ -28,11 +31,20 @@ public sealed class OcrReconstructionComparison
         var regions = detector.Detect(text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(text)));
         var book = new BookLexiconBuilder().Build(text);
         var clean = FileTurkishFrequencyListSource.Load();
+        var stream = EpubFixer.Core.Epub.Models.LogicalTextStream.FromPlainText(text, inputPath);
+        var knowledge = new BookKnowledgeBuilder(clean).Build(stream, oracleBuilder);
+        var latticeOptions = new LatticeOptions();
         var reconstructors = new IOcrRegionReconstructor[]
         {
             new CurrentRegionReconstructor(book, analyzer),
             new SymSpellRegionReconstructor(clean),
-            new NoisyChannelRegionReconstructor(clean, book, analyzer)
+            new NoisyChannelRegionReconstructor(clean, book, analyzer),
+            new LatticeRegionReconstructor(
+                text,
+                new WordLatticeBuilder(new SymSpellLexiconMatcher(knowledge.Vocabulary)),
+                new LatticeDecoder(knowledge.LanguageModel, latticeOptions),
+                new CorrectionAcceptanceGate(knowledge.Vocabulary, latticeOptions),
+                latticeOptions)
         };
         var expected = LoadExpected(expectedPath ?? Path.ChangeExtension(inputPath, ".expected.json"), text);
         var selected = SelectRegions(regions, fast, targetIds);
@@ -220,7 +232,7 @@ public sealed class OcrReconstructionComparison
             builder.AppendLine($"- Start: `{row.Region.Start}`").AppendLine($"- Expected: `{target}`").AppendLine($"- Reasons: `{string.Join(", ", row.Region.DetectionReasons)}`").AppendLine();
             for (var method = 0; method < row.Results.Length; method++)
             {
-                var name = row.Results[method].FirstOrDefault()?.Source.ToString() ?? new[] { "Current", "SymSpell", "NoisyChannel" }[method];
+                var name = row.Results[method].FirstOrDefault()?.Source.ToString() ?? SourceName(method);
                 builder.AppendLine($"### {name}").AppendLine().AppendLine("| Rank | Text | Score | Evidence |").AppendLine("| ---: | --- | ---: | --- |");
                 foreach (var candidate in row.Results[method]) builder.AppendLine($"| {candidate.Rank} | `{Escape(candidate.Text)}` | {candidate.Score:0.000} | {Escape(string.Join("; ", candidate.Evidence))} |");
                 if (row.Results[method].Count == 0) builder.AppendLine("| — | *(no candidate)* | — | — |");
@@ -228,7 +240,7 @@ public sealed class OcrReconstructionComparison
             }
         }
         builder.AppendLine("## Summary\n\n| Method | Top1 correct | Top5 contains correct | Missed |\n| --- | ---: | ---: | ---: |");
-        foreach (var method in new[] { ReconstructionSource.Current, ReconstructionSource.SymSpell, ReconstructionSource.NoisyChannel })
+        foreach (var method in new[] { ReconstructionSource.Current, ReconstructionSource.SymSpell, ReconstructionSource.NoisyChannel, ReconstructionSource.Lattice })
         {
             var labeled = rows.Where(r => expected.ContainsKey(r.Region.Start)).ToArray();
             var top1 = labeled.Count(r => r.Results[(int)method].FirstOrDefault()?.Text == expected[r.Region.Start].ExpectedText);
@@ -258,6 +270,11 @@ public sealed class OcrReconstructionComparison
     }
 
     private static string Escape(string value) => value.Replace("\r", "\\r").Replace("\n", "\\n").Replace("|", "\\|");
+    private static string SourceName(int method) =>
+        Enum.IsDefined(typeof(ReconstructionSource), method)
+            ? ((ReconstructionSource)method).ToString()
+            : $"Method{method}";
+
     private const int MaxCandidatesForAudit = 5;
     private sealed record Row(int Index, CorruptedTextRegion Region, IReadOnlyList<ReconstructionCandidate>[] Results);
     private sealed record RerankedRow(Row Source, OcrContext Context, IReadOnlyList<DeterministicOcrCandidateReranker.RerankDetail> Details);

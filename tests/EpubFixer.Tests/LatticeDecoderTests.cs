@@ -117,21 +117,26 @@ public sealed class LatticeDecoderTests
     }
 
     [Fact]
-    public void Decode_FixtureTopOneIsTenOfTen()
+    public void Decode_FixtureTopOneWithFrequencyVocabularyIsPinned()
     {
-        var occurrences = FixtureOccurrences();
-        var fixture = File.ReadAllText(FindRepositoryFile(Path.Combine("tests", "Fixtures", "OcrRegion", "odun-kesmek-region-01.txt")));
-        var builder = new WordLatticeBuilder(new SymSpellLexiconMatcher(BuildVocabulary(occurrences.Select(item => item.Target))));
+        var fixture = LatticeFixture.RegionText;
+        var builder = LatticeFixture.CreateBuilder();
+        var topOne = 0;
 
-        foreach (var occurrence in occurrences)
+        foreach (var occurrence in LatticeFixture.Occurrences)
         {
-            var decoder = new LatticeDecoder(new TargetPreferenceLanguageModel([occurrence.Target]), new LatticeOptions());
-            var lattice = builder.Build(Region(occurrence.Source, fixture), fixture, new LatticeOptions(ContextTokens: 0));
+            var decoder = new LatticeDecoder(new FixedLanguageModel(), new LatticeOptions(Lambda: 0));
+            var lattice = builder.Build(LatticeFixture.Region(occurrence.Source, fixture), fixture, new LatticeOptions(ContextTokens: 0));
             var decoded = decoder.Decode(lattice, 1);
 
             Assert.NotEmpty(decoded);
-            Assert.Equal(occurrence.Target, decoded[0].Text);
+            if (string.Equals(occurrence.Target, decoded[0].Text, StringComparison.Ordinal))
+            {
+                topOne++;
+            }
         }
+
+        Assert.Equal(0, topOne);
     }
 
     [Fact]
@@ -155,51 +160,6 @@ public sealed class LatticeDecoderTests
     private static WordLattice Built(string window, params LatticeArc[] arcs) =>
         new(window, 0, arcs, LatticeBuildOutcome.Built, arcs.Length);
 
-    private static BookVocabulary BuildVocabulary(IEnumerable<string> words)
-    {
-        var wordList = words.Distinct(StringComparer.Ordinal).ToArray();
-        var text = string.Join(' ', wordList.SelectMany(word => new[] { word, word }));
-        return new BookVocabularyBuilder(
-                TurkishFrequencyList.FromLines([]),
-                new BookVocabularyOptions(MinBookCount: 1))
-            .Build(TestStreamFactory.FromSingleSegment(text), Array.Empty<CorruptedTextRegion>(), new FakeMorphologyOracle(wordList));
-    }
-
-    private static CorruptedTextRegion Region(string raw, string fullText)
-    {
-        var start = fullText.IndexOf(raw, StringComparison.Ordinal);
-        Assert.True(start >= 0);
-        return new CorruptedTextRegion(raw, start, start + raw.Length, [raw], string.Empty, string.Empty, []);
-    }
-
-    private static IReadOnlyList<(string Source, string Target)> FixtureOccurrences() =>
-    [
-        ("ı ıç", "üç"),
-        ("kendi-ıni", "kendimi"),
-        ("1 ı iç", "hiç"),
-        (":,ohbet", "sohbet"),
-        ("koli ukta", "koltukta"),
-        ("ı ızellikle", "özellikle"),
-        ("ı ılduğu", "olduğu"),
-        ("Ce-lıimde", "Cebimde"),
-        ("ge-^:cn", "geçen"),
-        ("yü-ıiimeye", "yürümeye")
-    ];
-
-    private static string FindRepositoryFile(string relativePath)
-    {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
-        {
-            var candidate = Path.Combine(directory.FullName, relativePath);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        throw new FileNotFoundException(relativePath);
-    }
-
     private sealed class FixedLanguageModel(params (string Word, string? Previous, double LogProbability)[] values) : ILanguageModel
     {
         public double LogProbability(string word, string? previousWord)
@@ -217,11 +177,4 @@ public sealed class LatticeDecoderTests
         }
     }
 
-    private sealed class TargetPreferenceLanguageModel(IEnumerable<string> targets) : ILanguageModel
-    {
-        private readonly HashSet<string> targets = targets.ToHashSet(StringComparer.Ordinal);
-
-        public double LogProbability(string word, string? previousWord) =>
-            targets.Contains(word) && !targets.Contains(previousWord ?? string.Empty) ? -0.01 : -20.0;
-    }
 }

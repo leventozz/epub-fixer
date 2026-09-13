@@ -9,6 +9,7 @@ public sealed class SymSpellLexiconMatcher : ILexiconMatcher
 {
     public const int MaxMatchesPerSpan = 16;
     public const int MaxQueriesPerSpan = 24;
+    public const int MaxSuggestionsPerQuery = 64;
 
     private readonly SymSpellChecker checker;
     private readonly BookVocabulary vocabulary;
@@ -68,7 +69,7 @@ public sealed class SymSpellLexiconMatcher : ILexiconMatcher
     {
         foreach (var query in queries.Take(MaxQueriesPerSpan))
         {
-            foreach (var suggestion in checker.Lookup(query, SymSpell.Verbosity.All, 2))
+            foreach (var suggestion in checker.Lookup(query, SymSpell.Verbosity.All, 2).Take(MaxSuggestionsPerQuery))
             {
                 var entry = vocabulary.Find(suggestion.term);
                 if (entry is null)

@@ -86,7 +86,7 @@ public sealed class WordLatticeBuilder(
         new(selected.Window, selected.WindowOffset, Array.Empty<LatticeArc>(), LatticeBuildOutcome.BudgetExceeded, (int)budget.Visited);
 
     private static double BudgetFor(string span, LatticeOptions options) =>
-        Math.Min(options.BudgetCap, options.BudgetBase + options.BudgetPerFourChars * Math.Ceiling(span.Length / 4.0));
+        Math.Min(options.BudgetCap, options.BudgetBase + options.BudgetPerFourChars * (span.Length / 4));
 
     private static IReadOnlyList<LatticeArc> SortArcs(IEnumerable<LatticeArc> arcs) =>
         arcs
@@ -143,7 +143,7 @@ public sealed class WordLatticeBuilder(
         span.Length > 0
         && !char.IsWhiteSpace(span[0])
         && !char.IsWhiteSpace(span[^1])
-        && span.Any(char.IsLetterOrDigit);
+        && span.Count(char.IsLetterOrDigit) >= 2;
 
     private static bool IsSeparator(char value) =>
         value is ' ' or '\t' or '\r' or '\n' or '-' or '\u00ad';
