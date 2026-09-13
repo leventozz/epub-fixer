@@ -16,11 +16,15 @@ namespace EpubFixer.Core.Fix;
 public sealed class EpubFixService
 {
     private readonly IMorphologyOracleBuilder morphologyOracleBuilder;
+    private readonly IOcrCorrectionPlanner ocrCorrectionPlanner;
 
-    public EpubFixService(IMorphologyOracleBuilder morphologyOracleBuilder)
+    public EpubFixService(
+        IMorphologyOracleBuilder morphologyOracleBuilder,
+        IOcrCorrectionPlanner? ocrCorrectionPlanner = null)
     {
         this.morphologyOracleBuilder = morphologyOracleBuilder
             ?? throw new ArgumentNullException(nameof(morphologyOracleBuilder));
+        this.ocrCorrectionPlanner = ocrCorrectionPlanner ?? new LegacyOcrCorrectionPlanner();
     }
 
     public EpubFixResult Fix(string inputPath, string outputPath, bool applyOcrCorrections = false)
@@ -104,10 +108,8 @@ public sealed class EpubFixService
         OcrMutationResult? ocrMutation = null;
         if (applyOcrCorrections)
         {
-            var analysis = new OcrAnalysisService().AnalyzeCorrections(finalStream, morphologyOracleBuilder);
-            var report = new OcrCorrectionDecisionEvaluator().Evaluate(analysis);
-            var plan = new OcrCorrectionMutationPlanner().Create(report.Decisions, finalStream);
-            ocrMutation = new OcrCorrectionMutationApplier().Apply(package, plan);
+            var planResult = ocrCorrectionPlanner.CreatePlan(finalStream, morphologyOracleBuilder);
+            ocrMutation = new OcrCorrectionMutationApplier().Apply(package, planResult.Plan);
             if (!ocrMutation.Succeeded)
                 throw new InvalidDataException("OCR mutation failed: " + string.Join(", ", ocrMutation.Failures.Select(item => item.Reason)));
             finalStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);

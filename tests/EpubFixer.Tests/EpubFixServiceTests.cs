@@ -1,8 +1,13 @@
+using System.Reflection;
 using System.Security.Cryptography;
+using EpubFixer.Core.Epub;
+using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Fix.Models;
 using EpubFixer.Core.Morphology;
+using EpubFixer.Core.Mutation.Models;
+using EpubFixer.Core.Ocr;
 using EpubFixer.TrMorph;
 
 namespace EpubFixer.Tests;
@@ -93,6 +98,47 @@ public sealed class EpubFixServiceTests
         }
     }
 
+    [Fact]
+    public void Fix_UsesInjectedOcrPlanner()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>text</p>"))],
+            [new TestSpineItem("chapter")]);
+        var outputPath = Path.Combine(Path.GetTempPath(), $"epubfixer-injected-planner-{Guid.NewGuid():N}.epub");
+        var planner = new RecordingOcrCorrectionPlanner();
+
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer), planner)
+                .Fix(epub.Path, outputPath, applyOcrCorrections: true);
+
+            Assert.True(planner.WasCalled);
+            Assert.NotNull(result.OcrMutation);
+            Assert.True(result.OcrMutation!.Succeeded);
+            Assert.Equal(0, result.OcrMutation.PlannedCount);
+        }
+        finally
+        {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
+    public void Fix_DefaultsToLegacyPlanner()
+    {
+        using var analyzer = new FomaTurkishMorphologyAnalyzer();
+        var service = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer));
+
+        var field = typeof(EpubFixService).GetField("ocrCorrectionPlanner", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?? throw new InvalidOperationException("EpubFixService no longer has an ocrCorrectionPlanner field.");
+
+        Assert.IsType<LegacyOcrCorrectionPlanner>(field.GetValue(service));
+    }
+
     private static string Xhtml(string body)
     {
         return $"""
@@ -103,5 +149,16 @@ public sealed class EpubFixServiceTests
               <body>{body}</body>
             </html>
             """;
+    }
+
+    private sealed class RecordingOcrCorrectionPlanner : IOcrCorrectionPlanner
+    {
+        public bool WasCalled { get; private set; }
+
+        public OcrCorrectionPlanResult CreatePlan(LogicalTextStream stream, EpubFixer.Core.Morphology.IMorphologyOracleBuilder oracleBuilder)
+        {
+            WasCalled = true;
+            return new(new OcrCorrectionMutationPlan(stream.Text, [], []), OcrCorrectionEngine.Legacy, []);
+        }
     }
 }
