@@ -7,6 +7,12 @@
     "minimumPrecision": 0.98,
     "minimumRecall": 0.925,
     "measuredOn": "2026-09-12",
-    "note": "R0.2 OCR-class records added; measured current recall is 148/160 with OCR classes detected but deferred."
+    "note": "R0.2 OCR-class records added; measured current recall is 148/160 with OCR classes detected but deferred.",
+    "ocrStageMeasurement": {
+      "measuredOn": "2026-09-13",
+      "engine": "legacy",
+      "ocrClassKnownErrorRecords": 12,
+      "note": "R4.0c: benchmark's OCR mutation stage measured with the legacy engine. CorrectlyFixed=148, WronglyFixed=0, Deferred=12 (precision 100%, recall 92.5%), matching this gate's thresholds unchanged. All 12 OCR-class ground-truth records (Fragmentation 5, GlyphConfusion 4, GarbageInsertion 2, SpuriousSpace 1) were Deferred, not WronglyFixed - the legacy engine's 120 mutations do not intersect any of the 160 ground-truth records (D64). Thresholds are not adjusted by this measurement (D63)."
+    }
   }
 }
