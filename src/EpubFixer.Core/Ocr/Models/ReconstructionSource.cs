@@ -4,5 +4,6 @@ public enum ReconstructionSource
 {
     Current,
     SymSpell,
-    NoisyChannel
+    NoisyChannel,
+    Lattice
 }

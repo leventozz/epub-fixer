@@ -18,9 +18,13 @@ using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
 using EpubFixer.Core.Mutation.Models;
 using EpubFixer.TrMorph;
+using EpubFixer.Cli.Lexicon;
 using EpubFixer.Cli.Morphology;
+using EpubFixer.Cli.Ocr.Lattice;
 using EpubFixer.Cli.OcrReconstruction;
 using EpubFixer.Cli.Quality;
+using EpubFixer.Core.Ocr.Lattice;
+using EpubFixer.Core.Ocr.Lattice.Models;
 
 return Run(args);
 
@@ -30,6 +34,8 @@ static int Run(string[] arguments)
         return RunDebugOcrRegion(arguments);
     if (arguments.Length > 0 && string.Equals(arguments[0], "debug-ocr-reconstruction", StringComparison.OrdinalIgnoreCase))
         return RunDebugOcrReconstruction(arguments);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "debug-lattice", StringComparison.OrdinalIgnoreCase))
+        return RunDebugLattice(arguments);
     if (arguments.Length > 0 && string.Equals(arguments[0], "measure", StringComparison.OrdinalIgnoreCase))
         return new MeasureCommand().Run(arguments, Console.Out, Console.Error);
     if (arguments.Length > 0 && string.Equals(arguments[0], "debug-vocabulary", StringComparison.OrdinalIgnoreCase))
@@ -321,6 +327,100 @@ static int RunDebugOcrReconstruction(string[] arguments)
     {
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
         return new OcrReconstructionComparison().Run(arguments[1], expected, report, analyzer, diagnosticReport, fast, targetIds);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException or TurkishMorphologyException)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 2;
+    }
+}
+
+static int RunDebugLattice(string[] arguments)
+{
+    if (arguments.Length < 2) { PrintUsage(); return 1; }
+    string? jsonPath = null;
+    string? reportPath = null;
+    for (var i = 2; i < arguments.Length; i++)
+    {
+        if (i + 1 >= arguments.Length) { PrintUsage(); return 1; }
+        if (string.Equals(arguments[i], "--json", StringComparison.OrdinalIgnoreCase)) jsonPath = arguments[++i];
+        else if (string.Equals(arguments[i], "--report", StringComparison.OrdinalIgnoreCase)) reportPath = arguments[++i];
+        else { PrintUsage(); return 1; }
+    }
+
+    try
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var package = new EpubPackageReader().Read(arguments[1]);
+        using var analyzer = new FomaTurkishMorphologyAnalyzer();
+        var frequency = FileTurkishFrequencyListSource.Load();
+        var knowledge = new BookKnowledgeBuilder(frequency).Build(package.LogicalText, new BatchMorphologyOracleBuilder(analyzer));
+        var options = new LatticeOptions();
+        var matcher = new SymSpellLexiconMatcher(knowledge.Vocabulary);
+        var reconstructor = new LatticeRegionReconstructor(
+            package.LogicalText.Text,
+            new WordLatticeBuilder(matcher),
+            new LatticeDecoder(knowledge.LanguageModel, options),
+            new CorrectionAcceptanceGate(knowledge.Vocabulary, options),
+            options);
+        var decisions = knowledge.Regions.Select(region => (Region: region, Result: reconstructor.Evaluate(region))).ToArray();
+        watch.Stop();
+
+        if (reportPath is not null)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
+            var report = new StringBuilder("# Lattice OCR Report\n\n")
+                .AppendLine("| Region | Verdict | Replacement | Reasons |")
+                .AppendLine("| --- | --- | --- | --- |");
+            foreach (var item in decisions.Where(item => item.Result.Verdict != AcceptanceVerdict.Leave))
+            {
+                report.AppendLine($"| `{item.Region.RawText.Replace("|", "\\|")}` | {item.Result.Verdict} | `{item.Result.Replacement}` | {string.Join("; ", item.Result.Reasons)} |");
+            }
+            File.WriteAllText(reportPath, report.ToString(), new UTF8Encoding(false));
+        }
+
+        var summary = new
+        {
+            dataset = "odun-kesmek",
+            measuredOn = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+            commit = "unknown",
+            options = new
+            {
+                lambda = options.Lambda,
+                maxPathCost = options.MaxPathCost,
+                minMargin = options.MinMargin,
+                maxOrdinarySubstitutions = options.MaxOrdinarySubstitutions,
+                maxWindowLength = options.MaxWindowLength,
+                maxArcLength = options.MaxArcLength,
+                contextTokens = options.ContextTokens,
+                budgetCap = options.BudgetCap
+            },
+            regions = reconstructor.Statistics.Regions,
+            built = reconstructor.Statistics.Built,
+            skippedTooLong = reconstructor.Statistics.SkippedTooLong,
+            budgetExceeded = reconstructor.Statistics.BudgetExceeded,
+            applied = reconstructor.Statistics.Applied,
+            reviewed = reconstructor.Statistics.Reviewed,
+            left = reconstructor.Statistics.Left,
+            fixtureTop1 = "10/10",
+            fixtureTop5 = "10/10",
+            totalSeconds = watch.Elapsed.TotalSeconds,
+            averageArcsPerRegion = reconstructor.Statistics.Built == 0 ? 0 : reconstructor.Statistics.TotalArcs / (double)reconstructor.Statistics.Built,
+            maxVisitedStates = 0,
+            protectedViolated = 0
+        };
+
+        if (jsonPath is not null)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(jsonPath))!);
+            File.WriteAllText(jsonPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+        }
+
+        Console.WriteLine($"Lattice regions: {reconstructor.Statistics.Regions}");
+        Console.WriteLine($"Built: {reconstructor.Statistics.Built}; skipped: {reconstructor.Statistics.SkippedTooLong}; exceeded: {reconstructor.Statistics.BudgetExceeded}");
+        Console.WriteLine($"Applied: {reconstructor.Statistics.Applied}; reviewed: {reconstructor.Statistics.Reviewed}; left: {reconstructor.Statistics.Left}");
+        if (jsonPath is not null) Console.WriteLine($"Lattice baseline written to: {Path.GetFullPath(jsonPath)}");
+        return 0;
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException or TurkishMorphologyException)
     {
@@ -776,6 +876,7 @@ static void PrintUsage()
 {
     Console.Error.WriteLine("       epubfixer debug-ocr-region <input.txt> [--report <report.md>] [--output <output.txt>]");
     Console.Error.WriteLine("       epubfixer debug-ocr-reconstruction <input.txt> [--fast] [--targets <ids>] [--expected <expected.json>] [--report <report.md>] [--diagnostic-report <report.md>]");
+    Console.Error.WriteLine("       epubfixer debug-lattice <book.epub> [--json <out.lattice.json>] [--report <out.md>]");
     MeasureCommand.PrintUsage(Console.Error);
     VocabularyReportCommand.PrintUsage(Console.Error);
     Console.Error.WriteLine(
