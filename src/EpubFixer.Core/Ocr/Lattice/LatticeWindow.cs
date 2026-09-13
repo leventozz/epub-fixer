@@ -34,8 +34,8 @@ public sealed record LatticeWindow(string Window, int WindowOffset, LatticeBuild
             {
                 firstToken = Math.Max(0, regionFirst - options.ContextTokens);
                 lastToken = Math.Min(tokens.Length - 1, regionLast + options.ContextTokens);
-                windowStart = tokens[firstToken].Start;
-                windowEnd = tokens[lastToken].End;
+                windowStart = Math.Min(region.Start, tokens[firstToken].Start);
+                windowEnd = Math.Max(region.EndExclusive, tokens[lastToken].End);
             }
         }
 
