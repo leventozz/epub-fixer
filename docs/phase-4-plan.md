@@ -830,6 +830,15 @@ geçerli bir EPUB üretiyor; tüm suite yeşil.
 
 ### 8.3 R4.2c — Anahtarı çevir ve yeniden ölç
 
+> **Durum: ertelendi (D65).** R4.2c bir kez denendi: varsayılan motor **çevrilmedi** —
+> üretim hattındaki 10 lattice düzeltmesinden 9'u elle incelemede doğru çıktı, ama biri
+> (`kol-1 ıı kta` → `koli nokta`, doğrusu tekrar eden `berjer koltukta` motifiyle `koltukta`)
+> yanlıştı. Kök neden D65'te kayıtlı: `MaxArcLength` (11) bu 12 karakterlik parça için doğru
+> kelimeyi kafeste hiç üretmiyor — bir eşik/kalibrasyon sorunu değil, R5.4'ün kapsamındaki
+> yapısal bir arama-uzayı sınırı. Bu fazda `LatticeOptions` değiştirilmedi (bölüm 1'in kuralı).
+> Varsayılan motor **legacy** kalır; `--ocr-engine lattice` R4.2b'den beri seçilebilir ve tam
+> olarak çalışır durumdadır, yalnızca varsayılan yapılmadı.
+
 **Amaç:** `fix --apply-ocr-corrections` varsayılan olarak lattice motorunu kullansın (D60). Bu,
 Faz 4'ün **tek kasıtlı davranış değişimi**dir.
 
@@ -877,6 +886,10 @@ R4.2c tekrar denenir. Çıktı EPUB'a yanlış düzeltme yazan bir sürüm commi
 > **Bu kalem koşulludur (D62).** Ön koşulu sağlanmazsa **yapılmaz**; iki motor bayrağın arkasında
 > yaşamaya devam eder ve silme Faz 5'e (R5.4 kalibrasyonundan sonra) ertelenir. Bir agent bu kalemi
 > "hazır görünüyor" diye başlatmaz.
+>
+> **Durum: uygulanamaz.** R4.2c ertelendiği için (D65) `docs/baselines/odun-kesmek.engine-diff.json`
+> hiç üretilmedi; bölüm 9.1'in ön koşulu ölçülecek bir girdiye sahip değil. R4.3, R4.2c'nin
+> varsayılanı çevirip alt küme kanıtını üretmesinden önce ele alınamaz.
 
 ### 9.1 Ön koşul: alt küme kanıtı
 
@@ -956,6 +969,7 @@ Numaralandırma Faz 3'ün D48'inden devam eder.
 | # | Karar | Gerekçe | Nereye işlendi |
 |---|---|---|---|
 | D64 | Planın ilk sürümündeki "**ölçüm altyapısı zaten motor-bağımsız, tracker'lar canlı DOM `IRange`'leri üzerinde, üç sayacın hesabına dokunulmaz**" tespiti **yanlıştı ve geri alındı**. `MapOffset` sezgiseli hyphenation aşamaları için korunur; OCR aşamasından sonra tracker'lar **mutation geometrisiyle kesin olarak** yeniden hizalanır (`Resync`). | Tracker `IRange`'i yaratıp `Detach()` ediyor ama hiç okumuyor; okuma tek karakterlik lookahead'i olan `MapOffset` üzerinden. Hyphenation her düzeltmede tam bir karakter siliyor, OCR ise 120 mutation'ın **52'sinde** uzunluğu ≥2 değiştiriyor. İlk R4.0c denemesi bu yüzden `148/0/12` → `141/8/11` verdi; oysa 120 mutation ile ground truth'un 160 kaydı arasında hiç kesişim yok — metin değil, ölçüm bozulmuştu. | Bölüm 5.4, 5.4b, 6.3 kural 4, 11 risk #12 |
+| D65 | **R4.2c ertelendi.** Tek doğrulanmış yanlış düzeltme (`kol-1 ıı kta` → `koli nokta`, doğrusu `koltukta`) bir eşik sorunu değil, arama uzayı sınırı sorunudur: parça 12 karakter, `MaxArcLength` 11, dolayısıyla doğru cevap kafeste hiç üretilmiyor. Aynı hatanın 9 karakterlik örneği (`koli ukta`) doğru düzeltiliyor. Kapı doğru çalıştı (ı→o, 1→i karışım; tek olağan düzenleme ı→n). Bilinen çözüm `MaxArcLength`'i büyütmek; bedeli süre bütçesidir ve artık R4.0b'nin testiyle ölçülebilir (28,8 sn / 30 sn sınırı). Karar D44'e bağlıdır, R5.4'ün süre-kalite eğrisinde ele alınacaktır. | Faz 4 kabul kriteri 7 (uygulanan her düzeltme sıfır yanlış) sağlanmıyor; plan §8.3 bu durumda "DUR" diyor ve `LatticeOptions` bu fazda kalibre edilmez (bölüm 1). Kök neden bir kalibrasyon/eşik ayarı değil, D44'ün yapısal bir sınırı (`MaxArcLength`) olduğundan düzeltme R5.4'ün kapsamına girer, R4.2c'nin değil. | Bölüm 1 kabul #7, 8.3, 11 risk #1 |
 
 Yeni bir karar ihtiyacı doğarsa agent kendi başına karara varmaz; gerekçeyi bildirip bekler ve karar
 bu tabloya eklenir.
