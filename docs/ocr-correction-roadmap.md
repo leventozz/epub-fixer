@@ -439,6 +439,12 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
 > kafese **identity ve literal arc'ları** girer (D29), `AcceptanceResult` **mutlak aralık** taşır
 > (D33). Ayrıca boşluk maliyetlerinin bu belgedeki "0.25 / 0.5" değerlerinin eskidiğini,
 > `OcrEditCostModel`'deki gerçek değerlerin **0.30 / 0.70** olduğunu kayda geçer (D28).
+>
+> **Faz 3 uygulandı** (`2ec7252`). Kapanış durumu, hangi kabul kriterinin sağlandığı/açık kaldığı ve
+> uygulama sırasında verilen D40–D48 kararları için [phase-3-plan.md](phase-3-plan.md) bölüm 1b ve 12.
+> Özet: full kitap 28,3 sn içinde 563 region → 31 `Apply` (elle incelemede tamamı doğru), fixture
+> Top-1 8/10; `ProtectedViolated` ölçülmedi ve `fix` çıktısının değişmediği testle kanıtlanmadı —
+> ikisi de R4.2'nin ön koşuludur (plan bölüm 15.1).
 
 ---
 

@@ -47,6 +47,39 @@
 
 ---
 
+## 1b. Faz 3'ün kapanış durumu (2026-09-13, `2ec7252`)
+
+Faz 3 uygulandı ve üç onarım turundan geçti (`170494b`, `1682e4e`, `2ec7252`). Kapanıştaki
+gerçek durum aşağıdadır. **Faz 4 agent'ı bu tabloyu okumadan başlamasın:** açık kalan maddeler
+unutulmuş iş değil, bilinçli olarak Faz 4'e devredilmiş ölçümlerdir.
+
+| # | Kabul kriteri | Durum | Kanıt |
+|---|---|---|---|
+| 1 | Suite yeşil, mevcut assert değerleri değişmeden | ✅ | 436/436, ~1 dk 34 sn |
+| 2 | Fixture Top-1 10/10 | ⚠️ **8/10** | `Decode_FixtureTopOneWithFixtureLanguageModelIsPinned` (gerçek `tr_50k` haznesi + fixture LM, λ=0,5) |
+| 3 | Full kitap ≤ 30 sn | ✅ **28,3 sn** | `odun-kesmek.lattice.json`; **testle korunmuyor** (bkz. bölüm 15 ön koşulları) |
+| 4 | Baseline commit'li + dört motorlu karşılaştırma | ✅ | `odun-kesmek.lattice.json`, `.md`, `OcrReconstructionComparison` 4. sütun |
+| 5 | `ProtectedViolated == 0` | ❌ **ölçülmedi** | Alan baseline'dan düşürüldü (D48) |
+| 6 | `fix` / `measure` çıktıları değişmedi | ⚠️ doğru ama **testsiz** | `Fix_OutputIsUnchanged` yazılmadı |
+
+**Motorun bugünkü davranışı:** 563 region → 31 `Apply`, 4 `Review`, 528 `Leave`.
+31 Apply kararının tamamı elle incelendiğinde doğru (ikisi bağlam gerektiriyor: `ıı<ıda`→`yılda`,
+`;entz`→`Gentz`). Gözlemlenen precision hedefi karşılıyor; **recall bilinçli olarak düşük**.
+
+Karar dağılımının gerekçeleri (`reasonHistogram`):
+`OriginalTokenIsValid` 418, `TooManyOrdinaryEdits` 42, `NoChange` 40, `Accepted` 31,
+`UnsafeLengthChange` 15, `ProperNameRisk` 10, `MarginTooSmall` 4, `SuspiciousReplacement` 2,
+`NoPath` 1.
+
+**Dikkat — katma değer henüz dar:** 31 kararın 24'ü tireleme birleştirmesidir, yani üretim
+hattının zaten çözdüğü sınıf (B7'deki "kolay sınıf"). Lattice'in bugün gerçekten yeni getirdiği
+düzeltmeler yedi tanedir: `:,ohbet`, `koli ukta`, `kü-^:ük`, `bi-^:imde`, `ba-^arısız`, `ıı<ıda`,
+`;entz`. Recall'ü asıl kısıtlayan `OriginalTokenIsValid` (418 region, %74) ve bölüm 12'deki
+D44–D45 kararlarıdır. Bunların gevşetilmesi **ancak ground-truth ölçümüyle** yapılmalıdır (R4.2),
+10 satırlık fixture üzerinden değil.
+
+---
+
 ## 2. Ön koşul: Faz 2 commit edilmemiş
 
 Bu plan yazılırken çalışma ağacında Faz 2'nin tamamı (`src/EpubFixer.Core/Lexicon/*`,
@@ -883,6 +916,23 @@ bağlanmadı. Mevcut `MorphologyCallTraceTests` golden SHA-256'sı da bunu doğr
 | D38 | Full kitap bütçesi Faz 3 için **≤ 30 sn** (120 sn'lik hard gate'in alt bütçesi). | 120 sn EPUB okuma/yazma, tespit, morfoloji ve Faz 4'ün mutation'larını da içerir. Alt bütçe olmadan gate son anda patlar. | Bölüm 1, 11.5 |
 | D39 | R3.2 üç alt adıma bölünür; her alt adım ayrı commit ve tüm suite yeşil. | L boyutlu tek commit gözden geçirilemez; pencere mantığı ile arc üretimi ayrı ayrı doğrulanabilir. | Bölüm 8.6 |
 
+### Uygulama sırasında verilen kararlar (D40–D48)
+
+Aşağıdakiler plan yazıldıktan **sonra**, uygulama ve üç onarım turu sırasında verildi. Her biri
+planın bir maddesini değiştiriyor; Faz 4 ve Faz 5 bu tabloyu esas alır.
+
+| # | Karar | Gerekçe | Nereye işlendi |
+|---|---|---|---|
+| D40 | Kapı kural 2 **`DecodedPath.EditCost`** üzerinde çalışır: arc maliyetlerinin toplamı, LM terimi hariç. | Planın bölüm 10.2'si "path'in maliyeti" derken hangi maliyet olduğunu söylemiyordu. `DecodedPath.Cost` her kelime arc'ı için `λ·−logP` içeriyor; gerçek haznede kitapta 2 kez geçen bir kelime tek başına ~5,1 ediyor, bağlamlı bir pencere ~8+. `MaxPathCost = 2.5` böylece yapısal olarak geçilemez bir eşikti: ilk full-book koşusu 563 region'da **0 Apply** verdi. | Bölüm 10.2 kural 2 |
+| D41 | Bir baseline ölçülemediğinde dosyaya **`status: "aborted"` + `reason` + `measuredFields: null`** yazılır; hiçbir alan tahminle veya sabitle doldurulmaz. | İlk R3.5 baseline'ında `fixtureTop1`, `protectedViolated`, `maxVisitedStates` kodda literal olarak yazılıydı ve ölçüm gibi commit edilmişti. R5.4 eşikleri bu dosyaya bakarak kalibre edecek; oradaki her sahte sayı sonraki fazların kararını bozar. | Bölüm 11.4 |
+| D42 | Hard boundary'ler `WordLatticeBuilder`'a **dışarıdan** `hardBoundaryOffsets` olarak verilir (`LogicalTextStream.Boundaries`'ten Cli hesaplar). Core'daki `\n\n` taraması yalnızca ham metin/fixture yolu için fallback olarak kalır. | `LogicalTextStreamBuilder` text node'ları ayraçsız birleştiriyor; `\n\n` bir EPUB'da hiç geçmez. İlk implementasyon yalnızca fixture yolunu kurmuştu, yani pencere paragraf ve doküman sınırlarını serbestçe aşıyordu. | Bölüm 8.2 kural 2 |
+| D43 | Çözücü state anahtarı **`(düğüm, PreviousWord)`**; anahtar başına en iyi `kBest` state tutulur, `Text` ve `Arcs` state'te taşınmaz (geri işaretçi + backtrack). | Bigram LM'de gelecek maliyeti yalnızca bu ikiliye bağlıdır, dolayısıyla anahtar başına en ucuzu tutmak Top-1'i **exact** bırakır. İlk iki implementasyon iki uçta hatalıydı: önce düğüm başına top-8 kesme (beam — sözleşme ihlali), sonra `(Text, PreviousWord)` anahtarıyla hiç birleştirmeme (tam yol sayımı; full-book koşusu 7+ dakikada bitmedi). | Bölüm 9.2 kural 5 |
+| D44 | Arama sınırları daraltıldı: `MaxArcLength` 20 → **11**, `MaxMatchesPerSpan` 16 → **6**, sorgu başına `MaxSuggestionsPerQuery = 64`. | 30 sn bütçesi için gerekliydi (region başına ortalama 470 arc, en kötü 1.713 state). Bedeli ölçüldü ve kabul edildi: fixture hedeflerinin arc kapsaması 10/10 → **9/10**, ve 11 karakterden uzun tireli token'lar (`Auers-lıerger`) tek arc'a sığmıyor. Geri açılması R5.4'ün süre/kalite eğrisine bağlıdır. | Bölüm 8.1, 8.3 |
+| D45 | Kapıya dört yeni kural eklendi: `UnsafeLengthChange` (kaynak < 3 alfanümerik, ya da uzunluk oranı 0,75–1,5 dışında), `ProperNameRisk` (kaynakta büyük harf veya apostrof + ≥1 olağan düzenleme), apostrof öncesi **kök değişimi**, `SuspiciousReplacement` (`"ie"`/`"ıe"` içeren replacement). **Eşikleri şu an sınıf içinde sabit.** | Precision'ı 60 karardan ~15 yanlıştan 31 karardan 0 yanlışa indiren değişiklik budur. Ama üçü gözlemlenen hata listesinden türetilmiş dar kurallardır ve bedeli var: `"ie"` kara listesi `ancakJeannie` gibi doğru düzeltmeleri de engelliyor, uzunluk oranı `ı ıç → üç` sınıfını (3→2 kısalma) yapısal olarak eliyor, büyük harf kuralı cümle başı her hatayı dokunulmaz kılıyor. **Borç:** eşikler D30 gereği `LatticeOptions`'a taşınmalı, aksi halde R5.4 bunları süpüremez. | Bölüm 10.2, 10.4 |
+| D46 | `MaxOrdinarySubstitutions` artık yalnızca ikameleri değil **tüm olağan düzenlemeleri** (ikame + ekleme + silme, `EditAlignment.OrdinaryEdits`) sınırlar. Ad değişmedi. | Yalnızca ikame sayılırken `1 → göster` gibi saf eklemeden oluşan uydurmalar kuralı hiç görmeden geçiyordu. Adın anlamıyla uyumsuzluğu bilinçli olarak kabul edildi; yeniden adlandırma R5.4'e bırakıldı. | Bölüm 10.2 kural 5 |
+| D47 | Fixture ölçümü **gerçek `tr_50k` haznesi + gerçek LM (λ=0,5)** ile yapılır. λ=0 ile ölçüm geçersizdir. | Identity arc'ları 0 maliyetlidir; λ=0 iken "dokunma" yolu daima en ucuzdur ve Top-1 motorun kalitesinden bağımsız olarak 0/10 çıkar. Ölçümü kelimeye iten tek kuvvet LM terimidir. İlk fixture testleri ise yalnızca 10 doğru cevaptan oluşan bir hazne ve cevabı ödüllendiren bir LM kullanıyordu; o kurulum hiçbir şey ölçmüyordu. | Bölüm 9.3, 10.5 |
+| D48 | `protectedViolated` baseline'dan **düşürüldü**; kabul kriteri 5 açık kaldı ve R4.2'den önce ölçülecek. | Ölçülmeyen bir alanı sabit `0` ile yazmak D41'in yasakladığı şeydir. Kriterin kendisi düşmedi, yalnızca ölçümü ertelendi. | Bölüm 1b, 15 |
+
 Yeni bir karar ihtiyacı doğarsa agent kendi başına karara varmaz; gerekçeyi bildirip bekler ve karar
 bu tabloya eklenir.
 
@@ -1080,6 +1130,24 @@ protectedViolated değeri, eklenen testler, Faz 3 kabul listesinin (bölüm 1) m
 ---
 
 ## 15. Faz 3'ün Faz 4 ile sözleşmesi
+
+### 15.1 R4.2'den önce kapatılacak üç ölçüm
+
+Bunlar Faz 3'ün açık kalan kabul maddeleridir (bölüm 1b). Üçü de küçüktür ve üçü de doğrudan
+yol haritası risk #2'yi (iki hattın veri modeli uyumsuzluğu) azaltır. **R4.2 bunlar olmadan
+başlamamalıdır**, çünkü üretim hattına bağlandıktan sonra bir regresyonun kaynağını ayırt etmek
+çok daha pahalıdır.
+
+1. **`Fix_OutputIsUnchanged`** — `fix --apply-ocr-corrections` çıktısının Faz 2'deki ile birebir
+   aynı olduğunu kanıtlayan test. Faz 3'ün "üretime dokunmadım" iddiası şu an testsiz; R4.2'nin
+   ilk kasıtlı değişimi bu testin **beklenen değerinin** değişmesiyle görünür olmalı.
+2. **Full-book süre testi** (`Category=Slow`) — 28,3 sn elle koşulmuş bir sayıdır, regresyon
+   koruması altında değildir. D44'ün daraltılmış sınırları geri açılırken ilk kırılacak şey budur.
+3. **`protectedViolated` ölçümü** (D48) — ground truth'un 9 `protectedOccurrences` kaydının
+   logical aralıklarıyla hiçbir `Apply` aralığının kesişmediğini `debug-lattice` koşusunda sayan
+   ve baseline'a yazan kontrol.
+
+### 15.2 Arayüz sözleşmesi
 
 - `AcceptanceResult.LogicalStart` / `LogicalEndExclusive` **mutlak logical offset**'lerdir ve
   doğrudan `RegionCorrection`'a geçer. R4.1 bu aralığı `stream.GetSourceLocationAt` ile karakter
