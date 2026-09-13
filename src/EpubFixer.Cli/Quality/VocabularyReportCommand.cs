@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using EpubFixer.Cli.Lexicon;
+using EpubFixer.Adapters.Lexicon;
 using EpubFixer.Cli.Morphology;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Lexicon;

@@ -13,6 +13,37 @@ public sealed class CliOptionsTests
         Assert.Equal(CliCommand.Fix, options.Command);
         Assert.Equal("book.epub", options.EpubPath);
         Assert.Equal("book.fixed.epub", options.OutputEpubPath);
+        Assert.Equal("legacy", options.OcrEngine);
+    }
+
+    [Theory]
+    [InlineData("legacy")]
+    [InlineData("lattice")]
+    [InlineData("LATTICE")]
+    public void TryParse_AcceptsOcrEngineOption(string value)
+    {
+        var parsed = CliOptions.TryParse(
+            ["fix", "book.epub", "-o", "book.fixed.epub", "--ocr-engine", value],
+            out var options);
+
+        Assert.True(parsed);
+        Assert.Equal(value.ToLowerInvariant(), options.OcrEngine);
+    }
+
+    [Fact]
+    public void TryParse_RejectsUnknownOcrEngineOption()
+    {
+        Assert.False(CliOptions.TryParse(
+            ["fix", "book.epub", "-o", "book.fixed.epub", "--ocr-engine", "unknown"],
+            out _));
+    }
+
+    [Fact]
+    public void TryParse_RejectsDuplicateOcrEngineOption()
+    {
+        Assert.False(CliOptions.TryParse(
+            ["fix", "book.epub", "-o", "book.fixed.epub", "--ocr-engine", "legacy", "--ocr-engine", "lattice"],
+            out _));
     }
 
     [Theory]

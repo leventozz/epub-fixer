@@ -37,6 +37,30 @@ public sealed class CoreLayeringTests
         Assert.Empty(offenders);
     }
 
+    [Fact]
+    public void CoreDoesNotReferenceAdapters()
+    {
+        var coreCsproj = FindRepositoryFile(Path.Combine("src", "EpubFixer.Core", "EpubFixer.Core.csproj"));
+
+        var content = File.ReadAllText(coreCsproj);
+
+        Assert.DoesNotContain("EpubFixer.Adapters", content, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FindRepositoryFile(string relativePath)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException(relativePath);
+    }
+
     private static string FindRepositoryDirectory(string relativePath)
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)

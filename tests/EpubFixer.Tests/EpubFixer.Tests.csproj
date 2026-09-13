@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\benchmarks\EpubFixer.QualityBenchmarks\EpubFixer.QualityBenchmarks.csproj" />
+    <ProjectReference Include="..\..\src\EpubFixer.Adapters\EpubFixer.Adapters.csproj" />
     <ProjectReference Include="..\..\src\EpubFixer.Cli\EpubFixer.Cli.csproj" />
     <ProjectReference Include="..\..\src\EpubFixer.Core\EpubFixer.Core.csproj" />
   </ItemGroup>

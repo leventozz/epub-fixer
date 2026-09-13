@@ -18,9 +18,10 @@ using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
 using EpubFixer.Core.Mutation.Models;
 using EpubFixer.TrMorph;
-using EpubFixer.Cli.Lexicon;
+using EpubFixer.Adapters.Lexicon;
+using EpubFixer.Adapters.Ocr;
 using EpubFixer.Cli.Morphology;
-using EpubFixer.Cli.Ocr.Lattice;
+using EpubFixer.Adapters.Ocr.Lattice;
 using EpubFixer.Cli.OcrReconstruction;
 using EpubFixer.Cli.Quality;
 using EpubFixer.Core.Ocr.Lattice;
@@ -60,7 +61,10 @@ static int Run(string[] arguments)
             using var builder = new CachingMorphologyOracleBuilder(
                 new FomaMorphologyOracleBuilder(),
                 new MorphologyOracleCache(options.EpubPath));
-            var result = new EpubFixService(builder).Fix(
+            IOcrCorrectionPlanner? ocrCorrectionPlanner = options.OcrEngine == "lattice"
+                ? LatticeOcrPlannerFactory.Create()
+                : null;
+            var result = new EpubFixService(builder, ocrCorrectionPlanner).Fix(
                 options.EpubPath,
                 options.OutputEpubPath!,
                 options.ApplyOcrCorrections);
@@ -359,7 +363,7 @@ static int RunDebugLattice(string[] arguments)
         var matcher = new SymSpellLexiconMatcher(knowledge.Vocabulary);
         var reconstructor = new LatticeRegionReconstructor(
             package.LogicalText.Text,
-            new WordLatticeBuilder(matcher, HardBoundaryOffsets(package.LogicalText)),
+            new WordLatticeBuilder(matcher, LogicalTextStreamBoundaries.HardOffsets(package.LogicalText)),
             new LatticeDecoder(knowledge.LanguageModel, options),
             new CorrectionAcceptanceGate(knowledge.Vocabulary, options),
             options);
@@ -458,14 +462,6 @@ static int RunDebugLattice(string[] arguments)
         return 2;
     }
 }
-
-static IReadOnlyCollection<int> HardBoundaryOffsets(LogicalTextStream stream) =>
-    stream.Boundaries
-        .Where(boundary => boundary.Kind is not TextBoundaryKind.TextNode)
-        .Select(boundary => stream.Segments[boundary.AfterSegmentIndex].LogicalStart)
-        .Distinct()
-        .OrderBy(offset => offset)
-        .ToArray();
 
 static IEnumerable<int> Occurrences(string text, string value)
 {
@@ -928,7 +924,7 @@ static void PrintUsage()
         + "[--ocr-correction-report <ocr-candidates.md>] "
         + "[--ocr-decision-report <ocr-decisions.md>] "
         + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
-    Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub> [--apply-ocr-corrections] [--ocr-mutation-report <report.md>]");
+    Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub> [--apply-ocr-corrections] [--ocr-mutation-report <report.md>] [--ocr-engine legacy|lattice]");
 }
 
 internal sealed record CliOptions(
@@ -949,6 +945,7 @@ internal sealed record CliOptions(
 {
     public bool ApplyOcrCorrections { get; init; }
     public string? OcrMutationReportPath { get; init; }
+    public string OcrEngine { get; init; } = "legacy";
     public static bool TryParse(string[] arguments, out CliOptions options)
     {
         options = null!;
@@ -969,6 +966,7 @@ internal sealed record CliOptions(
 
             var applyOcr = false;
             string? mutationReport = null;
+            string? ocrEngine = null;
             var fixIndex = 4;
             while (fixIndex < arguments.Length)
             {
@@ -977,6 +975,11 @@ internal sealed record CliOptions(
                 if (string.Equals(arguments[fixIndex], "--ocr-mutation-report", StringComparison.OrdinalIgnoreCase)
                     && mutationReport is null && fixIndex + 1 < arguments.Length && !string.IsNullOrWhiteSpace(arguments[fixIndex + 1]))
                 { mutationReport = arguments[fixIndex + 1]; fixIndex += 2; continue; }
+                if (string.Equals(arguments[fixIndex], "--ocr-engine", StringComparison.OrdinalIgnoreCase)
+                    && ocrEngine is null && fixIndex + 1 < arguments.Length
+                    && (string.Equals(arguments[fixIndex + 1], "legacy", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(arguments[fixIndex + 1], "lattice", StringComparison.OrdinalIgnoreCase)))
+                { ocrEngine = arguments[fixIndex + 1].ToLowerInvariant(); fixIndex += 2; continue; }
                 return false;
             }
             if (mutationReport is not null && !applyOcr) return false;
@@ -995,7 +998,11 @@ internal sealed record CliOptions(
                 null,
                 false,
                 false)
-            { ApplyOcrCorrections = applyOcr, OcrMutationReportPath = mutationReport };
+            {
+                ApplyOcrCorrections = applyOcr,
+                OcrMutationReportPath = mutationReport,
+                OcrEngine = ocrEngine ?? "legacy"
+            };
             return true;
         }
 

@@ -1,3 +1,4 @@
+using EpubFixer.Adapters.Ocr.Lattice;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
@@ -37,9 +38,4 @@ public sealed class SymSpellRegionReconstructor(ITurkishFrequencyList lexicon) :
 
     private static string Clean(string text) => text.Normalize().ToLower(new System.Globalization.CultureInfo("tr-TR"));
     private static string RestoreCase(string value, string source) => source.Length > 0 && char.IsUpper(source[0]) ? char.ToUpper(value[0], new System.Globalization.CultureInfo("tr-TR")) + value[1..] : value;
-}
-
-internal sealed class SymSpellChecker : SymSpell
-{
-    public SymSpellChecker(int initialCapacity, int maxEditDistanceDictionary) : base(initialCapacity, maxEditDistanceDictionary) { }
 }

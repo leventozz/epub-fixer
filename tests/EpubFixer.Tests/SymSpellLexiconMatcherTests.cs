@@ -1,4 +1,4 @@
-using EpubFixer.Cli.Ocr.Lattice;
+using EpubFixer.Adapters.Ocr.Lattice;
 using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Morphology;

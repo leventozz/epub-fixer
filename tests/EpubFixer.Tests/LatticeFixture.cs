@@ -1,5 +1,5 @@
-using EpubFixer.Cli.Lexicon;
-using EpubFixer.Cli.Ocr.Lattice;
+using EpubFixer.Adapters.Lexicon;
+using EpubFixer.Adapters.Ocr.Lattice;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Ocr.Lattice;
 using EpubFixer.Core.Ocr.Models;

@@ -19,7 +19,7 @@ using EpubFixer.Core.Mutation;
 using EpubFixer.Core.Mutation.Models;
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
-using EpubFixer.Cli.Lexicon;
+using EpubFixer.Adapters.Lexicon;
 using EpubFixer.TrMorph;
 
 namespace EpubFixer.Cli.OcrReconstruction;

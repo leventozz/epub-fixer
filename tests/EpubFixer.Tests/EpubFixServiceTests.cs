@@ -153,6 +153,52 @@ public sealed class EpubFixServiceTests
         }
     }
 
+    [Fact]
+    [Trait("Category", "Slow")]
+    public void Fix_WithLatticeEngine_ProducesValidOutput()
+    {
+        var input = FindRepositoryFile(Path.Combine("test-data", "odun-kesmek", "input.epub"));
+        var output = Path.Combine(Path.GetTempPath(), $"epubfixer-lattice-{Guid.NewGuid():N}.epub");
+
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(
+                    new BatchMorphologyOracleBuilder(analyzer),
+                    EpubFixer.Adapters.Ocr.LatticeOcrPlannerFactory.Create())
+                .Fix(input, output, applyOcrCorrections: true);
+
+            Assert.NotNull(result.OcrMutation);
+            Assert.Equal(OcrCorrectionEngine.Lattice, result.OcrMutation!.Engine);
+            Assert.True(result.OcrMutation.Succeeded);
+            Assert.True(result.Integrity.ResourceInventoryMatches);
+            Assert.True(result.Integrity.UntouchedResourcesMatch);
+            Assert.True(result.Integrity.MimetypePackagingValid);
+            Assert.True(result.Integrity.ReadBackValidated);
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    private static string FindRepositoryFile(string relativePath)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException("Repository file was not found.", relativePath);
+    }
+
     private static string Xhtml(string body)
     {
         return $"""

@@ -1,8 +1,8 @@
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Epub;
-using EpubFixer.Cli.Lexicon;
+using EpubFixer.Adapters.Lexicon;
 using EpubFixer.Cli.OcrReconstruction;
-using EpubFixer.Cli.Ocr.Lattice;
+using EpubFixer.Adapters.Ocr.Lattice;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Morphology;

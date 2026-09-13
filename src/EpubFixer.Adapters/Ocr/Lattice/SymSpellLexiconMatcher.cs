@@ -1,9 +1,8 @@
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Lattice;
-using EpubFixer.Cli.OcrReconstruction;
 
-namespace EpubFixer.Cli.Ocr.Lattice;
+namespace EpubFixer.Adapters.Ocr.Lattice;
 
 public sealed class SymSpellLexiconMatcher : ILexiconMatcher
 {

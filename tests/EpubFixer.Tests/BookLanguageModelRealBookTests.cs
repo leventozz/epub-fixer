@@ -37,7 +37,7 @@ public sealed class BookLanguageModelRealBookTests
         var input = FindRepositoryFile(Path.Combine("test-data", "odun-kesmek", "input.epub"));
         var package = new EpubPackageReader().Read(input);
         var frequency = TurkishFrequencyList.FromLines(File.ReadLines(
-            FindRepositoryFile(Path.Combine("src", "EpubFixer.Cli", "Resources", "OcrReconstruction", "tr_50k.txt")),
+            FindRepositoryFile(Path.Combine("src", "EpubFixer.Adapters", "Resources", "OcrReconstruction", "tr_50k.txt")),
             Encoding.UTF8));
         return new BookKnowledgeBuilder(frequency).Build(package.LogicalText, new BatchMorphologyOracleBuilder(parser));
     }

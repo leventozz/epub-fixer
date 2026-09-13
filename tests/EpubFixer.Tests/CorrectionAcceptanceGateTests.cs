@@ -3,7 +3,7 @@ using EpubFixer.Core.Lexicon.Models;
 using EpubFixer.Core.Ocr.Lattice;
 using EpubFixer.Core.Ocr.Lattice.Models;
 using EpubFixer.Core.Ocr.Models;
-using EpubFixer.Cli.Ocr.Lattice;
+using EpubFixer.Adapters.Ocr.Lattice;
 
 namespace EpubFixer.Tests;
 

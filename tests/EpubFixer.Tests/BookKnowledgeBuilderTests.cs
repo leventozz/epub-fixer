@@ -26,7 +26,7 @@ public sealed class BookKnowledgeBuilderTests
     {
         var input = FindRepositoryFile(Path.Combine("test-data", "odun-kesmek", "input.epub"));
         var frequency = TurkishFrequencyList.FromLines(File.ReadLines(
-            FindRepositoryFile(Path.Combine("src", "EpubFixer.Cli", "Resources", "OcrReconstruction", "tr_50k.txt"))));
+            FindRepositoryFile(Path.Combine("src", "EpubFixer.Adapters", "Resources", "OcrReconstruction", "tr_50k.txt"))));
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
         var package = new EpubFixer.Core.Epub.EpubPackageReader().Read(input);
         var oracleBuilder = new BatchMorphologyOracleBuilder(analyzer);

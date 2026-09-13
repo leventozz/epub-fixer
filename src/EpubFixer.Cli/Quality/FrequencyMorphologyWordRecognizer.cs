@@ -1,5 +1,5 @@
 using System.Text;
-using EpubFixer.Cli.Lexicon;
+using EpubFixer.Adapters.Lexicon;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Quality;

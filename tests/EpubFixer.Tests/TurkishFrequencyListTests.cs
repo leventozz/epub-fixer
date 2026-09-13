@@ -61,7 +61,7 @@ public sealed class TurkishFrequencyListTests
     [Trait("Category", "Slow")]
     public void RealResource_KeySetMatchesTodaysLoaders()
     {
-        var list = TurkishFrequencyList.FromLines(File.ReadLines(FindRepositoryFile(Path.Combine("src", "EpubFixer.Cli", "Resources", "OcrReconstruction", "tr_50k.txt")), Encoding.UTF8));
+        var list = TurkishFrequencyList.FromLines(File.ReadLines(FindRepositoryFile(Path.Combine("src", "EpubFixer.Adapters", "Resources", "OcrReconstruction", "tr_50k.txt")), Encoding.UTF8));
         var joined = string.Join("\n", list.Words.OrderBy(word => word, StringComparer.Ordinal));
         var sha = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(joined))).ToLowerInvariant();
 

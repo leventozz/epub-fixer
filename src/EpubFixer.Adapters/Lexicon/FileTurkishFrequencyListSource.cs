@@ -1,7 +1,7 @@
 using System.Text;
 using EpubFixer.Core.Lexicon;
 
-namespace EpubFixer.Cli.Lexicon;
+namespace EpubFixer.Adapters.Lexicon;
 
 public static class FileTurkishFrequencyListSource
 {
