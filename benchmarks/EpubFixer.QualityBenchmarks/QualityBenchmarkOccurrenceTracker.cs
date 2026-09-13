@@ -305,6 +305,15 @@ internal sealed class QualityBenchmarkOccurrenceTracker
                     // of) the actual replacement and be silently "saved" by
                     // ReadObservedText's StartsWith guard - which would just as easily
                     // mask a genuine over-correction.
+                    //
+                    // Exact only while the mutation lies within the tracked span (the
+                    // common case: the engine rewrote this occurrence). When a mutation
+                    // instead SUBSUMES the span - it rewrote a wider run of text that
+                    // merely contains this occurrence - no length arithmetic can say
+                    // which part of the replacement belongs to the span, so the read
+                    // falls back to taking that many characters from resolvedStart.
+                    // That is a best effort, not an exact read; it still surfaces the
+                    // change rather than hiding it, which is what the gate needs.
                     touched = true;
                     lengthDelta += netLength;
                     continue;
