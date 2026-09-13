@@ -117,7 +117,7 @@ public sealed class LatticeDecoderTests
     }
 
     [Fact]
-    public void Decode_FixtureTopOneWithFrequencyVocabularyIsPinned()
+    public void Decode_FixtureTopOneWithFixtureLanguageModelIsPinned()
     {
         var fixture = LatticeFixture.RegionText;
         var builder = LatticeFixture.CreateBuilder();
@@ -125,7 +125,7 @@ public sealed class LatticeDecoderTests
 
         foreach (var occurrence in LatticeFixture.Occurrences)
         {
-            var decoder = new LatticeDecoder(new FixedLanguageModel(), new LatticeOptions(Lambda: 0));
+            var decoder = new LatticeDecoder(LatticeFixture.LanguageModel, new LatticeOptions(Lambda: 0.5));
             var lattice = builder.Build(LatticeFixture.Region(occurrence.Source, fixture), fixture, new LatticeOptions(ContextTokens: 0));
             var decoded = decoder.Decode(lattice, 1);
 
@@ -136,7 +136,7 @@ public sealed class LatticeDecoderTests
             }
         }
 
-        Assert.Equal(0, topOne);
+        Assert.Equal(8, topOne);
     }
 
     [Fact]

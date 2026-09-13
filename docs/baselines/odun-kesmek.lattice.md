@@ -2,9 +2,9 @@
 
 ## Summary
 
-- Apply: 60
-- Review: 20
-- Leave: 483
+- Apply: 31
+- Review: 4
+- Leave: 528
 - Max visited states per region: 1713
 
 ## Reason Histogram
@@ -12,11 +12,13 @@
 | Reason | Count |
 | --- | ---: |
 | OriginalTokenIsValid | 418 |
-| Accepted | 60 |
+| TooManyOrdinaryEdits | 42 |
 | NoChange | 40 |
-| MarginTooSmall | 20 |
-| CostAboveThreshold | 12 |
-| TooManyOrdinaryEdits | 12 |
+| Accepted | 31 |
+| UnsafeLengthChange | 15 |
+| ProperNameRisk | 10 |
+| MarginTooSmall | 4 |
+| SuspiciousReplacement | 2 |
 | NoPath | 1 |
 
 ## Decisions
@@ -38,15 +40,15 @@
 | `(2006)Beton` | Leave | `` | NoChange |
 | `(2007)Yürümek` | Leave | `` | NoChange |
 | `(2009)Ödüllerim` | Leave | `` | NoChange |
-| `(2010)Düzelti` | Apply | `Ödüllerle` | Accepted |
+| `(2010)Düzelti` | Leave | `` | ProperNameRisk |
 | `(2011)THOMAS` | Leave | `` | NoChange |
 | `ÖfkeÇeviren:Sezer` | Leave | `` | NoChange |
 | `-343Odun` | Leave | `` | OriginalTokenIsValid |
-| `Holzfallen-Eine` | Review | `` | MarginTooSmall |
+| `Holzfallen-Eine` | Leave | `` | UnsafeLengthChange |
 | `(0` | Leave | `` | OriginalTokenIsValid |
-| `1` | Apply | `YKYdedi` | Accepted |
+| `1` | Leave | `` | TooManyOrdinaryEdits |
 | `(O` | Leave | `` | OriginalTokenIsValid |
-| `(pbx)` | Apply | `oo` | Accepted |
+| `(pbx)` | Leave | `` | UnsafeLengthChange |
 | `(O` | Leave | `` | OriginalTokenIsValid |
 | `sosyete-si` | Leave | `` | OriginalTokenIsValid |
 | `Cadde-si'ne` | Apply | `Caddesi'ne` | Accepted |
@@ -59,10 +61,10 @@
 | `Soka-ğı'na` | Apply | `Sokağı'na` | Accepted |
 | `(son` | Leave | `` | OriginalTokenIsValid |
 | `Auersber-ger` | Leave | `` | OriginalTokenIsValid |
-| `Za-al'dan` | Apply | `Zaal'da` | Accepted |
+| `Za-al'dan` | Leave | `` | ProperNameRisk |
 | `çiz-meli` | Leave | `` | OriginalTokenIsValid |
 | `Ala-nı'na` | Apply | `Alanı'na` | Accepted |
-| `(Alm.)` | Review | `` | MarginTooSmall |
+| `(Alm.)` | Leave | `` | UnsafeLengthChange |
 | `(Yay` | Leave | `` | OriginalTokenIsValid |
 | `kuru-munu` | Leave | `` | OriginalTokenIsValid |
 | `mimci-lcrin` | Leave | `` | OriginalTokenIsValid |
@@ -84,11 +86,11 @@
 | `anla-ınıyormuşum` | Leave | `` | OriginalTokenIsValid |
 | `deği-^ik` | Leave | `` | OriginalTokenIsValid |
 | `Auersber-ger` | Leave | `` | OriginalTokenIsValid |
-| `hipermetroplu-ğun` | Leave | `` | CostAboveThreshold |
+| `hipermetroplu-ğun` | Leave | `` | TooManyOrdinaryEdits |
 | `Auersberger-ler'in` | Leave | `` | OriginalTokenIsValid |
 | `Kilb-li` | Leave | `` | OriginalTokenIsValid |
 | `ger-^` | Leave | `` | OriginalTokenIsValid |
-| `angajma-ııa` | Leave | `` | CostAboveThreshold |
+| `angajma-ııa` | Leave | `` | TooManyOrdinaryEdits |
 | `Ala-nı'nda` | Apply | `Alanı'nda` | Accepted |
 | `ı ı ygun` | Leave | `` | OriginalTokenIsValid |
 | `Viya-ııa'da` | Leave | `` | OriginalTokenIsValid |
@@ -98,7 +100,7 @@
 | `l<ilb'de` | Leave | `` | OriginalTokenIsValid |
 | `adlandırı-lan` | Leave | `` | OriginalTokenIsValid |
 | `;ışmışmış` | Leave | `` | NoChange |
-| `i` | Review | `` | MarginTooSmall |
+| `i` | Leave | `` | UnsafeLengthChange |
 | `çıkart-ınıştı` | Leave | `` | OriginalTokenIsValid |
 | `devle-L` | Leave | `` | OriginalTokenIsValid |
 | `yolcu-1` | Leave | `` | OriginalTokenIsValid |
@@ -122,7 +124,7 @@
 | `Örde-ği'nde` | Apply | `Ördeği'nde` | Accepted |
 | `Örde-ği'nin` | Apply | `Ördeği'nin` | Accepted |
 | `(belirtmeliyim` | Leave | `` | NoChange |
-| `üze-ıi ııde` | Leave | `` | CostAboveThreshold |
+| `üze-ıi ııde` | Leave | `` | TooManyOrdinaryEdits |
 | `arka-d. ı` | Leave | `` | OriginalTokenIsValid |
 | `za-ııı<ın` | Leave | `` | OriginalTokenIsValid |
 | `bul-ııı<ılarını` | Leave | `` | OriginalTokenIsValid |
@@ -144,11 +146,11 @@
 | `oldu-ı` | Leave | `` | OriginalTokenIsValid |
 | `,ıı` | Leave | `` | OriginalTokenIsValid |
 | `ye-ı 1 i` | Leave | `` | OriginalTokenIsValid |
-| `1` | Review | `` | MarginTooSmall |
+| `1` | Leave | `` | TooManyOrdinaryEdits |
 | `y;ıvaş` | Leave | `` | OriginalTokenIsValid |
 | `sa-lıip` | Leave | `` | OriginalTokenIsValid |
-| `><ına'nın` | Review | `` | MarginTooSmall |
-| `kok-1 ıı,;;>,unu` | Leave | `` | CostAboveThreshold |
+| `><ına'nın` | Leave | `` | ProperNameRisk |
+| `kok-1 ıı,;;>,unu` | Leave | `` | TooManyOrdinaryEdits |
 | `1 ıi` | Leave | `` | OriginalTokenIsValid |
 | `cena-1'.!'Sİ` | Leave | `` | OriginalTokenIsValid |
 | `l ııgiliz` | Leave | `` | OriginalTokenIsValid |
@@ -177,8 +179,8 @@
 | `ı` | Leave | `` | OriginalTokenIsValid |
 | `ı` | Leave | `` | OriginalTokenIsValid |
 | `ı ıluz` | Leave | `` | OriginalTokenIsValid |
-| `i` | Apply | `gerçek` | Accepted |
-| `,erçek` | Apply | `gerçek` | Accepted |
+| `i` | Leave | `` | TooManyOrdinaryEdits |
+| `,erçek` | Leave | `` | TooManyOrdinaryEdits |
 | `ken-dimi` | Leave | `` | OriginalTokenIsValid |
 | `Auersberger-ler'le` | Leave | `` | OriginalTokenIsValid |
 | `;itmem` | Review | `` | MarginTooSmall |
@@ -205,7 +207,7 @@
 | `p;ıltomu` | Leave | `` | OriginalTokenIsValid |
 | `So-k;ığı'na` | Leave | `` | OriginalTokenIsValid |
 | `So-k;ığı'na` | Leave | `` | OriginalTokenIsValid |
-| `gü-1 iinç` | Leave | `` | CostAboveThreshold |
+| `gü-1 iinç` | Leave | `` | TooManyOrdinaryEdits |
 | `;ofcağı'ndaki` | Leave | `` | NoChange |
 | `:uın` | Leave | `` | OriginalTokenIsValid |
 | `on-lurm` | Leave | `` | OriginalTokenIsValid |
@@ -213,12 +215,12 @@
 | `:ey` | Leave | `` | OriginalTokenIsValid |
 | `Soka-ğı'nda` | Apply | `Sokağı'nda` | Accepted |
 | `ı ı nun` | Leave | `` | OriginalTokenIsValid |
-| `gele-11` | Leave | `` | CostAboveThreshold |
+| `gele-11` | Leave | `` | TooManyOrdinaryEdits |
 | `i:;;ilere` | Leave | `` | OriginalTokenIsValid |
 | `tiksinti-v ı` | Leave | `` | OriginalTokenIsValid |
 | `ı ı` | Leave | `` | OriginalTokenIsValid |
 | `ı ı.lenimini` | Leave | `` | OriginalTokenIsValid |
-| `Auers-lıerger` | Apply | `berger` | Accepted |
+| `Auers-lıerger` | Leave | `` | UnsafeLengthChange |
 | `yemeği-ı ı` | Leave | `` | OriginalTokenIsValid |
 | `1 lurg` | Review | `` | MarginTooSmall |
 | `ı kşam` | Leave | `` | OriginalTokenIsValid |
@@ -245,20 +247,20 @@
 | `koli ukta` | Apply | `koltukta` | Accepted |
 | `(le` | Leave | `` | OriginalTokenIsValid |
 | `ı ızellikle` | Leave | `` | OriginalTokenIsValid |
-| `(le` | Review | `` | MarginTooSmall |
+| `(le` | Leave | `` | UnsafeLengthChange |
 | `ı ılduğu` | Leave | `` | OriginalTokenIsValid |
 | `kendi-ıni` | Leave | `` | OriginalTokenIsValid |
 | `Ce-lıimde` | Leave | `` | OriginalTokenIsValid |
 | `( 1 iye` | Leave | `` | OriginalTokenIsValid |
 | `--:<lbaha` | Leave | `` | OriginalTokenIsValid |
-| `Anacadde-si'ni` | Review | `` | MarginTooSmall |
+| `Anacadde-si'ni` | Leave | `` | ProperNameRisk |
 | `Ala-nı'nı` | Review | `` | MarginTooSmall |
-| `Schwarzen-herg` | Review | `` | MarginTooSmall |
-| `ge-^:cn` | Leave | `` | CostAboveThreshold |
+| `Schwarzen-herg` | Leave | `` | UnsafeLengthChange |
+| `ge-^:cn` | Leave | `` | TooManyOrdinaryEdits |
 | `Simmerin-ger` | Leave | `` | OriginalTokenIsValid |
-| `yü-ıiimeye` | Apply | `yürümeye` | Accepted |
+| `yü-ıiimeye` | Leave | `` | TooManyOrdinaryEdits |
 | `oldu,^unu` | Leave | `` | OriginalTokenIsValid |
-| `1 ıerjer` | Apply | `berjer` | Accepted |
+| `1 ıerjer` | Leave | `` | TooManyOrdinaryEdits |
 | `dü-^ündüm` | Leave | `` | OriginalTokenIsValid |
 | `yeme-X1 i` | Leave | `` | OriginalTokenIsValid |
 | `ilgi-IL'rini` | Leave | `` | OriginalTokenIsValid |
@@ -285,7 +287,7 @@
 | `kullanma-111111` | Leave | `` | OriginalTokenIsValid |
 | `l ı` | Leave | `` | OriginalTokenIsValid |
 | `elli-1 i` | Leave | `` | OriginalTokenIsValid |
-| `1 ıi le` | Leave | `` | CostAboveThreshold |
+| `1 ıi le` | Leave | `` | TooManyOrdinaryEdits |
 | `(bu` | Leave | `` | NoChange |
 | `et-ı ı ıl'yip` | Leave | `` | OriginalTokenIsValid |
 | `daya-111` | Leave | `` | OriginalTokenIsValid |
@@ -298,14 +300,14 @@
 | `düşün-diim` | Leave | `` | OriginalTokenIsValid |
 | `güru-1ıunun` | Leave | `` | OriginalTokenIsValid |
 | `üste-likde` | Leave | `` | OriginalTokenIsValid |
-| `,Örünüm` | Apply | `Görünüm` | Accepted |
-| `;ıfırları` | Review | `` | MarginTooSmall |
+| `,Örünüm` | Leave | `` | ProperNameRisk |
+| `;ıfırları` | Leave | `` | TooManyOrdinaryEdits |
 | `değil-ll i` | Leave | `` | OriginalTokenIsValid |
 | `l.:ıkış` | Leave | `` | OriginalTokenIsValid |
 | `c;anki` | Leave | `` | OriginalTokenIsValid |
 | `c;anki` | Leave | `` | OriginalTokenIsValid |
 | `iğrenç-1 ikleri` | Leave | `` | OriginalTokenIsValid |
-| `(kendimle` | Apply | `ileri` | Accepted |
+| `(kendimle` | Leave | `` | UnsafeLengthChange |
 | `ı rdığım` | Leave | `` | OriginalTokenIsValid |
 | `iğ-rmç` | Leave | `` | OriginalTokenIsValid |
 | `c;öylemek` | Leave | `` | OriginalTokenIsValid |
@@ -326,10 +328,10 @@
 | `<1tmak` | Leave | `` | TooManyOrdinaryEdits |
 | `Jo-<ma'nın` | Leave | `` | OriginalTokenIsValid |
 | `Auersber-ger` | Leave | `` | OriginalTokenIsValid |
-| `(Bayan` | Apply | `ının` | Accepted |
+| `(Bayan` | Leave | `` | ProperNameRisk |
 | `Auersber-ger` | Leave | `` | OriginalTokenIsValid |
-| `1` | Review | `` | MarginTooSmall |
-| `:lcdal'ı` | Apply | `iledal'ı` | Accepted |
+| `1` | Leave | `` | UnsafeLengthChange |
+| `:lcdal'ı` | Leave | `` | ProperNameRisk |
 | `>izlik` | Leave | `` | OriginalTokenIsValid |
 | `Au-ı` | Leave | `` | OriginalTokenIsValid |
 | `küçümseyici-liği` | Leave | `` | TooManyOrdinaryEdits |
@@ -340,7 +342,7 @@
 | `gel-ıııeye` | Leave | `` | TooManyOrdinaryEdits |
 | `ti-v<ıtrocular` | Leave | `` | OriginalTokenIsValid |
 | `do-)',<ıl` | Leave | `` | OriginalTokenIsValid |
-| `1 ıcri` | Leave | `` | CostAboveThreshold |
+| `1 ıcri` | Leave | `` | TooManyOrdinaryEdits |
 | `bildi-)',İtn` | Leave | `` | OriginalTokenIsValid |
 | `et-ıııiş` | Leave | `` | OriginalTokenIsValid |
 | `iı.:in` | Leave | `` | OriginalTokenIsValid |
@@ -367,12 +369,12 @@
 | `olma-<` | Leave | `` | OriginalTokenIsValid |
 | `,iindüm` | Leave | `` | OriginalTokenIsValid |
 | `l<ilb'de` | Leave | `` | OriginalTokenIsValid |
-| `:;,matçısı` | Review | `` | MarginTooSmall |
+| `:;,matçısı` | Leave | `` | TooManyOrdinaryEdits |
 | `zaman-1.ır` | Leave | `` | OriginalTokenIsValid |
-| `za-ınanlar` | Apply | `zamanlar` | Accepted |
+| `za-ınanlar` | Leave | `` | TooManyOrdinaryEdits |
 | `sanatçı-l<Hın` | Leave | `` | OriginalTokenIsValid |
 | `Caddesi'nde-ki` | Leave | `` | OriginalTokenIsValid |
-| `Ala-ııı'nda` | Apply | `Alanı'nda` | Accepted |
+| `Ala-ııı'nda` | Leave | `` | TooManyOrdinaryEdits |
 | `gider-<1` | Leave | `` | OriginalTokenIsValid |
 | `,ıranan` | Leave | `` | OriginalTokenIsValid |
 | `ressamlı-)^ından` | Leave | `` | OriginalTokenIsValid |
@@ -385,10 +387,10 @@
 | `ı. ı` | Leave | `` | OriginalTokenIsValid |
 | `Se-lı;ıstian` | Leave | `` | OriginalTokenIsValid |
 | `ı` | Leave | `` | OriginalTokenIsValid |
-| `ı. ınımıştım` | Apply | `tanımıştım` | Accepted |
+| `ı. ınımıştım` | Leave | `` | TooManyOrdinaryEdits |
 | `1 ıi` | Leave | `` | OriginalTokenIsValid |
 | `l ıiiyle` | Leave | `` | OriginalTokenIsValid |
-| `1` | Apply | `göster` | Accepted |
+| `1` | Leave | `` | TooManyOrdinaryEdits |
 | `ı leyişle` | Leave | `` | OriginalTokenIsValid |
 | `Ala-nı'nda` | Apply | `Alanı'nda` | Accepted |
 | `ı` | Leave | `` | OriginalTokenIsValid |
@@ -416,9 +418,9 @@
 | `c;okağı'nda` | Leave | `` | OriginalTokenIsValid |
 | `edilme-:;i` | Leave | `` | OriginalTokenIsValid |
 | `olmadı-)',1111` | Leave | `` | OriginalTokenIsValid |
-| `1 ıunca` | Apply | `bunca` | Accepted |
+| `1 ıunca` | Leave | `` | TooManyOrdinaryEdits |
 | `çif-ı` | Leave | `` | OriginalTokenIsValid |
-| `ken-d iıne` | Leave | `` | CostAboveThreshold |
+| `ken-d iıne` | Leave | `` | TooManyOrdinaryEdits |
 | `duy-)',usallaştırıyoruz` | Leave | `` | OriginalTokenIsValid |
 | `gitmeme-ı niz` | Leave | `` | OriginalTokenIsValid |
 | `ı` | Leave | `` | OriginalTokenIsValid |
@@ -431,13 +433,13 @@
 | `sanat-.^rıl` | Leave | `` | OriginalTokenIsValid |
 | `ak-^am` | Leave | `` | OriginalTokenIsValid |
 | `düşün-ı 1 i` | Leave | `` | OriginalTokenIsValid |
-| `,Crçekten` | Apply | `Gerçekten` | Accepted |
+| `,Crçekten` | Leave | `` | ProperNameRisk |
 | `ı:ayan` | Leave | `` | OriginalTokenIsValid |
 | `aristokra-^;isi` | Leave | `` | OriginalTokenIsValid |
 | `ı nnesi` | Leave | `` | OriginalTokenIsValid |
 | `Ste-icrmarklı` | Leave | `` | OriginalTokenIsValid |
 | `Au-ı` | Leave | `` | OriginalTokenIsValid |
-| `^erefsiz` | Apply | `gereksiz` | Accepted |
+| `^erefsiz` | Leave | `` | TooManyOrdinaryEdits |
 | `yüzün-den` | Leave | `` | OriginalTokenIsValid |
 | `Steier-ııı;ırk` | Leave | `` | OriginalTokenIsValid |
 | `I,ırzı` | Leave | `` | OriginalTokenIsValid |
@@ -455,14 +457,14 @@
 | `^;<ığlayabilirdi` | Leave | `` | OriginalTokenIsValid |
 | `Au-ı` | Leave | `` | OriginalTokenIsValid |
 | `bildi-gim` | Leave | `` | OriginalTokenIsValid |
-| `i` | Leave | `` | CostAboveThreshold |
+| `i` | Leave | `` | TooManyOrdinaryEdits |
 | `ı` | Leave | `` | OriginalTokenIsValid |
 | `Viyanalı-ların` | Leave | `` | OriginalTokenIsValid |
 | `Ma-ria` | Leave | `` | OriginalTokenIsValid |
 | `ya-^amlarını` | Leave | `` | OriginalTokenIsValid |
 | `de-gil` | Leave | `` | OriginalTokenIsValid |
 | `yöne-1 ik` | Leave | `` | OriginalTokenIsValid |
-| `ha-1.ırladıkları` | Leave | `` | CostAboveThreshold |
+| `ha-1.ırladıkları` | Leave | `` | TooManyOrdinaryEdits |
 | `çullanmış-lardı` | Leave | `` | TooManyOrdinaryEdits |
 | `etkile-nir` | Leave | `` | OriginalTokenIsValid |
 | `baş-l;mna` | Leave | `` | OriginalTokenIsValid |
@@ -470,7 +472,7 @@
 | `sokuluyo-ruz` | Leave | `` | OriginalTokenIsValid |
 | `:;iiyledikleri` | Leave | `` | OriginalTokenIsValid |
 | `oldukları-ııı` | Leave | `` | OriginalTokenIsValid |
-| `oldukla-rırn` | Apply | `olduklarıen` | Accepted |
+| `oldukla-rırn` | Leave | `` | SuspiciousReplacement |
 | `ı ılduğumu` | Leave | `` | OriginalTokenIsValid |
 | `i>yle` | Leave | `` | OriginalTokenIsValid |
 | `oldu-g` | Leave | `` | OriginalTokenIsValid |
@@ -501,7 +503,7 @@
 | `(Strindberg'in)` | Leave | `` | NoChange |
 | `(İbsen'in)` | Leave | `` | NoChange |
 | `Örde-ği'nin` | Apply | `Ördeği'nin` | Accepted |
-| `Soka-gı'na` | Apply | `Sokağı'na` | Accepted |
+| `Soka-gı'na` | Leave | `` | ProperNameRisk |
 | `oynanıyor-muş` | Leave | `` | OriginalTokenIsValid |
 | `Tiyatro-su'nda` | Leave | `` | OriginalTokenIsValid |
 | `donuyor-dum` | Leave | `` | OriginalTokenIsValid |
@@ -513,15 +515,15 @@
 | `değilim,diye` | Leave | `` | NoChange |
 | `hakkın-daki` | Leave | `` | OriginalTokenIsValid |
 | `Auersber-)',t'r'e` | Leave | `` | OriginalTokenIsValid |
-| `za-ıııan` | Apply | `anılan` | Accepted |
+| `za-ıııan` | Leave | `` | TooManyOrdinaryEdits |
 | `ı` | Leave | `` | OriginalTokenIsValid |
 | `Tiyatro-^aı'nun` | Leave | `` | OriginalTokenIsValid |
 | `Tiyatro-^;u'na` | Leave | `` | OriginalTokenIsValid |
-| `1` | Apply | `` | Accepted |
+| `1` | Leave | `` | UnsafeLengthChange |
 | `ola-r<ık` | Leave | `` | OriginalTokenIsValid |
 | `Tiyatro-su'ndaki` | Leave | `` | OriginalTokenIsValid |
 | `ba-^arısız` | Apply | `başarısız` | Accepted |
-| `repertuvar-dan` | Review | `` | MarginTooSmall |
+| `repertuvar-dan` | Leave | `` | UnsafeLengthChange |
 | `İngi-lizler` | Review | `` | MarginTooSmall |
 | `oldu-ğunu` | Leave | `` | OriginalTokenIsValid |
 | `Tiyatro-su'nda` | Leave | `` | OriginalTokenIsValid |
@@ -535,11 +537,11 @@
 | `Va-lery` | Leave | `` | OriginalTokenIsValid |
 | `Jean-nie` | Leave | `` | OriginalTokenIsValid |
 | `Saint-John` | Leave | `` | OriginalTokenIsValid |
-| `ancakJean-nie` | Apply | `ancakJeannie` | Accepted |
+| `ancakJean-nie` | Leave | `` | SuspiciousReplacement |
 | `kesiverdi-ğim` | Leave | `` | TooManyOrdinaryEdits |
 | `anda,kendimi` | Leave | `` | NoChange |
 | `Auersberger-Ier` | Leave | `` | OriginalTokenIsValid |
-| `çekilmez-likten` | Apply | `biten` | Accepted |
+| `çekilmez-likten` | Leave | `` | UnsafeLengthChange |
 | `beklerdim,ama` | Leave | `` | OriginalTokenIsValid |
 | `Jean-nie` | Leave | `` | OriginalTokenIsValid |
 | `sa-lüp` | Leave | `` | OriginalTokenIsValid |
@@ -562,17 +564,17 @@
 | `(ve` | Leave | `` | NoChange |
 | `ol-sun` | Leave | `` | OriginalTokenIsValid |
 | `Schre-ker` | Apply | `Schreker` | Accepted |
-| `yazınbi-limciliklerinin` | Review | `` | MarginTooSmall |
-| `ciddiyetim-le` | Review | `` | MarginTooSmall |
+| `yazınbi-limciliklerinin` | Leave | `` | UnsafeLengthChange |
+| `ciddiyetim-le` | Leave | `` | TooManyOrdinaryEdits |
 | `ak-şanı` | Leave | `` | OriginalTokenIsValid |
 | `yeme,^ine` | Leave | `` | OriginalTokenIsValid |
 | `Za-al'a` | Apply | `Zaal'a` | Accepted |
-| `şinzdi-ye` | Apply | `şimdiye` | Accepted |
+| `şinzdi-ye` | Leave | `` | TooManyOrdinaryEdits |
 | `peltek-leşerek` | Leave | `` | OriginalTokenIsValid |
 | `peltek-ledi` | Apply | `peltekledi` | Accepted |
 | `Metropoli-tan` | Leave | `` | OriginalTokenIsValid |
 | `gerçe-ği` | Apply | `gerçeği` | Accepted |
-| `Ope-ra'daki` | Apply | `Pera'daki` | Accepted |
+| `Ope-ra'daki` | Leave | `` | ProperNameRisk |
 | `başladım;birden` | Leave | `` | OriginalTokenIsValid |
 | `Jean-nie` | Leave | `` | OriginalTokenIsValid |
 | `öfke-lenerek` | Leave | `` | OriginalTokenIsValid |
@@ -580,9 +582,9 @@
 | `istiyor-sa` | Leave | `` | OriginalTokenIsValid |
 | `halde,gerçek` | Leave | `` | NoChange |
 | `Auersberger-ler'den` | Leave | `` | OriginalTokenIsValid |
-| `Sokcı-ğı'ndaki` | Apply | `Sokağı'ndaki` | Accepted |
+| `Sokcı-ğı'ndaki` | Leave | `` | TooManyOrdinaryEdits |
 | `ı` | Leave | `` | OriginalTokenIsValid |
-| `kop^` | Review | `` | MarginTooSmall |
+| `kop^` | Leave | `` | UnsafeLengthChange |
 | `ı` | Leave | `` | OriginalTokenIsValid |
 | `^Tj.uk rlc` | Leave | `` | OriginalTokenIsValid |
-| `i` | Review | `` | MarginTooSmall |
+| `i` | Leave | `` | UnsafeLengthChange |

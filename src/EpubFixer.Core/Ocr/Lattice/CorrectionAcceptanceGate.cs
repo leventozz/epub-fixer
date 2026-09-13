@@ -33,10 +33,34 @@ public sealed class CorrectionAcceptanceGate(BookVocabulary vocabulary, LatticeO
             return Leave(lattice, "OriginalTokenIsValid", changed);
         }
 
-        var ordinarySubstitutions = OrdinarySubstitutions(lattice, best);
-        if (ordinarySubstitutions is null || ordinarySubstitutions > options.MaxOrdinarySubstitutions)
+        var replacement = ReplacementFor(identity, best.Text, changed);
+        var changedSource = identity[changed.Start..changed.End];
+        var ordinaryEdits = OrdinaryEdits(lattice, best);
+        if (ordinaryEdits is null || ordinaryEdits > options.MaxOrdinarySubstitutions)
         {
             return Leave(lattice, "TooManyOrdinaryEdits", changed);
+        }
+
+        var regionRisk = UnsafeReplacementReason(region.RawText, replacement, ordinaryEdits.Value);
+        if (regionRisk is not null)
+        {
+            return Leave(lattice, regionRisk, changed);
+        }
+
+        if (IsShortOrDisproportionateChange(changedSource, replacement))
+        {
+            return Leave(lattice, "UnsafeLengthChange", changed);
+        }
+
+        var riskyArcReason = UnsafeWordArcReason(lattice, best);
+        if (riskyArcReason is not null)
+        {
+            return Leave(lattice, riskyArcReason, changed);
+        }
+
+        if (ordinaryEdits > 0 && HasProperNameRisk(changedSource, replacement))
+        {
+            return Leave(lattice, "ProperNameRisk", changed);
         }
 
         if (best.EditCost > options.MaxPathCost)
@@ -50,11 +74,10 @@ public sealed class CorrectionAcceptanceGate(BookVocabulary vocabulary, LatticeO
             return Result(AcceptanceVerdict.Review, null, lattice, changed, ["MarginTooSmall"]);
         }
 
-        var replacement = ReplacementFor(identity, best.Text, changed);
         return Result(AcceptanceVerdict.Apply, replacement, lattice, changed, ["Accepted"]);
     }
 
-    private int? OrdinarySubstitutions(WordLattice lattice, DecodedPath path)
+    private int? OrdinaryEdits(WordLattice lattice, DecodedPath path)
     {
         var total = 0;
         foreach (var arc in path.Arcs.Where(arc => arc.Kind == LatticeArcKind.Word))
@@ -65,11 +88,119 @@ public sealed class CorrectionAcceptanceGate(BookVocabulary vocabulary, LatticeO
                 return null;
             }
 
-            total += alignment.OrdinarySubstitutions;
+            total += alignment.OrdinaryEdits;
         }
 
         return total;
     }
+
+    private string? UnsafeWordArcReason(WordLattice lattice, DecodedPath path)
+    {
+        foreach (var arc in path.Arcs.Where(arc => arc.Kind == LatticeArcKind.Word))
+        {
+            var source = lattice.Window.Substring(arc.From, arc.To - arc.From);
+            if (!aligner.TryAlign(source, arc.Word, options.BudgetCap, out var alignment))
+            {
+                return "TooManyOrdinaryEdits";
+            }
+
+            if (alignment.OrdinaryEdits > 0 && HasProperNameRisk(source, arc.Word))
+            {
+                return "ProperNameRisk";
+            }
+        }
+
+        return null;
+    }
+
+    private static string? UnsafeReplacementReason(string rawText, string replacement, int ordinaryEdits)
+    {
+        if (HasSuspiciousReplacementShape(replacement))
+        {
+            return "SuspiciousReplacement";
+        }
+
+        if (HasApostropheStemRisk(rawText, replacement))
+        {
+            return "ProperNameRisk";
+        }
+
+        if (IsShortOrDisproportionateChange(rawText, replacement))
+        {
+            return "UnsafeLengthChange";
+        }
+
+        return ordinaryEdits > 0 && HasProperNameRisk(rawText, replacement)
+            ? "ProperNameRisk"
+            : null;
+    }
+
+    private static bool HasSuspiciousReplacementShape(string replacement)
+    {
+        var normalized = replacement.ToLowerInvariant();
+        return normalized.Contains("ıe", StringComparison.Ordinal)
+            || normalized.Contains("ie", StringComparison.Ordinal);
+    }
+
+    private static bool HasApostropheStemRisk(string source, string replacement)
+    {
+        if (!TryStemBeforeApostrophe(source, out var sourceStem)
+            || !TryStemBeforeApostrophe(replacement, out var replacementStem))
+        {
+            return false;
+        }
+
+        return !string.Equals(CanonicalStem(sourceStem), CanonicalStem(replacementStem), StringComparison.Ordinal);
+    }
+
+    private static bool TryStemBeforeApostrophe(string value, out string stem)
+    {
+        var index = value.IndexOfAny(['\'', '’']);
+        if (index < 0)
+        {
+            stem = string.Empty;
+            return false;
+        }
+
+        stem = value[..index];
+        return true;
+    }
+
+    private static string CanonicalStem(string value) =>
+        new(value
+            .Where(character => char.IsLetterOrDigit(character))
+            .ToArray());
+
+    private static bool IsShortOrDisproportionateChange(string source, string replacement)
+    {
+        var sourceLength = AlphanumericLength(source);
+        var replacementLength = AlphanumericLength(replacement);
+        if (sourceLength < 3)
+        {
+            return true;
+        }
+
+        if (replacementLength == 0)
+        {
+            return true;
+        }
+
+        return replacementLength > sourceLength * 1.5
+            || replacementLength < sourceLength * 0.75;
+    }
+
+    private static bool HasProperNameRisk(string source, string replacement)
+    {
+        if (source.Any(char.IsUpper))
+        {
+            return true;
+        }
+
+        return source.Contains('\'') || source.Contains('’') || replacement.Contains('\'') || replacement.Contains('’');
+    }
+
+    private static int AlphanumericLength(string value) =>
+        value.Count(char.IsLetterOrDigit);
 
     private bool IsValidOriginalToken(string token)
     {

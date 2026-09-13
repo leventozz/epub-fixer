@@ -9,6 +9,7 @@ namespace EpubFixer.Tests;
 internal static class LatticeFixture
 {
     private static readonly Lazy<BookVocabulary> FrequencyVocabulary = new(CreateFrequencyVocabulary);
+    private static readonly Lazy<ILanguageModel> FixtureLanguageModel = new(CreateFixtureLanguageModel);
 
     public static IReadOnlyList<(string Source, string Target)> Occurrences { get; } =
     [
@@ -29,6 +30,8 @@ internal static class LatticeFixture
 
     public static BookVocabulary Vocabulary => FrequencyVocabulary.Value;
 
+    public static ILanguageModel LanguageModel => FixtureLanguageModel.Value;
+
     public static WordLatticeBuilder CreateBuilder() =>
         new(new SymSpellLexiconMatcher(Vocabulary));
 
@@ -47,6 +50,13 @@ internal static class LatticeFixture
                 FileTurkishFrequencyListSource.Load(),
                 new BookVocabularyOptions(MinBookCount: 1))
             .Build(TestStreamFactory.FromSingleSegment(text), Array.Empty<CorruptedTextRegion>(), new FakeMorphologyOracle(targets));
+    }
+
+    private static ILanguageModel CreateFixtureLanguageModel()
+    {
+        var text = string.Join(' ', Occurrences.Select(item => item.Target));
+        return new BookLanguageModelBuilder(Vocabulary)
+            .Build(TestStreamFactory.FromSingleSegment(text), Array.Empty<CorruptedTextRegion>());
     }
 
     private static string FindRepositoryFile(string relativePath)
