@@ -365,3 +365,6 @@ FodyWeavers.xsd
 /test-data/**
 !/test-data/*/
 !/test-data/*/ground-truth.json
+
+# Claude Code machine-local settings
+.claude/settings.local.json
