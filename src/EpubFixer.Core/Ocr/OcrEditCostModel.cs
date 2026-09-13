@@ -10,4 +10,6 @@ public sealed record OcrEditCostModel(
     double ShortFragmentMerge = 0.40,
     double SpaceInsertion = 0.70,
     double OrdinarySubstitution = 1.00,
+    double OrdinaryDeletion = 1.00,
+    double OrdinaryInsertion = 1.00,
     double LocalPairContraction = 1.00);

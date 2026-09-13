@@ -18,6 +18,8 @@ public sealed class OcrEditCostModelTests
         Assert.Equal(0.40, model.ShortFragmentMerge);
         Assert.Equal(0.70, model.SpaceInsertion);
         Assert.Equal(1.00, model.OrdinarySubstitution);
+        Assert.Equal(1.00, model.OrdinaryDeletion);
+        Assert.Equal(1.00, model.OrdinaryInsertion);
         Assert.Equal(1.00, model.LocalPairContraction);
     }
 }
