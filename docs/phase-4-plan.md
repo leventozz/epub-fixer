@@ -27,6 +27,7 @@
 | Üretim çıktısı sayaç kilidi | `tests/EpubFixer.Tests/OcrMutationBaselineTests.cs` | Motor değişiminin etkisi hash değil, **sayı** olarak görünür |
 | Lattice süre testi | `tests/EpubFixer.Tests/PerformanceBudgetTests.cs` (yeni `[Fact]`) | D44'ün daralttığı sınırlar geri açılırken ilk kırılacak şey |
 | Benchmark'ın OCR kolu | `benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkRunner.cs` | Ground truth **OCR düzeltmelerini de** ölçer; D48 borcu burada kapanır |
+| Tracker resync | `benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkOccurrenceTracker.cs` | Çok karakterli OCR düzenlemelerinden sonra ölçümün kaymaması (D64) |
 | Bölge mutation geometrisi | `EpubFixer.Core/Mutation/RegionMutationPlanner.cs` | Region tabanlı düzeltme → mevcut `Applier`'ın anladığı plan |
 | Mutation kökeni | `EpubFixer.Core/Mutation/Models/OcrMutationProvenance.cs` | Mutation artık `OcrCorrectionDecision`'a bağlı değil |
 | Motor portu | `EpubFixer.Core/Ocr/IOcrCorrectionPlanner.cs` | `EpubFixService` politikası somut motoru görmez |
@@ -213,12 +214,55 @@ Bu, yol haritasının R4.2 kabul kriterini ("`QualityBenchmark` full koşusu R0.
 bugünkü hâliyle **boş** yapar: kapı geçse de lattice motoru hakkında hiçbir şey söylemez. R4.0c
 bunu düzeltir.
 
-İyi haber: ölçüm altyapısı zaten motor-bağımsız. `QualityBenchmarkOccurrenceTracker` canlı DOM
-`IRange`'leri üzerinden çalışıyor
-([QualityBenchmarkOccurrenceTracker.cs:33](../benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkOccurrenceTracker.cs#L33)),
-yani hangi applier metni değiştirirse değiştirsin `CorrectlyFixed` / `WronglyFixed` /
-`ProtectedChanged` doğru sayılır. Eklenmesi gereken tek şey, hyphenation aşamalarından sonra bir
-**OCR aşaması** ve o aşama için bir `IntegrityEvaluator.Audit` çağrısıdır.
+Eklenmesi gereken şey, hyphenation aşamalarından sonra bir **OCR aşaması** ve o aşama için bir
+`IntegrityEvaluator.Audit` çağrısıdır — **ama tek başına yeterli değildir**; bkz. 5.4b.
+
+### 5.4b Tracker yalnızca tek karakterlik düzenlemeye dayanıklı (D64)
+
+> Bu tespit, planın ilk sürümündeki bir **hatanın düzeltmesidir**. İlk sürüm "ölçüm altyapısı
+> zaten motor-bağımsız, tracker'lar canlı DOM `IRange`'leri üzerinden çalışıyor, üç sayacın
+> hesabına dokunulmaz" diyordu. **İkisi de yanlıştı** ve R4.0c ilk denemede bu yüzden kırıldı.
+
+`QualityBenchmarkOccurrenceTracker` canlı DOM range'ini **okumuyor**. `IRange` yaratılıp
+`Detach()` ediliyor ama hiçbir yerde okunmuyor (tüm dosyada tek kullanım
+[satır 84](../benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkOccurrenceTracker.cs#L84)).
+Bütün okuma
+[MapOffset](../benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkOccurrenceTracker.cs#L182)
+üzerinden yapılıyor: node'un ilk snapshot'ı (`TrackedSourceSpan.OriginalText`) ile şimdiki
+`SourceNode.Data`'sını karakter karakter yeniden hizalayan açgözlü bir sezgisel. Lookahead'i
+**tek karakterliktir**: bir karakterlik ekleme veya silmeyi soğurur, fazlasında hizayı kaybeder.
+
+Bu, hyphenation için tasarlanmış ve orada doğrudur: inline applier her düzeltmede tam olarak bir
+karakter siler (`hyphen.Length != 1` guard'ı +
+[`Delete(start, 1)`](../src/EpubFixer.Core/Correction/HyphenationCorrectionApplier.cs#L49)).
+
+OCR applier kategorik olarak farklı bir şey yapar
+([OcrCorrectionMutationApplier.cs:59](../src/EpubFixer.Core/Mutation/OcrCorrectionMutationApplier.cs#L59)):
+çok karakterli, uzunluk değiştiren replacement. R4.0a baseline'ındaki 120 legacy mutation'ın
+uzunluk deltası:
+
+| delta | adet |
+|---:|---:|
+| −4 | 4 |
+| −3 | 10 |
+| −2 | 38 |
+| −1 | 45 |
+| 0 | 19 |
+| +1 | 4 |
+
+**52 mutation `|delta| ≥ 2`.** Aynı text node içinde böyle bir düzenlemenin *arkasında* kalan her
+tracked span kaymış offset'ten okur; `ReadObservedText` ne `Expected` ne `Original` ile başlayan
+bir metin döndürür ve kayıt `WronglyFixed` sayılır. Metin bozulmamıştır — **ölçüm bozulmuştur.**
+
+İlk R4.0c denemesinin ölçtüğü şey buydu: `148 / 0 / 12` → `141 / 8 / 11`
+(precision %94,63, recall %88,12), yani 7 kayıt `CorrectlyFixed` → `WronglyFixed`, 1 kayıt
+`Deferred` → `WronglyFixed`. Buna karşılık R4.0a baseline'ındaki 120 mutation ile ground truth'un
+160 kaydı arasında **hiçbir kesişim yok**: mutation kaynağı bir known error'ın `expected`'ine de
+`original`'ine de eşit değil, kısmi (substring, ≥4 karakter) örtüşme de sıfır. Üretimde legacy
+motor ground truth'un hiçbir yüzey biçimine dokunmuyor.
+
+Çözüm 6.3'te: sezgisel hyphenation aşamaları için **korunur** (148/0/12 baseline'ı ona bağlı),
+OCR aşamasından sonra tracker'lar **mutation geometrisiyle kesin olarak** yeniden hizalanır.
 
 ### 5.5 `OcrCorrectionMutation` eski karar modeline çivilenmiş
 
@@ -405,18 +449,52 @@ var ocrIntegrity = integrityEvaluator.Audit(beforeOcr, package.SpineDocuments, o
 3. `UnexpectedTextChanges` ve `NonTextChanges` toplamına OCR aşamasının sayıları **eklenir**. Kapı
    bu ikisinin sıfır olmasını zaten istiyor
    ([QualityBenchmarkGateEvaluator.cs:22-23](../benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkGateEvaluator.cs#L22)).
-4. `CorrectlyFixed` / `WronglyFixed` / `ProtectedChanged` **kendiliğinden** doğru sayılır:
-   tracker'lar canlı DOM range'leri üzerinde (5.4). Bu üç sayacın hesabına dokunulmaz.
-5. Rapor yazıcısı yeni bir **"OCR Stage"** bölümü basar: planlanan / uygulanan mutation sayısı,
+4. **Tracker'lar OCR aşamasından sonra kesin olarak yeniden hizalanır (D64).**
+   `CorrectlyFixed` / `WronglyFixed` / `ProtectedChanged` sayaçlarının **hesap mantığına**
+   dokunulmaz; düzeltilen şey, tracker'ın offset'i nasıl bulduğudur (5.4b). Kural:
+   - `MapOffset` sezgiseli **olduğu gibi kalır** — hyphenation aşamalarının ölçümü ona bağlı ve
+     orada doğru çalışıyor. Silinmez, "iyileştirilmez".
+   - OCR applier koştuktan **sonra**, okuma yapılmadan önce her tracker
+     `Resync(IReadOnlyList<OcrCorrectionMutation>)` ile tazelenir: her `TrackedSourceSpan` için,
+     **aynı text node'da** (`DocumentPath` + `TextNodeIndex`) ve `Start`'ından **önce** biten
+     mutation span'lerinin net uzunluk deltası toplanıp `Start`'a eklenir; `OriginalText`
+     snapshot'ı node'un yeni `Data`'sıyla değiştirilir.
+   - Span'in **içine** düşen bir mutation varsa (tracked aralık ile mutation kesişiyorsa) offset
+     kaydırılmaz — o kayıt gerçekten değişmiştir ve olduğu gibi okunmalıdır.
+   - Geometri `OcrMutationSourceSpan` (`TextNodeIndex`, `Start`, `Length`, `ExpectedText`) ve
+     mutation'ın `ReplacementText`'inden gelir; sezgisel yok, tahmin yok.
+5. `ocrResult.Succeeded` **assert edilir**. Applier hepsi-ya-hiç çalışır; sessizce sıfır mutation
+   uygulanmış bir koşu "kapı yeşil" gibi görünür ve hiçbir şey ölçmez.
+6. Rapor yazıcısı yeni bir **"OCR Stage"** bölümü basar: planlanan / uygulanan mutation sayısı,
    başarısızlıklar, motor adı.
 
+**Sıra (test-first):**
+
+1. **Önce teşhis, sonra kod.** OCR aşamasını ekle, koş, kırılıyorsa 8 (veya kaç tanesi varsa)
+   `CorrectionFailures` kaydının `Occurrence.Id` / `Original` / `Expected` / `ObservedText`
+   değerlerini bas. `ObservedText`'ler **kaymış / kırpılmış parçalar** ise teşhis 5.4b'dir ve
+   2. adıma geçilir. **Makul ama yanlış birer OCR düzeltmesi** ise teşhis yanlıştır: bu gerçek bir
+   precision sorunudur — **DUR ve bildir**, resync yazma.
+2. `Resync` için kırmızı birim testi: bir text node'un başında çok karakterli (`|delta| ≥ 2`) bir
+   replacement uygulandığında, node'un ilerisindeki tracked span'in okuması **değişmemelidir**.
+3. Minimum `Resync` implementasyonu (kural 4).
+4. Full benchmark koşusu.
+
 **Kabul:**
-- Benchmark OCR kolu açıkken koşar ve kapı sonucu **bu kalemden önce ne ise o kalır** (legacy
-  motorla ölçülüyor; kapı kırılıyorsa bu bir keşiftir, DUR ve bildir).
-- `ProtectedChanged == 0` ve `UnexpectedTextChanges == 0` legacy motorla ölçülmüştür. **D48'in
-  borcu budur** ve mekanizması buradan sonra lattice için de hazırdır (D51).
+- Benchmark OCR kolu açıkken koşar ve kapı sonucu **bu kalemden önce ne ise o kalır**: legacy
+  motorla `CorrectlyFixed = 148`, `WronglyFixed = 0`, `Deferred = 12`, precision %100,
+  recall %92,5. Bu sayılar **resync'in doğruluk testidir**: legacy motorun 120 mutation'ı ground
+  truth'un 160 kaydıyla hiç kesişmiyor (5.4b), dolayısıyla OCR aşaması bu üç kovayı
+  **değiştirmemelidir**. Değiştiriyorsa resync eksik veya yanlıştır.
+- `ProtectedChanged == 0`, `ProtectedViolated == 0`, `UnexpectedTextChanges == 0`,
+  `NonTextChanges == 0` legacy motorla ölçülmüştür. **D48'in borcu budur** ve mekanizması buradan
+  sonra lattice için de hazırdır (D51).
+- `ocrResult.Succeeded == true` ve `AppliedCount == 120` (R4.0a ile tutarlı).
 - Ölçülen precision / recall / sınıf kırılımı `docs/baselines/odun-kesmek.fix-legacy.json`'a
   eklenir.
+
+**Hâlâ kırılıyorsa DUR.** Kapıyı gevşetme, eşik düşürme, `MapOffset`'i yeniden yazma. Bulguyu
+bildir; karar bölüm 10'a eklenir.
 
 ### 6.4 Alt adım d — Gate profiline OCR notu (ayrı commit)
 
@@ -873,6 +951,12 @@ Numaralandırma Faz 3'ün D48'inden devam eder.
 | D62 | **R4.3 koşulludur.** Alt küme kanıtı sağlanmazsa silme yapılmaz, iki motor bayrağın arkasında yaşar ve kalem Faz 5'e ertelenir. | Bugünkü kapı 563 region'ın 418'ini `OriginalTokenIsValid` ile kapatıyor; lattice'in legacy'nin üst kümesi olması beklenmiyor. Ölçmeden silmek, sessiz recall kaybıdır. | Bölüm 9 |
 | D63 | Faz 4 kalite kapısının **eşikleri yükseltilmez**. Ground truth'un OCR kolu 12 kayıttır; kanıt yükü elle inceleme ve sıfır-regresyon ölçütlerindedir. | 12 kayıt üzerinde ölçülen bir precision/recall istatistiksel olarak anlamlı değil. Gate'i o sayıya göre sıkmak yanlış güven, gevşetmek regresyon gizler. | Bölüm 5.10, 11 |
 
+### Uygulama sırasında verilen kararlar (D64–)
+
+| # | Karar | Gerekçe | Nereye işlendi |
+|---|---|---|---|
+| D64 | Planın ilk sürümündeki "**ölçüm altyapısı zaten motor-bağımsız, tracker'lar canlı DOM `IRange`'leri üzerinde, üç sayacın hesabına dokunulmaz**" tespiti **yanlıştı ve geri alındı**. `MapOffset` sezgiseli hyphenation aşamaları için korunur; OCR aşamasından sonra tracker'lar **mutation geometrisiyle kesin olarak** yeniden hizalanır (`Resync`). | Tracker `IRange`'i yaratıp `Detach()` ediyor ama hiç okumuyor; okuma tek karakterlik lookahead'i olan `MapOffset` üzerinden. Hyphenation her düzeltmede tam bir karakter siliyor, OCR ise 120 mutation'ın **52'sinde** uzunluğu ≥2 değiştiriyor. İlk R4.0c denemesi bu yüzden `148/0/12` → `141/8/11` verdi; oysa 120 mutation ile ground truth'un 160 kaydı arasında hiç kesişim yok — metin değil, ölçüm bozulmuştu. | Bölüm 5.4, 5.4b, 6.3 kural 4, 11 risk #12 |
+
 Yeni bir karar ihtiyacı doğarsa agent kendi başına karara varmaz; gerekçeyi bildirip bekler ve karar
 bu tabloya eklenir.
 
@@ -893,6 +977,8 @@ bu tabloya eklenir.
 | 9 | `OcrCorrectionV11RealRegressionTests`'in silinmesiyle eski motorun tek ayrıntılı ölçümü kaybolur | Orta | R4.3'ün ilk işi lattice için eşdeğer hedef testi (9.2) |
 | 10 | Süre 120 sn'yi aşar | Düşük | D61 alt bütçesi + R4.0b'nin 30 sn lattice testi; regresyon motor değil, prefill kaynaklıysa `MorphologyCallTraceTests` gösterir |
 | 11 | `EpubOutputValidator`'ın "reload sonrası AutoFixCandidate kalmadı" kontrolü lattice düzeltmesinin yarattığı yeni bir tireleme adayıyla kırılır | Düşük | Kontrol zaten mutation sonrası akışta; R4.2c'nin full koşusu bunu doğrudan sınar |
+| 12 | **Ölçüm aleti hasarı kalite sorunu sanılır:** kapı kırılır, sebebi tracker'ın kaymış okuması olduğu hâlde motor suçlanır (veya tersi — gerçek hasar "tracker sorunu" diye geçiştirilir) | Yüksek | D64 / 5.4b; R4.0c'nin 1. adımı **önce `ObservedText` dump'ı** zorunlu kılıyor. Ayırt edici ölçüt: kaymış/kırpılmış parça → alet; makul ama yanlış düzeltme → motor. İkinci durumda DUR |
+| 13 | `Resync` fazla kaydırır: tracked aralığın **içine** düşen gerçek bir değişimi de "kaydır" sayıp hasarı gizler | Orta | 6.3 kural 4'ün üçüncü maddesi: kesişen mutation'da offset kaydırılmaz. Legacy koşusunda beklenen sonuç `148/0/12`; resync fazla kaydırırsa bu sayılar da bozulur, yani kendi testini taşıyor |
 
 ---
 
@@ -902,16 +988,21 @@ bu tabloya eklenir.
 ```
 EpubFixer projesinde docs/phase-4-plan.md'deki R4.0 kalemini uygulayacaksın.
 
+NOT: R4.0a ve R4.0b commit'lendi (ca2cdf1, a06c04b). Kalan iş R4.0c ve R4.0d'dir.
+R4.0c bir kez denendi ve kapı kırıldı; sebebi bulundu ve plana D64 olarak işlendi.
+Bölüm 5.4b'yi okumadan başlama.
+
 Önce şunları oku:
-- docs/phase-4-plan.md — bölüm 2 (ön koşul), 3 (ortak kurallar), 5 (mevcut durum tespiti),
-  6 (R4.0), 10 (kararlar D49, D50, D51, D63)
+- docs/phase-4-plan.md — bölüm 2 (ön koşul), 3 (ortak kurallar), 5.4 ve **5.4b**, 6.3, 6.4,
+  10 (kararlar D49, D50, D51, D63, **D64**), 11 (risk #12, #13)
 - docs/phase-3-plan.md — bölüm 1b ve 15.1
-- src/EpubFixer.Core/Fix/EpubFixService.cs
-- tests/EpubFixer.Tests/MorphologyCallTraceTests.cs
-- tests/EpubFixer.Tests/PerformanceBudgetTests.cs
+- docs/baselines/odun-kesmek.fix-legacy.json (R4.0a çıktısı — 120 mutation'ın tam listesi)
 - benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkRunner.cs
+- benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkOccurrenceTracker.cs (özellikle
+  ReadObservedText ve MapOffset)
 - benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkIntegrityEvaluator.cs
-- src/EpubFixer.Cli/Program.cs satır 338-470 (RunDebugLattice — OKU, kopyala, DEĞİŞTİRME)
+- src/EpubFixer.Core/Mutation/OcrCorrectionMutationApplier.cs (satır 59 — çok karakterli replacement)
+- src/EpubFixer.Core/Correction/HyphenationCorrectionApplier.cs (satır 49 — tek karakterlik silme)
 
 Kurallar:
 - ÖN KOŞUL: çalışma ağacı temiz ve suite yeşil olmalı. Değilse DUR ve bildir.
@@ -923,9 +1014,18 @@ Kurallar:
   Bitiş raporunda her sayının nereden geldiğini yaz (kural 3.4 / D41).
 - Golden hash 37b72bc8508ceb6a06e9f8a5c7f41f65503e5bb99c9a436b82c37e960b2018be DEĞİŞMEMELİ.
   Değişirse DUR — bir yerde üretim davranışını değiştirdin demektir.
-- Lattice süre testi 30 sn'yi aşarsa eşiği büyütme; DUR ve bildir (D38).
-- Benchmark OCR kolu eklendikten sonra kapı kırılıyorsa DUR ve bildir; kapıyı gevşetme.
+- R4.0c'de ÖNCE TEŞHİS: kapı kırılırsa CorrectionFailures kayıtlarının ObservedText değerlerini
+  bas (bölüm 6.3 "Sıra" adım 1). Kaymış/kırpılmış parça ise D64'ün resync'ini yaz. Makul ama
+  yanlış bir OCR düzeltmesi ise bu gerçek bir precision sorunudur — DUR ve bildir, resync yazma.
+- MapOffset sezgiselini SİLME veya yeniden yazma; hyphenation ölçümü ona bağlı (D64).
+- Resync sonrası legacy koşusunda beklenen: CorrectlyFixed=148, WronglyFixed=0, Deferred=12,
+  precision %100, recall %92,5, AppliedCount=120, Succeeded=true. Bu sayılar resync'in doğruluk
+  testidir — 120 mutation ground truth'un 160 kaydıyla hiç kesişmiyor, dolayısıyla OCR aşaması
+  bu kovaları DEĞİŞTİRMEMELİ.
+- Resync sonrası kapı hâlâ kırıksa DUR ve bildir; kapıyı gevşetme, eşik düşürme.
 - Kapsam R4.0 ile sınırlı: port yok, RegionMutationPlanner yok, lattice'i fix'e bağlama yok.
+  Benchmark'ın V2 hyphenation'ı koşmaması bilinen bir farktır, BU KALEMDE DÜZELTİLMEZ —
+  bitiş raporunda gözlem olarak yaz.
 
 Bitirdiğinde: eklenen testler, ölçülen sayılar ve nereden geldikleri, benchmark'ın OCR kolu
 açıkken kapı sonucu, planda güncellenmesi gereken bir şey olup olmadığı.

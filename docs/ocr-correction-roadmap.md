@@ -507,6 +507,12 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
 > kriteri bugün **boştur** çünkü benchmark OCR düzeltmelerini hiç uygulamıyor (plan bölüm 5.4), ve
 > lattice motoru üretimde **hyphenation'dan sonra** koştuğu için Faz 3'te ölçülen 31 `Apply`
 > sayısı üretim hattına doğrudan taşınmaz (plan bölüm 5.2).
+>
+> **Uygulama durumu:** R4.0a (`ca2cdf1`) ve R4.0b (`a06c04b`) tamam — legacy OCR mutation baseline'ı
+> (120 mutation) ve lattice süre bütçesi (28,8 sn, 563 region, 31 Apply) kilitlendi. R4.0c ilk
+> denemede kapıyı kırdı; sebep motorda değil **ölçüm aletinde** çıktı: benchmark tracker'ı yalnızca
+> tek karakterlik düzenlemeye dayanıklı, OCR mutation'larının 52'si uzunluğu ≥2 değiştiriyor. Planın
+> bu konudaki ilk tespiti yanlıştı ve **D64** ile düzeltildi (plan bölüm 5.4b).
 
 ---
 
