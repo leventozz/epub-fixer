@@ -1,10 +1,13 @@
 using EpubFixer.Core.Ocr.Lattice.Models;
 using EpubFixer.Core.Ocr.Models;
+using System.Globalization;
 
 namespace EpubFixer.Core.Ocr.Lattice;
 
 public sealed class WordLatticeBuilder(ILexiconMatcher matcher) : IWordLatticeBuilder
 {
+    private static readonly CultureInfo TurkishCulture = new("tr-TR");
+
     public WordLattice Build(CorruptedTextRegion region, string fullText, LatticeOptions options)
     {
         ArgumentNullException.ThrowIfNull(region);
@@ -59,7 +62,7 @@ public sealed class WordLatticeBuilder(ILexiconMatcher matcher) : IWordLatticeBu
                         return BudgetExceeded(selected, budget);
                     }
 
-                    arcs.Add(new LatticeArc(from, to, match.Word, match.Cost, LatticeArcKind.Word));
+                    arcs.Add(new LatticeArc(from, to, RestoreCase(match.Word, span), match.Cost, LatticeArcKind.Word));
                     if (visitedNodes.Add(to))
                     {
                         work.Add(to);
@@ -80,7 +83,7 @@ public sealed class WordLatticeBuilder(ILexiconMatcher matcher) : IWordLatticeBu
         new(selected.Window, selected.WindowOffset, Array.Empty<LatticeArc>(), LatticeBuildOutcome.BudgetExceeded, (int)budget.Visited);
 
     private static double BudgetFor(string span, LatticeOptions options) =>
-        Math.Min(options.BudgetCap, options.BudgetBase + options.BudgetPerFourChars * (span.Length / 4));
+        Math.Min(options.BudgetCap, options.BudgetBase + options.BudgetPerFourChars * Math.Ceiling(span.Length / 4.0));
 
     private static IReadOnlyList<LatticeArc> SortArcs(IEnumerable<LatticeArc> arcs) =>
         arcs
@@ -144,4 +147,23 @@ public sealed class WordLatticeBuilder(ILexiconMatcher matcher) : IWordLatticeBu
 
     private static bool IsTokenCharacter(char value) =>
         char.IsLetterOrDigit(value) || value is '\'' or '’';
+
+    private static string RestoreCase(string word, string span)
+    {
+        if (word.Length == 0)
+        {
+            return word;
+        }
+
+        var letters = span.Where(char.IsLetter).ToArray();
+        if (letters.Length >= 2 && letters.All(char.IsUpper))
+        {
+            return word.ToUpper(TurkishCulture);
+        }
+
+        var firstLetter = span.FirstOrDefault(char.IsLetter);
+        return firstLetter != '\0' && char.IsUpper(firstLetter)
+            ? char.ToUpper(word[0], TurkishCulture) + word[1..]
+            : word;
+    }
 }
