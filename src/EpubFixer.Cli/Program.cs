@@ -589,7 +589,7 @@ static void WriteOcrMutationReport(string path, OcrMutationResult result)
     var index = 1;
     foreach (var mutation in result.AppliedMutations)
     {
-        builder.AppendLine($"| {index++} | {mutation.DocumentPath} | {mutation.OriginalSourceText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.ReplacementText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.DecisionRule} | {mutation.Confidence} | {mutation.SourceSpans.Count} | true | |");
+        builder.AppendLine($"| {index++} | {mutation.DocumentPath} | {mutation.OriginalSourceText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.ReplacementText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.DecisionRule} | {mutation.Confidence?.ToString() ?? "—"} | {mutation.SourceSpans.Count} | true | |");
     }
     builder.AppendLine();
     builder.AppendLine("## Mutation Risk Audit");

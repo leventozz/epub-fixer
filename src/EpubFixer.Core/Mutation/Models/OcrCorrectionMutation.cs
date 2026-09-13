@@ -1,4 +1,3 @@
-using EpubFixer.Core.Decision.Models;
 using EpubFixer.Core.Ocr.Models;
 
 namespace EpubFixer.Core.Mutation.Models;
@@ -9,10 +8,10 @@ public sealed record OcrCorrectionMutation(
     int LogicalLength,
     string OriginalSourceText,
     string ReplacementText,
-    OcrCorrectionDecision Decision,
+    OcrMutationProvenance Provenance,
     IReadOnlyList<OcrMutationSourceSpan> SourceSpans)
 {
-    public string DecisionRule => Decision.DecisionReasons.FirstOrDefault().ToString();
-    public OcrConfidence Confidence => Decision.SourceOccurrence.Source.Confidence;
-    public bool IsMultiSource => Decision.SelectedProposal?.Proposal.ConsumesMultipleOccurrences == true;
+    public string DecisionRule => Provenance.Rule;
+    public OcrConfidence? Confidence => Provenance.Confidence;
+    public bool IsMultiSource => Provenance.ConsumesMultipleSources;
 }

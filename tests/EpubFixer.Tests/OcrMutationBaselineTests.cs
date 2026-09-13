@@ -121,7 +121,7 @@ public sealed class OcrMutationBaselineTests
                 mutation.OriginalSourceText,
                 mutation.ReplacementText,
                 mutation.DecisionRule,
-                mutation.Confidence.ToString(),
+                mutation.Confidence?.ToString() ?? "None",
                 mutation.SourceSpans.Count);
     }
 }
