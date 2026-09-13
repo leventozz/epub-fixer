@@ -15,6 +15,13 @@ namespace EpubFixer.QualityBenchmarks;
 
 public sealed class QualityBenchmarkRunner
 {
+    private readonly IOcrCorrectionPlanner ocrCorrectionPlanner;
+
+    public QualityBenchmarkRunner(IOcrCorrectionPlanner? ocrCorrectionPlanner = null)
+    {
+        this.ocrCorrectionPlanner = ocrCorrectionPlanner ?? new LegacyOcrCorrectionPlanner();
+    }
+
     public QualityBenchmarkResult Run(QualityBenchmarkDataset dataset)
     {
         ArgumentNullException.ThrowIfNull(dataset);
@@ -104,10 +111,8 @@ public sealed class QualityBenchmarkRunner
         var ocrStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
         using var ocrMorphologyAnalyzer = new FomaTurkishMorphologyAnalyzer();
         var ocrOracleBuilder = new BatchMorphologyOracleBuilder(ocrMorphologyAnalyzer);
-        var ocrAnalysis = new OcrAnalysisService().AnalyzeCorrections(ocrStream, ocrOracleBuilder);
-        var ocrDecisionReport = new OcrCorrectionDecisionEvaluator().Evaluate(ocrAnalysis);
-        var ocrPlan = new OcrCorrectionMutationPlanner().Create(ocrDecisionReport.Decisions, ocrStream);
-        var ocrResult = new OcrCorrectionMutationApplier().Apply(package, ocrPlan);
+        var ocrPlanResult = ocrCorrectionPlanner.CreatePlan(ocrStream, ocrOracleBuilder);
+        var ocrResult = new OcrCorrectionMutationApplier().Apply(package, ocrPlanResult.Plan) with { Engine = ocrPlanResult.Engine };
         if (!ocrResult.Succeeded)
         {
             throw new InvalidOperationException(
@@ -188,7 +193,7 @@ public sealed class QualityBenchmarkRunner
                 .Concat(crossIntegrity.NonTextChanges)
                 .Concat(ocrIntegrity.NonTextChanges)
                 .ToArray(),
-            OcrEngine = "legacy",
+            OcrEngine = ocrResult.Engine.ToString().ToLowerInvariant(),
             OcrMutation = ocrResult,
             ClassBreakdowns = CreateClassBreakdowns(
                 dataset.GroundTruth.KnownErrors,

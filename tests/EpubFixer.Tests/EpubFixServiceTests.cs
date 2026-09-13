@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Security.Cryptography;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Epub.Models;
@@ -117,6 +116,7 @@ public sealed class EpubFixServiceTests
             Assert.NotNull(result.OcrMutation);
             Assert.True(result.OcrMutation!.Succeeded);
             Assert.Equal(0, result.OcrMutation.PlannedCount);
+            Assert.Equal(OcrCorrectionEngine.Lattice, result.OcrMutation.Engine);
         }
         finally
         {
@@ -130,13 +130,27 @@ public sealed class EpubFixServiceTests
     [Fact]
     public void Fix_DefaultsToLegacyPlanner()
     {
-        using var analyzer = new FomaTurkishMorphologyAnalyzer();
-        var service = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer));
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>text</p>"))],
+            [new TestSpineItem("chapter")]);
+        var outputPath = Path.Combine(Path.GetTempPath(), $"epubfixer-default-planner-{Guid.NewGuid():N}.epub");
 
-        var field = typeof(EpubFixService).GetField("ocrCorrectionPlanner", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new InvalidOperationException("EpubFixService no longer has an ocrCorrectionPlanner field.");
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer))
+                .Fix(epub.Path, outputPath, applyOcrCorrections: true);
 
-        Assert.IsType<LegacyOcrCorrectionPlanner>(field.GetValue(service));
+            Assert.NotNull(result.OcrMutation);
+            Assert.Equal(OcrCorrectionEngine.Legacy, result.OcrMutation!.Engine);
+        }
+        finally
+        {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
     }
 
     private static string Xhtml(string body)
@@ -158,7 +172,7 @@ public sealed class EpubFixServiceTests
         public OcrCorrectionPlanResult CreatePlan(LogicalTextStream stream, EpubFixer.Core.Morphology.IMorphologyOracleBuilder oracleBuilder)
         {
             WasCalled = true;
-            return new(new OcrCorrectionMutationPlan(stream.Text, [], []), OcrCorrectionEngine.Legacy, []);
+            return new(new OcrCorrectionMutationPlan(stream.Text, [], []), OcrCorrectionEngine.Lattice, []);
         }
     }
 }

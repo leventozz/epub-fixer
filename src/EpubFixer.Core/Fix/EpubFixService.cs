@@ -109,7 +109,7 @@ public sealed class EpubFixService
         if (applyOcrCorrections)
         {
             var planResult = ocrCorrectionPlanner.CreatePlan(finalStream, morphologyOracleBuilder);
-            ocrMutation = new OcrCorrectionMutationApplier().Apply(package, planResult.Plan);
+            ocrMutation = new OcrCorrectionMutationApplier().Apply(package, planResult.Plan) with { Engine = planResult.Engine };
             if (!ocrMutation.Succeeded)
                 throw new InvalidDataException("OCR mutation failed: " + string.Join(", ", ocrMutation.Failures.Select(item => item.Reason)));
             finalStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);

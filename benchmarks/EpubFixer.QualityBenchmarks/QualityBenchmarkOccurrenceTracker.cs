@@ -259,8 +259,9 @@ internal sealed class QualityBenchmarkOccurrenceTracker
         var resolvedLength = resolved.Text.Length;
         var resolvedEnd = resolvedStart + resolvedLength;
 
-        var delta = 0;
-        var intersects = false;
+        var startDelta = 0;
+        var lengthDelta = 0;
+        var touched = false;
 
         foreach (var mutation in mutations)
         {
@@ -282,36 +283,48 @@ internal sealed class QualityBenchmarkOccurrenceTracker
                     continue;
                 }
 
+                var replacementLength = index == 0 ? mutation.ReplacementText.Length : 0;
+                var netLength = replacementLength - source.Length;
                 var sourceEnd = source.Start + source.Length;
+
                 if (source.Start < resolvedEnd && resolvedStart < sourceEnd)
                 {
-                    intersects = true;
+                    // The mutation falls inside the tracked span: that record genuinely
+                    // changed. Its length changes accordingly so the read below is
+                    // exact, not a stale pre-OCR length that could read past (or short
+                    // of) the actual replacement and be silently "saved" by
+                    // ReadObservedText's StartsWith guard - which would just as easily
+                    // mask a genuine over-correction.
+                    touched = true;
+                    lengthDelta += netLength;
                     continue;
                 }
 
                 if (sourceEnd <= resolvedStart)
                 {
-                    var replacementLength = index == 0 ? mutation.ReplacementText.Length : 0;
-                    delta += replacementLength - source.Length;
+                    touched = true;
+                    startDelta += netLength;
                 }
             }
         }
 
-        if (!intersects && delta == 0)
+        if (!touched)
         {
             // No OCR mutation touched this node at or before the tracked span: the
             // node's current data is identical to its pre-OCR data here, so the
             // existing (untouched) MapOffset/RemoveSingleHyphen read keeps working.
+            // Falling back to net delta == 0 here would be wrong: two preceding
+            // mutations in the same node can cancel out to a net delta of zero while
+            // still desyncing MapOffset's single-character-lookahead walk (D64) -
+            // once any mutation touches this node, the exact path below is always at
+            // least as good as the heuristic.
             return tracked;
         }
 
-        // A mutation intersecting the span itself never contributes to delta (see the
-        // loop above) - its content genuinely changed and is read as-is below. Any
-        // other, strictly preceding mutation in the same node still shifts position.
         return tracked with
         {
-            Start = resolvedStart + delta,
-            Length = resolvedLength,
+            Start = resolvedStart + startDelta,
+            Length = Math.Max(0, resolvedLength + lengthDelta),
             OriginalText = tracked.SourceNode.Data
         };
     }

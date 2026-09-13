@@ -7,9 +7,14 @@ using EpubFixer.QualityBenchmarks.Models;
 namespace EpubFixer.QualityBenchmarks;
 
 /// <summary>
-/// Audits the DOM mutations made by the production appliers. The expected
-/// state is deliberately modelled from source plans, rather than by running
-/// the production applier a second time.
+/// Audits the DOM mutations made by the production appliers. The hyphenation
+/// overload's expected state is deliberately modelled from source plans, independently
+/// of HyphenationCorrectionApplier / CrossParagraphHyphenationCorrectionApplier, so it can
+/// catch a bug in either applier. The OCR mutation overload has a narrower scope: its
+/// expected state is computed with the same Remove/Insert-at-descending-offset,
+/// replacement-goes-to-the-first-span algorithm OcrCorrectionMutationApplier itself uses
+/// (see OcrAllowedMutationSet below), so it cannot catch a bug in that applier's own
+/// mutation logic - it still catches any DOM change outside the plan's mutations.
 /// </summary>
 internal sealed class QualityBenchmarkIntegrityEvaluator
 {
