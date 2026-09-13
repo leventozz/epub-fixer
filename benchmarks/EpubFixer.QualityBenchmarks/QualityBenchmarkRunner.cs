@@ -6,6 +6,7 @@ using EpubFixer.Core.Epub;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Lexicon;
 using EpubFixer.Core.Morphology;
+using EpubFixer.Core.Mutation;
 using EpubFixer.Core.Ocr;
 using EpubFixer.QualityBenchmarks.Models;
 using EpubFixer.TrMorph;
@@ -99,6 +100,51 @@ public sealed class QualityBenchmarkRunner
             allowedFreshCrossParagraphPlans,
             "cross-paragraph");
 
+        var beforeOcr = integrityEvaluator.Capture(package.SpineDocuments);
+        var ocrStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
+        using var ocrMorphologyAnalyzer = new FomaTurkishMorphologyAnalyzer();
+        var ocrOracleBuilder = new BatchMorphologyOracleBuilder(ocrMorphologyAnalyzer);
+        var ocrAnalysis = new OcrAnalysisService().AnalyzeCorrections(ocrStream, ocrOracleBuilder);
+        var ocrDecisionReport = new OcrCorrectionDecisionEvaluator().Evaluate(ocrAnalysis);
+        var ocrPlan = new OcrCorrectionMutationPlanner().Create(ocrDecisionReport.Decisions, ocrStream);
+        var ocrResult = new OcrCorrectionMutationApplier().Apply(package, ocrPlan);
+        if (!ocrResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                "OCR mutation stage failed during quality benchmark: "
+                + string.Join(", ", ocrResult.Failures.Select(item => item.Reason)));
+        }
+        var ocrIntegrity = integrityEvaluator.Audit(
+            beforeOcr,
+            package.SpineDocuments,
+            ocrResult.AppliedMutations,
+            "ocr");
+
+        var beforeOcrText = new Dictionary<AngleSharp.Dom.IText, string>(ReferenceEqualityComparer.Instance);
+        foreach (var pair in beforeOcr.Nodes)
+        {
+            if (pair.Key is AngleSharp.Dom.IText text)
+            {
+                beforeOcrText[text] = pair.Value.Value;
+            }
+        }
+
+        // OcrMutationSourceSpan.TextNodeIndex is positional in ocrStream (built after
+        // hyphenation ran, which can remove/merge text nodes) - it is NOT comparable
+        // to a tracker's TextNodeIndex, which is positional in the pristine,
+        // pre-hyphenation stream. Resolve each mutation location to its actual node
+        // object through ocrStream's own segments so trackers can match by reference.
+        var mutationNodesByLocation = new Dictionary<(string DocumentPath, int TextNodeIndex), AngleSharp.Dom.IText>();
+        foreach (var segment in ocrStream.Segments)
+        {
+            mutationNodesByLocation[(segment.Source.DocumentPath, segment.Source.TextNodeIndex)] = segment.Source.SourceNode;
+        }
+
+        foreach (var tracker in knownTrackers.Concat(protectedTrackers))
+        {
+            tracker.Resync(beforeOcrText, mutationNodesByLocation, ocrResult.AppliedMutations);
+        }
+
         var correctionResult = new QualityBenchmarkCorrectionEvaluator().Evaluate(
             dataset.GroundTruth.KnownErrors,
             knownTrackers);
@@ -128,14 +174,22 @@ public sealed class QualityBenchmarkRunner
             CorrectionFailures = correctionResult.Failures,
             ProtectedChanged = protectedMutationResult.ProtectedChanged,
             ProtectedChanges = protectedMutationResult.Changes,
-            UnexpectedTextChanges = inlineIntegrity.TextChanges.Count + crossIntegrity.TextChanges.Count,
-            NonTextChanges = inlineIntegrity.NonTextChanges.Count + crossIntegrity.NonTextChanges.Count,
+            UnexpectedTextChanges = inlineIntegrity.TextChanges.Count
+                + crossIntegrity.TextChanges.Count
+                + ocrIntegrity.TextChanges.Count,
+            NonTextChanges = inlineIntegrity.NonTextChanges.Count
+                + crossIntegrity.NonTextChanges.Count
+                + ocrIntegrity.NonTextChanges.Count,
             UnexpectedTextChangeDetails = inlineIntegrity.TextChanges
                 .Concat(crossIntegrity.TextChanges)
+                .Concat(ocrIntegrity.TextChanges)
                 .ToArray(),
             NonTextChangeDetails = inlineIntegrity.NonTextChanges
                 .Concat(crossIntegrity.NonTextChanges)
+                .Concat(ocrIntegrity.NonTextChanges)
                 .ToArray(),
+            OcrEngine = "legacy",
+            OcrMutation = ocrResult,
             ClassBreakdowns = CreateClassBreakdowns(
                 dataset.GroundTruth.KnownErrors,
                 detectionResult.MissedOccurrences,

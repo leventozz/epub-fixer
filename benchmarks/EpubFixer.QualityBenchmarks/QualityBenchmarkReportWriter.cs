@@ -137,6 +137,24 @@ public static class QualityBenchmarkReportWriter
             writer.WriteLine($"original: {violation.Occurrence.Original}");
             writer.WriteLine($"decision: {violation.DecisionKind}");
         }
+
+        if (result.OcrMutation is not null)
+        {
+            writer.WriteLine();
+            writer.WriteLine("OCR Stage:");
+            writer.WriteLine($"  Engine: {result.OcrEngine}");
+            writer.WriteLine($"  Planned: {result.OcrMutation.PlannedCount}");
+            writer.WriteLine($"  Applied: {result.OcrMutation.AppliedCount}");
+            writer.WriteLine($"  Failures: {result.OcrMutation.Failures.Count}");
+
+            foreach (var failure in result.OcrMutation.Failures)
+            {
+                writer.WriteLine();
+                writer.WriteLine("OCR MUTATION FAILURE");
+                writer.WriteLine($"reason: {failure.Reason}");
+                writer.WriteLine($"detail: {failure.Message}");
+            }
+        }
     }
 
     private static string FormatRate(double? rate) => rate.HasValue

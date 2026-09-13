@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Epub.Models;
+using EpubFixer.Core.Mutation.Models;
 using EpubFixer.QualityBenchmarks.Models;
 
 namespace EpubFixer.QualityBenchmarks;
@@ -99,6 +100,79 @@ internal sealed class QualityBenchmarkIntegrityEvaluator
             {
                 AddText(textChanges, pair.Value, string.Empty, pair.Value.Value, phase,
                     "Text node was added unexpectedly.");
+            }
+        }
+
+        return new IntegrityBenchmarkResult(textChanges, nonTextChanges);
+    }
+
+    public IntegrityBenchmarkResult Audit(
+        DomSnapshot before,
+        IReadOnlyList<EpubContentDocument> documents,
+        IReadOnlyList<OcrCorrectionMutation> mutations,
+        string phase)
+    {
+        ArgumentNullException.ThrowIfNull(before);
+        ArgumentNullException.ThrowIfNull(documents);
+        ArgumentNullException.ThrowIfNull(mutations);
+
+        var current = new Dictionary<INode, NodeState>(ReferenceEqualityComparer.Instance);
+        foreach (var document in documents)
+        {
+            CaptureNode(document.Document, document.Path, "/", null, current);
+        }
+
+        var allowed = OcrAllowedMutationSet.Create(before, mutations, documents);
+        var textChanges = new List<UnexpectedTextChange>();
+        var nonTextChanges = new List<NonTextChange>();
+
+        foreach (var pair in before.Nodes)
+        {
+            var node = pair.Key;
+            var oldState = pair.Value;
+            if (!current.TryGetValue(node, out var newState))
+            {
+                AddNonText(nonTextChanges, oldState, phase, "removed", "Unrelated DOM node was removed during OCR mutation stage.");
+                if (node is IText && !string.IsNullOrEmpty(oldState.Value))
+                {
+                    AddText(textChanges, oldState, oldState.Value, string.Empty, phase,
+                        "Text node was removed during OCR mutation stage.");
+                }
+
+                continue;
+            }
+
+            if (!ReferenceEquals(oldState.Parent, newState.Parent))
+            {
+                AddNonText(nonTextChanges, oldState, phase, "moved", "Node moved during OCR mutation stage.");
+            }
+
+            if (node is IElement && !string.Equals(oldState.Attributes, newState.Attributes, StringComparison.Ordinal))
+            {
+                AddNonText(nonTextChanges, oldState, phase, "attribute", "Element attributes changed unexpectedly during OCR mutation stage.");
+            }
+
+            if (node is IText
+                && !string.Equals(oldState.Value, newState.Value, StringComparison.Ordinal)
+                && !allowed.IsAllowedText(node, newState.Value))
+            {
+                AddText(textChanges, oldState, oldState.Value, newState.Value, phase,
+                    $"Text changed outside a planned OCR mutation (before length {oldState.Value.Length}, after length {newState.Value.Length}).");
+            }
+        }
+
+        foreach (var pair in current)
+        {
+            if (before.Nodes.ContainsKey(pair.Key))
+            {
+                continue;
+            }
+
+            AddNonText(nonTextChanges, pair.Value, phase, "added", "Unrelated DOM node was added during OCR mutation stage.");
+            if (pair.Key is IText && !string.IsNullOrEmpty(pair.Value.Value))
+            {
+                AddText(textChanges, pair.Value, string.Empty, pair.Value.Value, phase,
+                    "Text node was added unexpectedly during OCR mutation stage.");
             }
         }
 
@@ -427,6 +501,89 @@ internal sealed class QualityBenchmarkIntegrityEvaluator
                     : null;
             }
             return null;
+        }
+    }
+
+    private sealed class OcrAllowedMutationSet
+    {
+        private readonly Dictionary<INode, string> _expectedText = new(ReferenceEqualityComparer.Instance);
+
+        public static OcrAllowedMutationSet Create(
+            DomSnapshot before,
+            IReadOnlyList<OcrCorrectionMutation> mutations,
+            IReadOnlyList<EpubContentDocument> documents)
+        {
+            var result = new OcrAllowedMutationSet();
+            var editsByNode = new Dictionary<INode, List<(int Start, int Length, string Replacement)>>(
+                ReferenceEqualityComparer.Instance);
+
+            foreach (var mutation in mutations)
+            {
+                var first = mutation.SourceSpans[0];
+                foreach (var span in mutation.SourceSpans)
+                {
+                    var node = FindTextNode(documents, span.DocumentPath, span.TextNodeIndex);
+                    if (node is null)
+                    {
+                        continue;
+                    }
+
+                    var replacement = ReferenceEquals(span, first) ? mutation.ReplacementText : string.Empty;
+                    if (!editsByNode.TryGetValue(node, out var edits))
+                    {
+                        edits = [];
+                        editsByNode[node] = edits;
+                    }
+                    edits.Add((span.Start, span.Length, replacement));
+                }
+            }
+
+            foreach (var pair in editsByNode)
+            {
+                if (!before.Nodes.TryGetValue(pair.Key, out var state))
+                {
+                    continue;
+                }
+
+                var text = state.Value;
+                foreach (var edit in pair.Value.OrderByDescending(item => item.Start))
+                {
+                    text = text.Remove(edit.Start, edit.Length).Insert(edit.Start, edit.Replacement);
+                }
+                result._expectedText[pair.Key] = text;
+            }
+
+            return result;
+        }
+
+        public bool IsAllowedText(INode node, string actual)
+        {
+            return _expectedText.TryGetValue(node, out var expected)
+                && string.Equals(expected, actual, StringComparison.Ordinal);
+        }
+
+        private static IText? FindTextNode(
+            IReadOnlyList<EpubContentDocument> documents,
+            string documentPath,
+            int textNodeIndex)
+        {
+            var document = documents.FirstOrDefault(item => string.Equals(item.Path, documentPath, StringComparison.Ordinal));
+            return document is null ? null : EnumerateTextNodes(document.Document.Body!).ElementAtOrDefault(textNodeIndex);
+        }
+
+        private static IEnumerable<IText> EnumerateTextNodes(INode node)
+        {
+            foreach (var child in node.ChildNodes)
+            {
+                if (child is IText text)
+                {
+                    yield return text;
+                }
+                foreach (var descendant in EnumerateTextNodes(child))
+                {
+                    yield return descendant;
+                }
+            }
         }
     }
 }

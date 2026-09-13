@@ -1,6 +1,7 @@
 namespace EpubFixer.QualityBenchmarks.Models;
 
 using EpubFixer.Core.Decision.Models;
+using EpubFixer.Core.Mutation.Models;
 
 public sealed record QualityBenchmarkResult(
     int KnownErrors,
@@ -56,6 +57,10 @@ public sealed record QualityBenchmarkResult(
     public IReadOnlyList<UnexpectedTextChange> UnexpectedTextChangeDetails { get; init; } = [];
 
     public IReadOnlyList<NonTextChange> NonTextChangeDetails { get; init; } = [];
+
+    public string? OcrEngine { get; init; }
+
+    public OcrMutationResult? OcrMutation { get; init; }
 }
 
 public sealed record ProtectedOccurrenceViolation(

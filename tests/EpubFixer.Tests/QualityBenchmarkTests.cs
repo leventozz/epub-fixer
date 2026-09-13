@@ -4,6 +4,7 @@ using EpubFixer.Core.Correction;
 using EpubFixer.Core.Detection;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Lexicon;
+using EpubFixer.Core.Mutation.Models;
 using EpubFixer.QualityBenchmarks.Models;
 using EpubFixer.QualityBenchmarks;
 
@@ -70,6 +71,51 @@ public sealed class QualityBenchmarkTests
     }
 
     [Fact]
+    public void Tracker_ResyncKeepsLaterSpanAlignedAfterMultiCharacterOcrMutation()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>aaaaTARGET</p>"))],
+            [new TestSpineItem("chapter")]);
+        var package = new EpubPackageReader().Read(epub.Path);
+        var segment = package.LogicalText.Segments.Single(item => item.Text.Contains("TARGET", StringComparison.Ordinal));
+        var documentPath = segment.Source.DocumentPath;
+        var targetStart = segment.Source.Start + segment.Text.IndexOf("TARGET", StringComparison.Ordinal);
+        var tracker = Assert.Single(QualityBenchmarkOccurrenceTracker.CreateKnown(
+            [
+                new KnownErrorOccurrence(
+                    "known-1",
+                    documentPath,
+                    "TARGET",
+                    "TARGET",
+                    [new GroundTruthSourceSpan(documentPath, segment.Source.TextNodeIndex, targetStart, 6)])
+            ],
+            package.LogicalText));
+        var text = (AngleSharp.Dom.IText)package.SpineDocuments[0].Document.QuerySelector("p")!.FirstChild!;
+        var beforeOcrText = "aaaaTARGET";
+        text.TextContent = "bTARGET";
+        var mutation = new OcrCorrectionMutation(
+            documentPath,
+            0,
+            4,
+            "aaaa",
+            "b",
+            null!,
+            [new OcrMutationSourceSpan(documentPath, segment.Source.TextNodeIndex, segment.Source.Start, 4, "aaaa")]);
+
+        var beforeOcrTextByNode = new Dictionary<AngleSharp.Dom.IText, string>(ReferenceEqualityComparer.Instance)
+        {
+            [text] = beforeOcrText
+        };
+        var mutationNodesByLocation = new Dictionary<(string DocumentPath, int TextNodeIndex), AngleSharp.Dom.IText>
+        {
+            [(documentPath, segment.Source.TextNodeIndex)] = text
+        };
+        tracker.Resync(beforeOcrTextByNode, mutationNodesByLocation, [mutation]);
+
+        Assert.Equal("TARGET", tracker.ReadObservedText());
+    }
+
+    [Fact]
     public void Integrity_ReportsUnexpectedTextAndAttributeMutation()
     {
         using var epub = TemporaryEpub.Create(
@@ -82,7 +128,11 @@ public sealed class QualityBenchmarkTests
         paragraph.SetAttribute("id", "changed");
         paragraph.TextContent = "unexpected";
 
-        var audit = evaluator.Audit(before, package.SpineDocuments, [], "inline");
+        var audit = evaluator.Audit(
+            before,
+            package.SpineDocuments,
+            Array.Empty<EpubFixer.Core.Correction.Models.HyphenationCorrectionPlan>(),
+            "inline");
 
         Assert.NotEmpty(audit.TextChanges);
         Assert.NotEmpty(audit.NonTextChanges);
