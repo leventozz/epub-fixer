@@ -495,6 +495,19 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
 - **Kabul:** Kaldırma sonrası kalite kapısı hâlâ yeşil; ölü kod kalmaz.
 - **Bağımlılık:** R4.2 + iki sürüm boyunca stabil koşu. **Boyut:** M.
 
+> Faz 4'ün uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
+> [phase-4-plan.md](phase-4-plan.md). Plan yol haritasından altı noktada ayrılır ve gerekçelerini
+> karar tablosuna (D49–D63) yazar: yol haritasında olmayan bir **R4.0 (ölçüm ve emniyet ağı)**
+> kalemi eklenip kritik yolun başına konur (D49), `OcrCorrectionMutation` eski karar modelinden
+> **`OcrMutationProvenance`'a** geçer (D54), çakışan bölge düzeltmeleri plan hatası değil
+> **atlama** olur (D55), `RegionMutationPlanner` **`RegionMutationPlanResult`** döner (D56), yeni
+> bir **`src/EpubFixer.Adapters`** projesi doğar (D57) ve **R4.3 koşullu hâle gelir** (D62).
+>
+> Plan ayrıca yol haritasının iki varsayımını düzeltir: R4.2'nin "`QualityBenchmark` kapıdan geçer"
+> kriteri bugün **boştur** çünkü benchmark OCR düzeltmelerini hiç uygulamıyor (plan bölüm 5.4), ve
+> lattice motoru üretimde **hyphenation'dan sonra** koştuğu için Faz 3'te ölçülen 31 `Apply`
+> sayısı üretim hattına doğrudan taşınmaz (plan bölüm 5.2).
+
 ---
 
 ### Faz 5 — Kalite turu
