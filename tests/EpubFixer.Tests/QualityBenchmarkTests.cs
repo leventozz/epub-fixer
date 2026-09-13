@@ -116,6 +116,54 @@ public sealed class QualityBenchmarkTests
     }
 
     [Fact]
+    public void Tracker_ResyncedOverCorrectionIsReadExactlyNotMaskedAsExpected()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>XX</p>"))],
+            [new TestSpineItem("chapter")]);
+        var package = new EpubPackageReader().Read(epub.Path);
+        var segment = package.LogicalText.Segments.Single(item => item.Text.Contains("XX", StringComparison.Ordinal));
+        var documentPath = segment.Source.DocumentPath;
+        var tracker = Assert.Single(QualityBenchmarkOccurrenceTracker.CreateKnown(
+            [
+                new KnownErrorOccurrence(
+                    "known-1",
+                    documentPath,
+                    "XX",
+                    "ABC",
+                    [new GroundTruthSourceSpan(documentPath, segment.Source.TextNodeIndex, segment.Source.Start, 2)])
+            ],
+            package.LogicalText));
+        var text = (AngleSharp.Dom.IText)package.SpineDocuments[0].Document.QuerySelector("p")!.FirstChild!;
+        var beforeOcrText = "XX";
+        // The engine over-corrects: it writes one character more than Expected.
+        // "ABCD".StartsWith("ABC") would previously snap the read to "ABC" and hide
+        // the extra character (R1) - the resynced span is now exact, so the guard
+        // must not fire.
+        text.TextContent = "ABCD";
+        var mutation = new OcrCorrectionMutation(
+            documentPath,
+            0,
+            2,
+            "XX",
+            "ABCD",
+            null!,
+            [new OcrMutationSourceSpan(documentPath, segment.Source.TextNodeIndex, segment.Source.Start, 2, "XX")]);
+
+        var beforeOcrTextByNode = new Dictionary<AngleSharp.Dom.IText, string>(ReferenceEqualityComparer.Instance)
+        {
+            [text] = beforeOcrText
+        };
+        var mutationNodesByLocation = new Dictionary<(string DocumentPath, int TextNodeIndex), AngleSharp.Dom.IText>
+        {
+            [(documentPath, segment.Source.TextNodeIndex)] = text
+        };
+        tracker.Resync(beforeOcrTextByNode, mutationNodesByLocation, [mutation]);
+
+        Assert.Equal("ABCD", tracker.ReadObservedText());
+    }
+
+    [Fact]
     public void Integrity_ReportsUnexpectedTextAndAttributeMutation()
     {
         using var epub = TemporaryEpub.Create(

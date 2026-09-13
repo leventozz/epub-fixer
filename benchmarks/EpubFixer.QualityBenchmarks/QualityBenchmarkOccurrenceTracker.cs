@@ -67,6 +67,16 @@ internal sealed class QualityBenchmarkOccurrenceTracker
     {
         var text = string.Concat(Spans.Select(ReadCurrentSpan));
 
+        if (Spans.All(span => span.IsExact))
+        {
+            // Every span was resynced against exact OCR mutation geometry (Resync):
+            // Start/Length bound the current text precisely, with no fuzzy boundary
+            // left over from MapOffset's heuristic walk. Snapping a prefix match to
+            // Expected here would mask a genuine over-correction (Expected "üç", engine
+            // writes "üçü" - "üçü".StartsWith("üç") would otherwise read as correct).
+            return text;
+        }
+
         if (Expected is not null && text.StartsWith(Expected, StringComparison.Ordinal))
         {
             return Expected;
@@ -325,7 +335,8 @@ internal sealed class QualityBenchmarkOccurrenceTracker
         {
             Start = resolvedStart + startDelta,
             Length = Math.Max(0, resolvedLength + lengthDelta),
-            OriginalText = tracked.SourceNode.Data
+            OriginalText = tracked.SourceNode.Data,
+            IsExact = true
         };
     }
 
@@ -335,5 +346,13 @@ internal sealed class QualityBenchmarkOccurrenceTracker
         int Start,
         int Length,
         IText SourceNode,
-        string OriginalText);
+        string OriginalText)
+    {
+        /// <summary>
+        /// True once <see cref="ResyncSpan"/> has realigned this span against exact OCR
+        /// mutation geometry - Start/Length then bound the current text precisely, with
+        /// none of the fuzzy trailing boundary MapOffset's heuristic can leave behind.
+        /// </summary>
+        public bool IsExact { get; init; }
+    }
 }
