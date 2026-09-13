@@ -4,9 +4,12 @@ using System.Globalization;
 
 namespace EpubFixer.Core.Ocr.Lattice;
 
-public sealed class WordLatticeBuilder(ILexiconMatcher matcher) : IWordLatticeBuilder
+public sealed class WordLatticeBuilder(
+    ILexiconMatcher matcher,
+    IReadOnlyCollection<int>? hardBoundaryOffsets = null) : IWordLatticeBuilder
 {
     private static readonly CultureInfo TurkishCulture = new("tr-TR");
+    private readonly IReadOnlyCollection<int> hardBoundaryOffsets = hardBoundaryOffsets ?? Array.Empty<int>();
 
     public WordLattice Build(CorruptedTextRegion region, string fullText, LatticeOptions options)
     {
@@ -14,7 +17,7 @@ public sealed class WordLatticeBuilder(ILexiconMatcher matcher) : IWordLatticeBu
         ArgumentNullException.ThrowIfNull(fullText);
         ArgumentNullException.ThrowIfNull(options);
 
-        var selected = LatticeWindow.Select(region, fullText, options);
+        var selected = LatticeWindow.Select(region, fullText, options, hardBoundaryOffsets);
         if (selected.Outcome != LatticeBuildOutcome.Built)
         {
             return new WordLattice(selected.Window, selected.WindowOffset, Array.Empty<LatticeArc>(), selected.Outcome, 0);

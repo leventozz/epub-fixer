@@ -15,7 +15,7 @@ public sealed class LexiconQueryPlanTests
     [Fact]
     public void QueryPlan_TierTwoOnlyOnEmptyTierOne()
     {
-        Assert.Equal(4, plan.CreateTierOne("yü-ıiimeye").Count);
+        Assert.Equal(2, plan.CreateTierOne("yü-ıiimeye").Count);
     }
 
     [Fact]

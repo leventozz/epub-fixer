@@ -359,7 +359,7 @@ static int RunDebugLattice(string[] arguments)
         var matcher = new SymSpellLexiconMatcher(knowledge.Vocabulary);
         var reconstructor = new LatticeRegionReconstructor(
             package.LogicalText.Text,
-            new WordLatticeBuilder(matcher),
+            new WordLatticeBuilder(matcher, HardBoundaryOffsets(package.LogicalText)),
             new LatticeDecoder(knowledge.LanguageModel, options),
             new CorrectionAcceptanceGate(knowledge.Vocabulary, options),
             options);
@@ -383,7 +383,7 @@ static int RunDebugLattice(string[] arguments)
         {
             dataset = "odun-kesmek",
             measuredOn = DateTime.UtcNow.ToString("yyyy-MM-dd"),
-            commit = "unknown",
+            commit = TryGetGitCommit(),
             options = new
             {
                 lambda = options.Lambda,
@@ -402,12 +402,8 @@ static int RunDebugLattice(string[] arguments)
             applied = reconstructor.Statistics.Applied,
             reviewed = reconstructor.Statistics.Reviewed,
             left = reconstructor.Statistics.Left,
-            fixtureTop1 = "10/10",
-            fixtureTop5 = "10/10",
             totalSeconds = watch.Elapsed.TotalSeconds,
-            averageArcsPerRegion = reconstructor.Statistics.Built == 0 ? 0 : reconstructor.Statistics.TotalArcs / (double)reconstructor.Statistics.Built,
-            maxVisitedStates = 0,
-            protectedViolated = 0
+            averageArcsPerRegion = reconstructor.Statistics.Built == 0 ? 0 : reconstructor.Statistics.TotalArcs / (double)reconstructor.Statistics.Built
         };
 
         if (jsonPath is not null)
@@ -426,6 +422,36 @@ static int RunDebugLattice(string[] arguments)
     {
         Console.Error.WriteLine($"Error: {ex.Message}");
         return 2;
+    }
+}
+
+static IReadOnlyCollection<int> HardBoundaryOffsets(LogicalTextStream stream) =>
+    stream.Boundaries
+        .Where(boundary => boundary.Kind is not TextBoundaryKind.TextNode)
+        .Select(boundary => stream.Segments[boundary.AfterSegmentIndex].LogicalStart)
+        .Distinct()
+        .OrderBy(offset => offset)
+        .ToArray();
+
+static string TryGetGitCommit()
+{
+    try
+    {
+        using var process = new System.Diagnostics.Process();
+        process.StartInfo = new System.Diagnostics.ProcessStartInfo("git", "rev-parse HEAD")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        return process.Start() && process.WaitForExit(2000) && process.ExitCode == 0
+            ? process.StandardOutput.ReadToEnd().Trim()
+            : "unavailable";
+    }
+    catch
+    {
+        return "unavailable";
     }
 }
 

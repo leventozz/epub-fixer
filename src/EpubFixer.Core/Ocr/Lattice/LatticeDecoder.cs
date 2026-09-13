@@ -41,7 +41,7 @@ public sealed class LatticeDecoder(
                     var next = Append(state, arc);
                     states[arc.To] ??= [];
                     states[arc.To].Add(next);
-                    states[arc.To] = Prune(states[arc.To], Math.Max(kBest, 8));
+                    states[arc.To] = Deduplicate(states[arc.To]);
                 }
             }
         }
@@ -73,13 +73,12 @@ public sealed class LatticeDecoder(
             state.Arcs.Append(arc).ToArray());
     }
 
-    private static List<PathState> Prune(IEnumerable<PathState> states, int limit) =>
+    private static List<PathState> Deduplicate(IEnumerable<PathState> states) =>
         states
             .GroupBy(state => (state.Text, state.PreviousWord), StateKeyComparer.Instance)
             .Select(group => group.OrderBy(state => state.Cost).ThenBy(state => state.Text, StringComparer.Ordinal).First())
             .OrderBy(state => state.Cost)
             .ThenBy(state => state.Text, StringComparer.Ordinal)
-            .Take(limit)
             .ToList();
 
     private sealed record PathState(string Text, double Cost, string? PreviousWord, IReadOnlyList<LatticeArc> Arcs);

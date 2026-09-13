@@ -7,9 +7,19 @@ public sealed record LatticeWindow(string Window, int WindowOffset, LatticeBuild
 {
     public static LatticeWindow Select(CorruptedTextRegion region, string fullText, LatticeOptions options)
     {
+        return Select(region, fullText, options, Array.Empty<int>());
+    }
+
+    public static LatticeWindow Select(
+        CorruptedTextRegion region,
+        string fullText,
+        LatticeOptions options,
+        IReadOnlyCollection<int> hardBoundaryOffsets)
+    {
         ArgumentNullException.ThrowIfNull(region);
         ArgumentNullException.ThrowIfNull(fullText);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(hardBoundaryOffsets);
 
         if ((uint)region.Start > (uint)fullText.Length
             || (uint)region.EndExclusive > (uint)fullText.Length
@@ -18,8 +28,12 @@ public sealed record LatticeWindow(string Window, int WindowOffset, LatticeBuild
             throw new ArgumentOutOfRangeException(nameof(region));
         }
 
-        var leftBoundary = FindLeftHardBoundary(fullText, region.Start);
-        var rightBoundary = FindRightHardBoundary(fullText, region.EndExclusive);
+        var leftBoundary = hardBoundaryOffsets.Count == 0
+            ? FindLeftHardBoundary(fullText, region.Start)
+            : hardBoundaryOffsets.Where(offset => offset <= region.Start).DefaultIfEmpty(0).Max();
+        var rightBoundary = hardBoundaryOffsets.Count == 0
+            ? FindRightHardBoundary(fullText, region.EndExclusive)
+            : hardBoundaryOffsets.Where(offset => offset >= region.EndExclusive).DefaultIfEmpty(fullText.Length).Min();
         var tokens = EnumerateTokens(fullText, leftBoundary, rightBoundary).ToArray();
         var firstToken = Array.FindLastIndex(tokens, token => token.Start < region.Start);
         var lastToken = Array.FindIndex(tokens, token => token.End > region.EndExclusive);

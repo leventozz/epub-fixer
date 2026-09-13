@@ -30,6 +30,19 @@ public sealed class LatticeWindowTests
     }
 
     [Fact]
+    public void Window_StopsAtProvidedHardBoundaryOffset()
+    {
+        const string fullText = "önceberjer koli ukta oturdu";
+        var region = Region(fullText, "koli ukta");
+        var boundary = "önce".Length;
+
+        var window = LatticeWindow.Select(region, fullText, new LatticeOptions(ContextTokens: 2), [boundary]);
+
+        Assert.Equal("berjer koli ukta oturdu", window.Window);
+        Assert.Equal(boundary, window.WindowOffset);
+    }
+
+    [Fact]
     public void Window_TooLongIsSkipped()
     {
         var fullText = new string('a', 60);

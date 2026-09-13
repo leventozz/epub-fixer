@@ -28,40 +28,44 @@ public sealed class CorrectionAcceptanceGate(BookVocabulary vocabulary, LatticeO
         }
 
         var changed = ChangedSpan(identity, best.Text);
-        if (best.Cost > options.MaxPathCost)
-        {
-            return Leave(lattice, "CostAboveThreshold", changed);
-        }
-
-        var second = paths.Skip(1).FirstOrDefault(path => !string.Equals(path.Text, best.Text, StringComparison.Ordinal));
-        if (second is null || second.Cost - best.Cost < options.MinMargin)
-        {
-            return Result(AcceptanceVerdict.Review, null, lattice, changed, ["MarginTooSmall"]);
-        }
-
         if (ChangedTokens(lattice.Window, changed.Start, changed.End).Any(IsValidOriginalToken))
         {
             return Leave(lattice, "OriginalTokenIsValid", changed);
         }
 
-        if (OrdinarySubstitutions(lattice, best) > options.MaxOrdinarySubstitutions)
+        var ordinarySubstitutions = OrdinarySubstitutions(lattice, best);
+        if (ordinarySubstitutions is null || ordinarySubstitutions > options.MaxOrdinarySubstitutions)
         {
             return Leave(lattice, "TooManyOrdinaryEdits", changed);
+        }
+
+        if (best.EditCost > options.MaxPathCost)
+        {
+            return Leave(lattice, "CostAboveThreshold", changed);
+        }
+
+        var second = paths.Skip(1).FirstOrDefault(path => !string.Equals(path.Text, best.Text, StringComparison.Ordinal));
+        if (second is not null && second.Cost - best.Cost < options.MinMargin)
+        {
+            return Result(AcceptanceVerdict.Review, null, lattice, changed, ["MarginTooSmall"]);
         }
 
         var replacement = ReplacementFor(identity, best.Text, changed);
         return Result(AcceptanceVerdict.Apply, replacement, lattice, changed, ["Accepted"]);
     }
 
-    private int OrdinarySubstitutions(WordLattice lattice, DecodedPath path)
+    private int? OrdinarySubstitutions(WordLattice lattice, DecodedPath path)
     {
         var total = 0;
         foreach (var arc in path.Arcs.Where(arc => arc.Kind == LatticeArcKind.Word))
         {
-            if (aligner.TryAlign(lattice.Window[arc.From..arc.To], arc.Word, options.BudgetCap, out var alignment))
+            var source = lattice.Window.Substring(arc.From, arc.To - arc.From);
+            if (!aligner.TryAlign(source, arc.Word, options.BudgetCap, out var alignment))
             {
-                total += alignment.OrdinarySubstitutions;
+                return null;
             }
+
+            total += alignment.OrdinarySubstitutions;
         }
 
         return total;

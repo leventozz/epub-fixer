@@ -99,6 +99,24 @@ public sealed class LatticeDecoderTests
     }
 
     [Fact]
+    public void Decode_IsNotLimitedToTopEightPrefixes()
+    {
+        var arcs = new List<LatticeArc>();
+        for (var i = 0; i < 12; i++)
+        {
+            arcs.Add(new LatticeArc(0, 1, $"p{i:00}", i * 0.01, LatticeArcKind.Word));
+        }
+        arcs.Add(new LatticeArc(1, 2, "tail", 0, LatticeArcKind.Word));
+        var lmValues = Enumerable.Range(0, 12)
+            .Select(i => ("tail", (string?)$"p{i:00}", i == 11 ? 0.0 : -100.0))
+            .ToArray();
+
+        var result = new LatticeDecoder(new FixedLanguageModel(lmValues), new LatticeOptions(Lambda: 1)).Decode(Built("xx", arcs.ToArray()), 1);
+
+        Assert.Equal("p11tail", result[0].Text);
+    }
+
+    [Fact]
     public void Decode_FixtureTopOneIsTenOfTen()
     {
         var occurrences = FixtureOccurrences();

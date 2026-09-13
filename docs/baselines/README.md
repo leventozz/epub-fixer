@@ -41,5 +41,6 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
 - `odun-kesmek.language-model.json`: ayni temiz token akisi uzerinden kurulan unigram/bigram
   tur ve token sayilari ile held-out bigram isabet orani. Stupid backoff normalize olasilik
   olmadigi icin perplexity raporlanmaz.
-- `odun-kesmek.lattice.json`: Faz 3 lattice motorunun full-book debug kosusu. Ilk R3.5 olcumu
-  kabul hedeflerini gecmez (102.2 sn, 563 region, 0 Apply); bu dosya mevcut gercek durumu kilitler.
+- `odun-kesmek.lattice.json`: Faz 3 lattice motorunun full-book debug kosusu. Exact decoder
+  duzeltmesinden sonra kosu 7+ dakikada tamamlanmadigi icin dosya gecerli baseline degil,
+  abort edilmis olcumu kaydeder.

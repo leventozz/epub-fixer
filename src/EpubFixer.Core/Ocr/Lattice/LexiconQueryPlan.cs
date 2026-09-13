@@ -19,7 +19,7 @@ public sealed class LexiconQueryPlan
         var noSeparators = StripSeparators(normalized);
         var noGarbage = StripGarbage(normalized);
         var compact = StripGarbage(noSeparators);
-        return [normalized, noSeparators, noGarbage, compact];
+        return Distinct([normalized, noSeparators, noGarbage, compact]);
     }
 
     public IReadOnlyList<string> CreateTierTwo(ReadOnlySpan<char> span, int maxQueries)

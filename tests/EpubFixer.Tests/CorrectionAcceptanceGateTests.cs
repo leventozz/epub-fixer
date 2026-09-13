@@ -156,9 +156,9 @@ public sealed class CorrectionAcceptanceGateTests
             counts[result.Verdict]++;
         }
 
-        Assert.Equal(8, counts[AcceptanceVerdict.Apply]);
+        Assert.Equal(9, counts[AcceptanceVerdict.Apply]);
         Assert.Equal(0, counts[AcceptanceVerdict.Review]);
-        Assert.Equal(2, counts[AcceptanceVerdict.Leave]);
+        Assert.Equal(1, counts[AcceptanceVerdict.Leave]);
     }
 
     private static CorrectionAcceptanceGate Gate(IEnumerable<string>? validWords = null) =>
