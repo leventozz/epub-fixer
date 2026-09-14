@@ -575,6 +575,12 @@ genişletilir; çift için kayıt yoksa bugünkü düz değere düşülür (back
 > **≥ %20** (119 kaybın ≥ 24'ü). Altındaysa kalem **düşürülür** ve gerekçesi kaydedilir — yol
 > haritası risk #6 bu ihtimali zaten öngörüyor ("R5.2 hiç gerekmeyebilir").
 >
+> **Sonuç (R5.0b, `odun-kesmek.loss-taxonomy.json`, commit `d8d8f24`): ölçülen pay %8,4**
+> (10/119) — eşiğin belirgin biçimde altında. **R5.2 düşürüldü, yazılmayacak.** Ayrıca bu 10
+> vakanın yalnızca 4'ü gerçek matcher-algoritma ıskası; kalan 6'sında hedef sözlükte hiç yok
+> (OOV) — bir trie matcher bunu da çözmezdi, gerekçe D72'nin eşiğinden bağımsız olarak da
+> zayıftı. D72 kuralı olduğu gibi uygulandı; yeni bir karar gerekmedi.
+>
 > Bir agent bu kalemi "mimari olarak daha doğru" diye başlatmaz. SymSpell'in weighted cost
 > eksikliği bilinen ve **bilinçli** bir kabuldü (D27/R3.1); onu kapatmanın bedeli L boyutunda bir
 > iştir ve yalnızca ölçüm gerektiriyorsa ödenir.
