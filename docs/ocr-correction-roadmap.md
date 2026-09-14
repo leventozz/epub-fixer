@@ -552,6 +552,27 @@ Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürü
 - **Kabul:** Seçilen nokta R0.4 kapısını sağlar ve gerekçesi belgelenir.
 - **Bağımlılık:** R5.1, R5.3. **Boyut:** S.
 
+> Faz 5'in uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
+> [phase-5-plan.md](phase-5-plan.md). Plan, Faz 4'ün kapanış ölçümleri nedeniyle **fazın hedefini
+> yeniden tanımlar** (D68): bu bölümdeki "kalite turu" tarifi, lattice motorunun varsayılan olacağı
+> varsayımına dayanıyordu; Faz 4 o varsayımı yanlışladı (KAYIP = 119, kitap sağlığı lattice'te
+> kötüleşiyor, varsayılan hâlâ legacy). Faz 5'in gerçek işi **recall kurtarmak ve varsayılanı
+> çevirmek**tir; R5.1–R5.4 bunun araçlarıdır, amacı değil.
+>
+> Plan yol haritasından şu noktalarda ayrılır ve gerekçelerini D68–D78 tablosuna yazar: kritik yolun
+> başına yol haritasında olmayan bir **R5.0 (ölçüm tabanı ve teşhis)** kalemi konur (D68), fazın
+> sonuna Faz 4'ün yarım kalan R4.2c adımı **R5.5** olarak eklenir (D73), ground truth genişletmesi
+> rastgele değil **motorların dokunduğu karar sınırından** örneklenir (D70) ve legacy'nin çıktısı
+> ground truth sayılmaz (D71), **R5.2 koşullu hâle gelir** (D72), D45'in kapı içi sabit eşikleri
+> süpürmeden **önce ayrı bir alt adımda** çıkarılır (D74) ve `MaxArcLength` büyütmesi D66'nın
+> açıklanmasına bağlanır (D75).
+>
+> Plan ayrıca bu bölümün iki bilgisini düzeltir: kalite kapısı bugün OCR motorunu **hiç ölçmüyor**
+> (üretim mutation'ları ile ground truth kayıtları hiç kesişmiyor, benchmark lattice ile
+> koşulamıyor, kapı sınıf kırılımını okumuyor — plan bölüm 6.1), ve R5.3'ün "`FullBookReaderPreview.cs`
+> şu an commit edilmemiş" ifadesi **eskimiştir**: dosya `8b0e5e0`'de girdi ama lattice motorunu hiç
+> çağırmıyor, bu yüzden R5.3 onu genişletmez (D78).
+
 ---
 
 ### Faz 6 — Tavan yükseltme (opsiyonel)
