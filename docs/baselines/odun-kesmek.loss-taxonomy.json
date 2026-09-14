@@ -1928,5 +1928,86 @@
       "decoderTopReplacement": null,
       "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
     }
-  ]
+  ],
+  "rawVersusProduction": {
+    "status": "explained",
+    "measuredOn": "2026-09-14",
+    "documentPath": "main-3.xhtml",
+    "fragment": "kol-1 \u0131\u0131 kta",
+    "window": "berjer kol-1 \u0131\u0131 kta, yirmi",
+    "question": "D66: ayn\u0131 \u0027kol-1 \u0131\u0131 kta\u0027 par\u00E7as\u0131 ham ko\u015Fuda Leave/TooManyOrdinaryEdits, \u00FCretim ko\u015Fusunda Apply/Accepted al\u0131yor. MaxArcLength (D65) do\u011Fru cevab\u0131n (koltukta) \u00FCretilememesini a\u00E7\u0131kl\u0131yor; bu d\u00FC\u011F\u00FCm kap\u0131n\u0131n neden KABUL etti\u011Fini a\u00E7\u0131kl\u0131yor.",
+    "mechanism": "Pencere metni ve aday kelime-ark k\u00FCmesi (koli, a\u00E7\u0131kta, nokta - \u00FC\u00E7\u00FC de ayn\u0131 edit maliyetiyle) iki ko\u015Fuda birebir ayn\u0131: fark matcher/vocabulary aday k\u00FCmesinden, edit-maliyet tablosundan ya da kap\u0131n\u0131n kendi mant\u0131\u011F\u0131ndan gelmiyor. Fark, decoder\u0027\u0131n ayn\u0131 pencereyi HANG\u0130 ark dizilimine b\u00F6ld\u00FC\u011F\u00FCnde: ham ko\u015Fu \u0027kol\u0027 \u002B \u0027-\u0027 \u002B \u0027a\u00E7\u0131kta\u0027 dizilimini (2 ordinary edit -\u003E TooManyOrdinaryEdits) en ucuz buluyor, \u00FCretim ko\u015Fusu \u0027koli\u0027 \u002B \u0027 \u0027 \u002B \u0027nokta\u0027 dizilimini (1 ordinary edit -\u003E Accepted) en ucuz buluyor. Bu ayr\u0131m dil modelinin \u0027berjer\u0027-\u003E\u0027kol\u0027 bigram olas\u0131l\u0131\u011F\u0131ndan geliyor: ham hazne bu bigram\u0131 iyi destekliyor (logProb=-5.4337) \u00E7\u00FCnk\u00FC kitaptaki AYNI tekrarlayan \u0027berjer kol[-...]tukta\u0027 OCR bozuklu\u011Funun d\u00FCzeltilmemi\u015F di\u011Fer \u00F6rnekleri h\u00E2l\u00E2 ham g\u00F6vdede duruyor; \u00FCretim ko\u015Fusunda bu \u00F6rneklerin \u00E7o\u011Fu OCR a\u015Famas\u0131ndan \u00D6NCE \u00E7al\u0131\u015Fan tirelemeler taraf\u0131ndan zaten \u0027berjer koltukta\u0027ya d\u00FCzeltilmi\u015F oldu\u011Fundan bigram neredeyse hi\u00E7 kan\u0131tlanmam\u0131\u015F h\u00E2le geliyor (logProb=-11.6939, ayn\u0131 pencerede \u0027a\u00E7\u0131kta\u0027n\u0131n \u0027kol\u0027dan sonraki olas\u0131l\u0131\u011F\u0131yla ayn\u0131 seviyeye d\u00FC\u015F\u00FCyor). Kan\u0131t: hazne \u0027kol\u0027 BookCount\u0027u 2 (ham) -\u003E 1 (\u00FCretim), \u0027koltukta\u0027 BookCount\u0027u 220 (ham) -\u003E 221 (\u00FCretim) - tam olarak bir tekrarlanan kusur \u00F6rne\u011Finin \u0027kol\u0027dan \u0027koltukta\u0027ya ta\u015F\u0131nd\u0131\u011F\u0131n\u0131 g\u00F6steriyor. Yol boyunca kullan\u0131lan di\u011Fer \u00FC\u00E7 bigram (\u0027kol\u0027-\u003E\u0027a\u00E7\u0131kta\u0027, \u0027berjer\u0027-\u003E\u0027koli\u0027, \u0027koli\u0027-\u003E\u0027nokta\u0027) iki ko\u015Fu aras\u0131nda pratikte de\u011Fi\u015Fmiyor (fark \u003C 0.001).",
+    "conclusion": "\u0130kinci ko\u015Ful (D65\u0027in tek ba\u015F\u0131na a\u00E7\u0131klamad\u0131\u011F\u0131 \u0027kap\u0131 neden kabul etti\u0027 sorusu) kap\u0131n\u0131n bir gev\u015Femesi DE\u011E\u0130L: kap\u0131 her iki ko\u015Fuda da AYNI e\u015Fi\u011Fi (MaxOrdinarySubstitutions=1) ayn\u0131 bi\u00E7imde uyguluyor. De\u011Fi\u015Fen \u015Fey decoder\u0027a giden dil modelinin, OCR a\u015Famas\u0131ndan \u00F6nce \u00E7al\u0131\u015Fan tirelemelerin kitab\u0131 bir b\u00FCt\u00FCn olarak de\u011Fi\u015Ftirmesinden dolay\u0131 farkl\u0131 bir korpus \u00FCzerinde e\u011Fitilmi\u015F olmas\u0131 - bu da decoder\u0027\u0131n ayn\u0131 bozuk pencere i\u00E7in farkl\u0131 bir en-ucuz-yol se\u00E7mesine yol a\u00E7\u0131yor.",
+    "maxArcLengthGrowthBlockedByD75": false,
+    "note": "D75\u0027in bloke ko\u015Fulu (\u0027R5.0c a\u00E7\u0131klanamad\u0131ysa\u0027) burada ger\u00E7ekle\u015Fmedi: mekanizma tek ve do\u011Frulanm\u0131\u015F. Ama bulgu R5.4b i\u00E7in bir uyar\u0131 ta\u015F\u0131yor: kap\u0131n\u0131n kabul/red karar\u0131 decoder\u0027\u0131n MaxOrdinarySubstitutions e\u015Fi\u011Fi etraf\u0131ndaki dar bir maliyet yar\u0131\u015F\u0131na ba\u011Fl\u0131, ve bu yar\u0131\u015F hyphenation\u0027\u0131n korpusu de\u011Fi\u015Ftirmesiyle KAYABILIYOR. MaxArcLength b\u00FCy\u00FCt\u00FCl\u00FCp \u0027koltukta\u0027 tek/\u00E7oklu ark olarak kafese girebilir h\u00E2le gelse bile, hangi yolun Top-1 olaca\u011F\u0131 yine dil modelinin o ko\u015Fudaki korpusuna ba\u011Fl\u0131 olacakt\u0131r - R5.4b\u0027nin s\u00FCp\u00FCrmesi bunu ayr\u0131 bir boyut olarak ele almal\u0131d\u0131r (yaln\u0131zca e\u015Fik de\u011Fil, hazne/LM\u0027in hangi metinden kuruldu\u011Fu).",
+    "evidence": {
+      "rawRun": {
+        "verdict": "Leave",
+        "reason": "TooManyOrdinaryEdits",
+        "top1Path": "berjer kol-a\u00E7\u0131kta, yirmi",
+        "top1Cost": 17.7043,
+        "ordinaryEdits": 2
+      },
+      "productionRun": {
+        "verdict": "Apply",
+        "reason": "Accepted",
+        "replacement": "koli nokta",
+        "top1Path": "berjer koli nokta, yirmi",
+        "top1Cost": 17.8182,
+        "ordinaryEdits": 1
+      },
+      "maxOrdinarySubstitutions": 1,
+      "wordArcParity": [
+        {
+          "from": 7,
+          "to": 12,
+          "sourceSpan": "kol-1",
+          "word": "koli",
+          "cost": 0.5
+        },
+        {
+          "from": 11,
+          "to": 19,
+          "sourceSpan": "1 \u0131\u0131 kta",
+          "word": "a\u00E7\u0131kta",
+          "cost": 2.6
+        },
+        {
+          "from": 13,
+          "to": 19,
+          "sourceSpan": "\u0131\u0131 kta",
+          "word": "nokta",
+          "cost": 1.55
+        }
+      ],
+      "languageModelLogProbability": {
+        "kol_after_berjer": {
+          "raw": -5.4337,
+          "production": -11.6939
+        },
+        "a\u00E7\u0131kta_after_kol": {
+          "raw": -11.6935,
+          "production": -11.6939
+        },
+        "koli_after_berjer": {
+          "raw": -5.4337,
+          "production": -5.4337
+        },
+        "nokta_after_koli": {
+          "raw": -13.2158,
+          "production": -13.2158
+        }
+      },
+      "vocabularyBookCount": {
+        "kol": {
+          "raw": 2,
+          "production": 1
+        },
+        "koltukta": {
+          "raw": 220,
+          "production": 221
+        }
+      }
+    }
+  }
 }
