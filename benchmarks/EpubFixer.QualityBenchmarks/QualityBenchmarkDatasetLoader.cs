@@ -8,7 +8,7 @@ namespace EpubFixer.QualityBenchmarks;
 public sealed class QualityBenchmarkDatasetLoader
 {
     public const int MinimumSchemaVersion = 1;
-    public const int CurrentSchemaVersion = 2;
+    public const int CurrentSchemaVersion = 3;
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {

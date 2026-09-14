@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "knownErrors": [
     {
       "id": "odun-kesmek-auto-0001",
@@ -2483,7 +2483,9 @@
       "id": "odun-kesmek-space-0001",
       "documentPath": "main-3.xhtml",
       "expected": "koltukta",
-      "original": "koli ukta"
+      "original": "koli ukta",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
     },
     {
       "original": "kendi-ıni",
@@ -2514,6 +2516,2195 @@
       "expected": "olduğu",
       "documentPath": "main-3.xhtml",
       "id": "odun-kesmek-fragmentation-0005"
+    },
+    {
+      "id": "odun-kesmek-garbage-0003",
+      "documentPath": "main-3.xhtml",
+      "original": ";itmem",
+      "expected": "gitmem",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 63,
+          "length": 6
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "auto"
+    },
+    {
+      "id": "odun-kesmek-fragmentation-0006",
+      "documentPath": "main-3.xhtml",
+      "original": "1 lurg",
+      "expected": "Burg",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 837,
+          "length": 6
+        }
+      ],
+      "errorClass": "Fragmentation",
+      "verifiedBy": "manual",
+      "source": "auto"
+    },
+    {
+      "id": "odun-kesmek-auto-0149",
+      "documentPath": "main-3.xhtml",
+      "original": "Ala-nı'nı",
+      "expected": "Alanı'nı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 144,
+          "start": 1454,
+          "length": 9
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "auto"
+    },
+    {
+      "id": "odun-kesmek-auto-0150",
+      "documentPath": "main-4.xhtml",
+      "original": "İngi-lizler",
+      "expected": "İngilizler",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 46,
+          "start": 0,
+          "length": 1
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 47,
+          "start": 0,
+          "length": 10
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "auto"
+    },
+    {
+      "id": "odun-kesmek-glyph-0005",
+      "documentPath": "main-3.xhtml",
+      "original": "J3arış",
+      "expected": "Barış",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 11,
+          "start": 15,
+          "length": 6
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0006",
+      "documentPath": "main-3.xhtml",
+      "original": "y1pranmışt1",
+      "expected": "yıpranmıştı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 70,
+          "start": 1079,
+          "length": 11
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0007",
+      "documentPath": "main-3.xhtml",
+      "original": "liyatro",
+      "expected": "tiyatro",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 92,
+          "start": 2246,
+          "length": 7
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0004",
+      "documentPath": "main-3.xhtml",
+      "original": "^iddetli",
+      "expected": "şiddetli",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 96,
+          "start": 64,
+          "length": 8
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0001",
+      "documentPath": "main-3.xhtml",
+      "original": "ilgi-1 iydi",
+      "expected": "ilgiliydi",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 96,
+          "start": 182,
+          "length": 11
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0005",
+      "documentPath": "main-3.xhtml",
+      "original": ";;aşılacak",
+      "expected": "aşılacak",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 96,
+          "start": 1131,
+          "length": 10
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0002",
+      "documentPath": "main-3.xhtml",
+      "original": "kü-^:ük",
+      "expected": "küçük",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 96,
+          "start": 1315,
+          "length": 7
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0003",
+      "documentPath": "main-3.xhtml",
+      "original": "Soka-f^ı'nda",
+      "expected": "Sokağı'nda",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 96,
+          "start": 2247,
+          "length": 12
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0008",
+      "documentPath": "main-3.xhtml",
+      "original": "ıı",
+      "expected": "ı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 100,
+          "start": 2237,
+          "length": 2
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0004",
+      "documentPath": "main-3.xhtml",
+      "original": "deği-^ik",
+      "expected": "değişik",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 104,
+          "start": 2239,
+          "length": 8
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0006",
+      "documentPath": "main-3.xhtml",
+      "original": "()yuncu",
+      "expected": "oyuncu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 108,
+          "start": 1886,
+          "length": 7
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0151",
+      "documentPath": "main-3.xhtml",
+      "original": "angajma-ııa",
+      "expected": "angajmana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 112,
+          "start": 669,
+          "length": 11
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-fragmentation-0007",
+      "documentPath": "main-3.xhtml",
+      "original": "ı ı ygun",
+      "expected": "uygun",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 112,
+          "start": 1299,
+          "length": 8
+        }
+      ],
+      "errorClass": "Fragmentation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0007",
+      "documentPath": "main-3.xhtml",
+      "original": ";;.amanda",
+      "expected": "zamanda",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 112,
+          "start": 1362,
+          "length": 9
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0152",
+      "documentPath": "main-3.xhtml",
+      "original": "Viya-ııa'da",
+      "expected": "Viyana'da",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 112,
+          "start": 1549,
+          "length": 11
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0009",
+      "documentPath": "main-3.xhtml",
+      "original": "l'l1",
+      "expected": "l'li",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 112,
+          "start": 1679,
+          "length": 4
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0005",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-;ına",
+      "expected": "Joana",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 112,
+          "start": 1999,
+          "length": 7
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0008",
+      "documentPath": "main-3.xhtml",
+      "original": "l<ilb'de",
+      "expected": "Kilb'de",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 112,
+          "start": 2247,
+          "length": 8
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0010",
+      "documentPath": "main-3.xhtml",
+      "original": "Avııstıırya'nın",
+      "expected": "Avusturya'nın",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 114,
+          "start": 2214,
+          "length": 15
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0011",
+      "documentPath": "main-3.xhtml",
+      "original": "ııttı",
+      "expected": "attı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 116,
+          "start": 318,
+          "length": 5
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0153",
+      "documentPath": "main-3.xhtml",
+      "original": "yolcu-1",
+      "expected": "yolcu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 120,
+          "start": 425,
+          "length": 7
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0006",
+      "documentPath": "main-3.xhtml",
+      "original": "dü-^ündüm",
+      "expected": "düşündüm",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 120,
+          "start": 858,
+          "length": 9
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0007",
+      "documentPath": "main-3.xhtml",
+      "original": "pe-^inden",
+      "expected": "peşinden",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 120,
+          "start": 1343,
+          "length": 9
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0154",
+      "documentPath": "main-3.xhtml",
+      "original": "ya-ııi",
+      "expected": "yani",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 124,
+          "start": 56,
+          "length": 6
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0009",
+      "documentPath": "main-3.xhtml",
+      "original": "c;",
+      "expected": "c",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 124,
+          "start": 570,
+          "length": 2
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0010",
+      "documentPath": "main-3.xhtml",
+      "original": "<ıya",
+      "expected": "ya",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 124,
+          "start": 1376,
+          "length": 4
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0011",
+      "documentPath": "main-3.xhtml",
+      "original": ";rınatsal",
+      "expected": "sanatsal",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 124,
+          "start": 2253,
+          "length": 9
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0008",
+      "documentPath": "main-3.xhtml",
+      "original": "bul-ııı<ılarını",
+      "expected": "bulduklarını",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 192,
+          "length": 15
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0012",
+      "documentPath": "main-3.xhtml",
+      "original": "ıı<ıda",
+      "expected": "yılda",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 324,
+          "length": 6
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0155",
+      "documentPath": "main-3.xhtml",
+      "original": "elleri-ıı",
+      "expected": "ellerin",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 645,
+          "length": 9
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0012",
+      "documentPath": "main-3.xhtml",
+      "original": "ııa'nın",
+      "expected": "ma'nın",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 719,
+          "length": 7
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0013",
+      "documentPath": "main-3.xhtml",
+      "original": "ııandığını",
+      "expected": "inandığını",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 1113,
+          "length": 10
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0156",
+      "documentPath": "main-3.xhtml",
+      "original": "gu-1.ı",
+      "expected": "gulaşı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 1172,
+          "length": 6
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0014",
+      "documentPath": "main-3.xhtml",
+      "original": "ıı",
+      "expected": "ı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 1304,
+          "length": 2
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0015",
+      "documentPath": "main-3.xhtml",
+      "original": "ıı",
+      "expected": "ı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 1629,
+          "length": 2
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0013",
+      "documentPath": "main-3.xhtml",
+      "original": "y;ıvaş",
+      "expected": "yavaş",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 1822,
+          "length": 6
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0016",
+      "documentPath": "main-3.xhtml",
+      "original": "ıııümkün",
+      "expected": "mümkün",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 1876,
+          "length": 8
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0017",
+      "documentPath": "main-3.xhtml",
+      "original": "ıı",
+      "expected": "ı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 2067,
+          "length": 2
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0157",
+      "documentPath": "main-3.xhtml",
+      "original": "cena-1'",
+      "expected": "cenaze",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 128,
+          "start": 2195,
+          "length": 7
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0158",
+      "documentPath": "main-3.xhtml",
+      "original": "unu-1",
+      "expected": "unu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 132,
+          "start": 52,
+          "length": 5
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0014",
+      "documentPath": "main-3.xhtml",
+      "original": "ı;ıklaşıyorlar",
+      "expected": "uğraşıyorlar",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 132,
+          "start": 252,
+          "length": 14
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0009",
+      "documentPath": "main-3.xhtml",
+      "original": "alkışla-ıı;ın",
+      "expected": "alkışlanın",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 132,
+          "start": 1079,
+          "length": 13
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0018",
+      "documentPath": "main-3.xhtml",
+      "original": "entz",
+      "expected": "Gentz",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 132,
+          "start": 1179,
+          "length": 4
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0019",
+      "documentPath": "main-3.xhtml",
+      "original": "giderim1",
+      "expected": "giderim",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 13,
+          "length": 8
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0020",
+      "documentPath": "main-3.xhtml",
+      "original": "önce1",
+      "expected": "önce",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 432,
+          "length": 5
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0021",
+      "documentPath": "main-3.xhtml",
+      "original": "düşündüm1",
+      "expected": "düşündüm",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 480,
+          "length": 9
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0022",
+      "documentPath": "main-3.xhtml",
+      "original": "değil1",
+      "expected": "değil",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 563,
+          "length": 6
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0015",
+      "documentPath": "main-3.xhtml",
+      "original": "y;ılanlar",
+      "expected": "yılanlar",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 1023,
+          "length": 9
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0010",
+      "documentPath": "main-3.xhtml",
+      "original": "So-k;ığı'na",
+      "expected": "Sokağı'na",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 1804,
+          "length": 11
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0011",
+      "documentPath": "main-3.xhtml",
+      "original": "So-k;ığı'na",
+      "expected": "Sokağı'na",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 1869,
+          "length": 11
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0023",
+      "documentPath": "main-3.xhtml",
+      "original": "Aııersbergerler'e",
+      "expected": "Auersbergerler'e",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 136,
+          "start": 2111,
+          "length": 17
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0159",
+      "documentPath": "main-3.xhtml",
+      "original": "gele-11",
+      "expected": "gelen",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 60,
+          "length": 7
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0016",
+      "documentPath": "main-3.xhtml",
+      "original": ";;ilere",
+      "expected": "ilere",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 258,
+          "length": 7
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-fragmentation-0008",
+      "documentPath": "main-3.xhtml",
+      "original": "v ı saklamıyorum",
+      "expected": "saklamıyorum",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 321,
+          "length": 16
+        }
+      ],
+      "errorClass": "Fragmentation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0024",
+      "documentPath": "main-3.xhtml",
+      "original": "kşam",
+      "expected": "akşam",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 760,
+          "length": 4
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0017",
+      "documentPath": "main-3.xhtml",
+      "original": "r;ıhatıma",
+      "expected": "rahatıma",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 1032,
+          "length": 9
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0025",
+      "documentPath": "main-3.xhtml",
+      "original": "ıynı",
+      "expected": "aynı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 1539,
+          "length": 4
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0160",
+      "documentPath": "main-3.xhtml",
+      "original": "et-ıııiş",
+      "expected": "etmiş",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 1856,
+          "length": 8
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0018",
+      "documentPath": "main-3.xhtml",
+      "original": "l;ımamen",
+      "expected": "tamamen",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 140,
+          "start": 2178,
+          "length": 8
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0026",
+      "documentPath": "main-3.xhtml",
+      "original": "ohbet",
+      "expected": "sohbet",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 142,
+          "start": 318,
+          "length": 5
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0027",
+      "documentPath": "main-3.xhtml",
+      "original": "ııe",
+      "expected": "ne",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 148,
+          "start": 1495,
+          "length": 3
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0012",
+      "documentPath": "main-3.xhtml",
+      "original": "dü-^ündüm",
+      "expected": "düşündüm",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 150,
+          "start": 367,
+          "length": 9
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0028",
+      "documentPath": "main-3.xhtml",
+      "original": "ııersberger'in",
+      "expected": "Auersberger'in",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 156,
+          "start": 133,
+          "length": 14
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0029",
+      "documentPath": "main-3.xhtml",
+      "original": "ıı",
+      "expected": "ı",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 156,
+          "start": 197,
+          "length": 2
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0161",
+      "documentPath": "main-3.xhtml",
+      "original": "sa-ııiyelik",
+      "expected": "saniyelik",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 156,
+          "start": 605,
+          "length": 11
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-fragmentation-0009",
+      "documentPath": "main-3.xhtml",
+      "original": "l ı değil",
+      "expected": "değil",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 156,
+          "start": 1591,
+          "length": 9
+        }
+      ],
+      "errorClass": "Fragmentation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0013",
+      "documentPath": "main-3.xhtml",
+      "original": "otu-ı;ırak",
+      "expected": "oturarak",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 156,
+          "start": 2305,
+          "length": 10
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0162",
+      "documentPath": "main-3.xhtml",
+      "original": "güru-1ıunun",
+      "expected": "güruhunu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 160,
+          "start": 120,
+          "length": 11
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0014",
+      "documentPath": "main-3.xhtml",
+      "original": "iğrenç-1 ikleri",
+      "expected": "iğrençlikleri",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 160,
+          "start": 1381,
+          "length": 15
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0019",
+      "documentPath": "main-3.xhtml",
+      "original": "c;öylemek",
+      "expected": "söylemek",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 160,
+          "start": 1830,
+          "length": 9
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0015",
+      "documentPath": "main-3.xhtml",
+      "original": "anla-^ılıyordu",
+      "expected": "anlaşılıyordu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 168,
+          "start": 1970,
+          "length": 14
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0016",
+      "documentPath": "main-3.xhtml",
+      "original": "Jo-<ma'nın",
+      "expected": "Joana'nın",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 172,
+          "start": 1421,
+          "length": 10
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0020",
+      "documentPath": "main-3.xhtml",
+      "original": ">izlik",
+      "expected": "izlik",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 176,
+          "start": 260,
+          "length": 6
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0021",
+      "documentPath": "main-3.xhtml",
+      "original": ";ıreket",
+      "expected": "hareket",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 180,
+          "start": 2,
+          "length": 7
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0163",
+      "documentPath": "main-3.xhtml",
+      "original": "gel-ıııeye",
+      "expected": "gelinceye",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 180,
+          "start": 121,
+          "length": 10
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0022",
+      "documentPath": "main-3.xhtml",
+      "original": "<ıl",
+      "expected": "yıl",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 180,
+          "start": 322,
+          "length": 3
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0030",
+      "documentPath": "main-3.xhtml",
+      "original": "olın",
+      "expected": "John",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 180,
+          "start": 580,
+          "length": 4
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff",
+      "legacyProposal": "olan"
+    },
+    {
+      "id": "odun-kesmek-glyph-0031",
+      "documentPath": "main-3.xhtml",
+      "original": "laha",
+      "expected": "daha",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 180,
+          "start": 768,
+          "length": 4
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0164",
+      "documentPath": "main-3.xhtml",
+      "original": "et-ıııiş",
+      "expected": "etmiş",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 180,
+          "start": 825,
+          "length": 8
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0023",
+      "documentPath": "main-3.xhtml",
+      "original": ";<'Y",
+      "expected": "Y",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 184,
+          "start": 2,
+          "length": 4
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0024",
+      "documentPath": "main-3.xhtml",
+      "original": ";onra",
+      "expected": "sonra",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 184,
+          "start": 329,
+          "length": 5
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0025",
+      "documentPath": "main-3.xhtml",
+      "original": "l<ilb'de",
+      "expected": "Kilb'de",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 184,
+          "start": 771,
+          "length": 8
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0165",
+      "documentPath": "main-3.xhtml",
+      "original": "zaman-1.ır",
+      "expected": "zamandır",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 184,
+          "start": 1091,
+          "length": 10
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0166",
+      "documentPath": "main-3.xhtml",
+      "original": "Ala-ııı'nda",
+      "expected": "Alanı'nda",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 184,
+          "start": 1921,
+          "length": 11
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0167",
+      "documentPath": "main-3.xhtml",
+      "original": "oluvermiş-1",
+      "expected": "oluvermiş",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 192,
+          "start": 511,
+          "length": 11
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0017",
+      "documentPath": "main-3.xhtml",
+      "original": "Se-lı;ıstian",
+      "expected": "Sebastian",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 192,
+          "start": 837,
+          "length": 12
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0018",
+      "documentPath": "main-3.xhtml",
+      "original": "bi-^:imde",
+      "expected": "biçimde",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 192,
+          "start": 1791,
+          "length": 9
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0019",
+      "documentPath": "main-3.xhtml",
+      "original": "res-s;ım",
+      "expected": "ressam",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 196,
+          "start": 1278,
+          "length": 8
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-fragmentation-0010",
+      "documentPath": "main-3.xhtml",
+      "original": "g i bir",
+      "expected": "gibi",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 196,
+          "start": 1412,
+          "length": 7
+        }
+      ],
+      "errorClass": "Fragmentation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0168",
+      "documentPath": "main-3.xhtml",
+      "original": "ulaş-1",
+      "expected": "ulaş",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 196,
+          "start": 1600,
+          "length": 6
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0026",
+      "documentPath": "main-3.xhtml",
+      "original": "c;okağı'nda",
+      "expected": "Sokağı'nda",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 200,
+          "start": 259,
+          "length": 11
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0020",
+      "documentPath": "main-3.xhtml",
+      "original": "ak-^am",
+      "expected": "akşam",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 200,
+          "start": 2080,
+          "length": 6
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-fragmentation-0011",
+      "documentPath": "main-3.xhtml",
+      "original": "i m berjer",
+      "expected": "berjer",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 204,
+          "start": 4,
+          "length": 10
+        }
+      ],
+      "errorClass": "Fragmentation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0021",
+      "documentPath": "main-3.xhtml",
+      "original": "aristokra-^;isi",
+      "expected": "aristokrasisi",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 204,
+          "start": 184,
+          "length": 15
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0027",
+      "documentPath": "main-3.xhtml",
+      "original": "^erefsiz",
+      "expected": "şerefsiz",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 206,
+          "start": 1608,
+          "length": 8
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-fragmentation-0012",
+      "documentPath": "main-3.xhtml",
+      "original": "ı ı bırakmadan",
+      "expected": "bırakmadan",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 210,
+          "start": 316,
+          "length": 14
+        }
+      ],
+      "errorClass": "Fragmentation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0022",
+      "documentPath": "main-3.xhtml",
+      "original": "kol-1 ıı kta",
+      "expected": "koltukta",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 210,
+          "start": 696,
+          "length": 12
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0032",
+      "documentPath": "main-3.xhtml",
+      "original": "ıtuz",
+      "expected": "otuz",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 210,
+          "start": 963,
+          "length": 4
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0023",
+      "documentPath": "main-3.xhtml",
+      "original": "ya-^amlarını",
+      "expected": "yaşamlarını",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 216,
+          "start": 824,
+          "length": 12
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0169",
+      "documentPath": "main-3.xhtml",
+      "original": "yöne-1",
+      "expected": "yöne",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 220,
+          "start": 57,
+          "length": 6
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0028",
+      "documentPath": "main-3.xhtml",
+      "original": ";iiyledikleri",
+      "expected": "söyledikleri",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 230,
+          "start": 133,
+          "length": 13
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0170",
+      "documentPath": "main-3.xhtml",
+      "original": "oldukları-ııı",
+      "expected": "olduklarını",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 230,
+          "start": 190,
+          "length": 13
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0171",
+      "documentPath": "main-3.xhtml",
+      "original": "çoğu-ııu",
+      "expected": "çoğunu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 232,
+          "start": 142,
+          "length": 8
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0024",
+      "documentPath": "main-3.xhtml",
+      "original": "tanıdı-ı^ım",
+      "expected": "tanıdığım",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 232,
+          "start": 205,
+          "length": 11
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0029",
+      "documentPath": "main-3.xhtml",
+      "original": "t>anatsal",
+      "expected": "sanatsal",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 236,
+          "start": 1853,
+          "length": 9
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0172",
+      "documentPath": "main-3.xhtml",
+      "original": "ta-ııımlanan",
+      "expected": "tanımlanan",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 242,
+          "start": 122,
+          "length": 12
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0030",
+      "documentPath": "main-3.xhtml",
+      "original": ";erçekten",
+      "expected": "gerçekten",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 242,
+          "start": 562,
+          "length": 9
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0025",
+      "documentPath": "main-3.xhtml",
+      "original": "-.;eslendiğini",
+      "expected": "eslendiğini",
+      "sourceSpans": [
+        {
+          "documentPath": "main-3.xhtml",
+          "textNodeIndex": 242,
+          "start": 871,
+          "length": 14
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0026",
+      "documentPath": "main-4.xhtml",
+      "original": "dü-^ünülemeyeceğini",
+      "expected": "düşünülemeyeceğini",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 3,
+          "start": 182,
+          "length": 19
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0031",
+      "documentPath": "main-4.xhtml",
+      "original": "<1rtık",
+      "expected": "artık",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 25,
+          "start": 57,
+          "length": 6
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0027",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyatro-^aı'nun",
+      "expected": "Tiyatrosu'nun",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 31,
+          "start": 246,
+          "length": 15
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0028",
+      "documentPath": "main-4.xhtml",
+      "original": "Tiyatro-^;u'na",
+      "expected": "Tiyatrosu'na",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 31,
+          "start": 310,
+          "length": 14
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0033",
+      "documentPath": "main-4.xhtml",
+      "original": "lağanüstü",
+      "expected": "olağanüstü",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 31,
+          "start": 446,
+          "length": 9
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0029",
+      "documentPath": "main-4.xhtml",
+      "original": "ola-r<ık",
+      "expected": "olarak",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 31,
+          "start": 635,
+          "length": 8
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-mixed-0030",
+      "documentPath": "main-4.xhtml",
+      "original": "ba-^arısız",
+      "expected": "başarısız",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 31,
+          "start": 1447,
+          "length": 10
+        }
+      ],
+      "errorClass": "Mixed",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0173",
+      "documentPath": "main-4.xhtml",
+      "original": "Strind-berg",
+      "expected": "Strindberg",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 51,
+          "start": 35,
+          "length": 11
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0174",
+      "documentPath": "main-4.xhtml",
+      "original": "zencileri-11in",
+      "expected": "zencilerinin",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 55,
+          "start": 1925,
+          "length": 10
+        },
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 57,
+          "start": 0,
+          "length": 4
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0175",
+      "documentPath": "main-4.xhtml",
+      "original": "Gert-rude",
+      "expected": "Gertrude",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 97,
+          "start": 1774,
+          "length": 9
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0032",
+      "documentPath": "main-4.xhtml",
+      "original": "^ine",
+      "expected": "yine",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 113,
+          "start": 1299,
+          "length": 4
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-auto-0176",
+      "documentPath": "main-4.xhtml",
+      "original": "Za-al'a",
+      "expected": "Zaal'a",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 119,
+          "start": 808,
+          "length": 7
+        }
+      ],
+      "errorClass": "Hyphenation",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0034",
+      "documentPath": "main-4.xhtml",
+      "original": "yııtucusu",
+      "expected": "yutucusu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 119,
+          "start": 1078,
+          "length": 9
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0035",
+      "documentPath": "main-4.xhtml",
+      "original": "ınusıınuz",
+      "expected": "musunuz",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 149,
+          "start": 526,
+          "length": 9
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-glyph-0036",
+      "documentPath": "main-4.xhtml",
+      "original": "bıı",
+      "expected": "bu",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 153,
+          "start": 1145,
+          "length": 3
+        }
+      ],
+      "errorClass": "GlyphConfusion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
+    },
+    {
+      "id": "odun-kesmek-garbage-0033",
+      "documentPath": "main-4.xhtml",
+      "original": "kop^",
+      "expected": "kop",
+      "sourceSpans": [
+        {
+          "documentPath": "main-4.xhtml",
+          "textNodeIndex": 190,
+          "start": 28,
+          "length": 4
+        }
+      ],
+      "errorClass": "GarbageInsertion",
+      "verifiedBy": "manual",
+      "source": "engine-diff"
     }
   ],
   "protectedOccurrences": [

@@ -40,11 +40,14 @@ public sealed class QualityBenchmarkTests
 
         var result = new QualityBenchmarkRunner().Run(dataset);
 
-        Assert.Equal(160, result.KnownErrors);
-        Assert.True(result.Detected > 148);
-        Assert.Equal(148, result.CorrectlyFixed);
-        Assert.Equal(0, result.WronglyFixed);
-        Assert.Equal(12, result.Deferred);
+        // R5.0d (docs/phase-5-plan.md section 7.4) grew the ground truth's OCR arm from 12 to 112
+        // records (plus 28 new Hyphenation records), so these figures moved from the previous
+        // 160/148/0/12/9 baseline - re-measured directly against the real dataset (kural 4.3).
+        Assert.Equal(288, result.KnownErrors);
+        Assert.True(result.Detected > 250);
+        Assert.Equal(259, result.CorrectlyFixed);
+        Assert.Equal(3, result.WronglyFixed);
+        Assert.Equal(26, result.Deferred);
         Assert.Equal(9, result.ProtectedOccurrences);
         Assert.Equal(0, result.ProtectedChanged);
         Assert.Contains(result.ClassBreakdowns, item => item.ErrorClass == OcrErrorClass.GarbageInsertion && item.Detected > 0);
@@ -317,6 +320,93 @@ public sealed class QualityBenchmarkTests
             () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
 
         Assert.Contains("errorClass", exception.Message);
+    }
+
+    [Fact]
+    public void Loader_StillReadsSchemaVersionTwo_AfterSchemaVersionThreeWasIntroduced()
+    {
+        // R5.0d (docs/phase-5-plan.md section 7.4): schemaVersion moved to 3 to carry
+        // verifiedBy/legacyProposal/source. The loader must keep reading a plain schemaVersion 2
+        // document - one written before those fields existed - without requiring any of them.
+        const string json = """
+            {
+              "schemaVersion": 2,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "ge-^:cn",
+                  "expected": "geçen",
+                  "errorClass": "GarbageInsertion",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 79, "start": 1889, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var occurrence = Assert.Single(new QualityBenchmarkDatasetLoader().Load(dataset.Path).GroundTruth.KnownErrors);
+
+        Assert.Equal(OcrErrorClass.GarbageInsertion, occurrence.ErrorClass);
+        Assert.Null(occurrence.VerifiedBy);
+        Assert.Null(occurrence.LegacyProposal);
+        Assert.Null(occurrence.Source);
+    }
+
+    [Fact]
+    public void Loader_ReadsSchemaVersionThree_WithVerificationMetadata()
+    {
+        const string json = """
+            {
+              "schemaVersion": 3,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "olın",
+                  "expected": "John",
+                  "errorClass": "GlyphConfusion",
+                  "verifiedBy": "manual",
+                  "legacyProposal": "olan",
+                  "source": "engine-diff",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 180, "start": 580, "length": 4 }
+                  ]
+                },
+                {
+                  "id": "error-2",
+                  "documentPath": "main-3.xhtml",
+                  "original": "kü-^:ük",
+                  "expected": "küçük",
+                  "errorClass": "Mixed",
+                  "verifiedBy": "manual",
+                  "source": "engine-diff",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 96, "start": 1315, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var occurrences = new QualityBenchmarkDatasetLoader().Load(dataset.Path).GroundTruth.KnownErrors;
+
+        var withLegacyProposal = occurrences.Single(item => item.Id == "error-1");
+        Assert.Equal("manual", withLegacyProposal.VerifiedBy);
+        Assert.Equal("olan", withLegacyProposal.LegacyProposal);
+        Assert.Equal("engine-diff", withLegacyProposal.Source);
+        Assert.Equal(OcrErrorClass.GlyphConfusion, withLegacyProposal.ErrorClass);
+
+        var withoutLegacyProposal = occurrences.Single(item => item.Id == "error-2");
+        Assert.Equal("manual", withoutLegacyProposal.VerifiedBy);
+        Assert.Null(withoutLegacyProposal.LegacyProposal);
+        Assert.Equal("engine-diff", withoutLegacyProposal.Source);
+        Assert.Equal(OcrErrorClass.Mixed, withoutLegacyProposal.ErrorClass);
     }
 
     [Fact]

@@ -7,7 +7,7 @@
     "minimumPrecision": 0.98,
     "minimumRecall": 0.925,
     "measuredOn": "2026-09-14",
-    "note": "R5.0a: gate is now class-breakdown aware and can run with either OCR engine (--ocr-engine legacy|lattice). Aggregate thresholds unchanged (D77 - this fazda yalnizca yukari hareket edebilir); classRecallThresholds only carries Hyphenation, at its measured value, per D76 (OCR classes stay unthresholded until R5.0d grows the ground truth past 12 records).",
+    "note": "R5.0a: gate is now class-breakdown aware and can run with either OCR engine (--ocr-engine legacy|lattice). R5.0d (2026-09-14) grew the OCR arm of the ground truth from 12 to 112 records (Fragmentation 12, GlyphConfusion 36, GarbageInsertion 33, SpuriousSpace 1, Mixed 30 - MissingSpace and a fuller SpuriousSpace could not be populated from the D70-mandated candidate pool, see the R5.0d closing report) plus 28 new Hyphenation records, and re-measured both engines against the larger, motor-touched ground truth (288 knownErrors total: 176 Hyphenation + 112 OCR-arm). Aggregate thresholds and classRecallThresholds are UNCHANGED (D77 - this fazda yalnizca yukari hareket edebilir): both engines now FAIL the gate against the larger ground truth (this is the expected outcome per plan risk #12/kural 4.5 - the old 92.5%/100% thresholds were fit to a ground truth that barely touched the OCR engines at all, D64). The measured (failing) values below are the target for R5.4b's threshold-and-search-space sweep, not a new threshold.",
     "classRecallThresholds": [
       {
         "errorClass": "Hyphenation",
@@ -16,48 +16,50 @@
     ],
     "ocrStageMeasurement": {
       "legacy": {
-        "measuredOn": "2026-09-13",
+        "measuredOn": "2026-09-14",
         "engine": "legacy",
-        "ocrClassKnownErrorRecords": 12,
-        "correctlyFixed": 148,
-        "wronglyFixed": 0,
-        "deferred": 12,
-        "precision": 1.0,
-        "recall": 0.925,
+        "ocrClassKnownErrorRecords": 112,
+        "correctlyFixed": 259,
+        "wronglyFixed": 3,
+        "deferred": 26,
+        "precision": 0.9885496183206107,
+        "recall": 0.8993055555555556,
         "ocrPlanned": 120,
         "ocrApplied": 120,
         "protectedChanged": 0,
         "protectedViolated": 0,
         "classBreakdown": {
-          "Hyphenation": { "known": 148, "detected": 148, "correct": 148, "wrong": 0, "precision": 1.0, "recall": 1.0 },
-          "GlyphConfusion": { "known": 4, "detected": 4, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
+          "Hyphenation": { "known": 176, "detected": 174, "correct": 170, "wrong": 1, "precision": 0.9942, "recall": 0.9659 },
+          "GlyphConfusion": { "known": 36, "detected": 33, "correct": 27, "wrong": 1, "precision": 0.9643, "recall": 0.75 },
           "SpuriousSpace": { "known": 1, "detected": 1, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
-          "GarbageInsertion": { "known": 2, "detected": 2, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
-          "Fragmentation": { "known": 5, "detected": 5, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 }
+          "GarbageInsertion": { "known": 33, "detected": 33, "correct": 29, "wrong": 0, "precision": 1.0, "recall": 0.8788 },
+          "Fragmentation": { "known": 12, "detected": 12, "correct": 6, "wrong": 0, "precision": 1.0, "recall": 0.5 },
+          "Mixed": { "known": 30, "detected": 30, "correct": 27, "wrong": 1, "precision": 0.9643, "recall": 0.9 }
         },
-        "note": "R4.0c: benchmark's OCR mutation stage measured with the legacy engine. CorrectlyFixed=148, WronglyFixed=0, Deferred=12 (precision 100%, recall 92.5%), matching this gate's thresholds unchanged. All 12 OCR-class ground-truth records (Fragmentation 5, GlyphConfusion 4, GarbageInsertion 2, SpuriousSpace 1) were Deferred, not WronglyFixed - the legacy engine's 120 mutations do not intersect any of the 160 ground-truth records (D64). Thresholds are not adjusted by this measurement (D63)."
+        "note": "R5.0d re-measurement (was R4.0c's 12-record measurement: CorrectlyFixed=148, WronglyFixed=0, Deferred=12). Against the 288-record schemaVersion-3 ground truth, legacy now shows real wrong-corrections for the first time: odun-kesmek-glyph-0030 ('olın'->'olan', independently verified correct answer is 'John' - EvidenceOnly confidence, the lowest tier legacy has), odun-kesmek-mixed-0022 ('kol-1 ıı kta', legacy only fixes the inner 'ıı'->'ı' sub-span and leaves the surrounding hyphen/digit, so the occurrence reads 'kol-1 ı kta' - not 'koltukta'; this is the one D65 already flagged as legacy's own defect fixed correctly only by lattice's sibling occurrence), and odun-kesmek-auto-0174 ('zencileri-11in', hyphenation removes the dash but the OCR stage leaves the '11' digits untouched, producing 'zencileri11in'). Gate FAILS: recall 89.93% < 92.5%, ClassRecall:Hyphenation 96.59% < 100%. Expected per plan risk #12 - the ground truth now actually measures the OCR engines instead of measuring hyphenation alone (D64)."
       },
       "lattice": {
         "measuredOn": "2026-09-14",
         "engine": "lattice",
-        "ocrClassKnownErrorRecords": 12,
-        "correctlyFixed": 149,
-        "wronglyFixed": 1,
-        "deferred": 10,
-        "precision": 0.9933333333333333,
-        "recall": 0.93125,
+        "ocrClassKnownErrorRecords": 112,
+        "correctlyFixed": 168,
+        "wronglyFixed": 3,
+        "deferred": 117,
+        "precision": 0.9824561403508771,
+        "recall": 0.5833333333333334,
         "ocrPlanned": 19,
         "ocrApplied": 19,
         "protectedChanged": 0,
         "protectedViolated": 0,
         "classBreakdown": {
-          "Hyphenation": { "known": 148, "detected": 148, "correct": 148, "wrong": 0, "precision": 1.0, "recall": 1.0 },
-          "GlyphConfusion": { "known": 4, "detected": 4, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
+          "Hyphenation": { "known": 176, "detected": 174, "correct": 156, "wrong": 1, "precision": 0.9936, "recall": 0.8864 },
+          "GlyphConfusion": { "known": 36, "detected": 33, "correct": 6, "wrong": 0, "precision": 1.0, "recall": 0.1667 },
           "SpuriousSpace": { "known": 1, "detected": 1, "correct": 1, "wrong": 0, "precision": 1.0, "recall": 1.0 },
-          "GarbageInsertion": { "known": 2, "detected": 2, "correct": 0, "wrong": 1, "precision": 0.0, "recall": 0.0 },
-          "Fragmentation": { "known": 5, "detected": 5, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 }
+          "GarbageInsertion": { "known": 33, "detected": 33, "correct": 3, "wrong": 1, "precision": 0.75, "recall": 0.0909 },
+          "Fragmentation": { "known": 12, "detected": 12, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
+          "Mixed": { "known": 30, "detected": 30, "correct": 2, "wrong": 1, "precision": 0.6667, "recall": 0.0667 }
         },
-        "note": "R5.0a: first benchmark run of the lattice engine via --ocr-engine lattice (previously impossible - plan section 6.1 point 2). Gate PASSES: precision 99.33% (>= 98%), recall 93.12% (>= 92.5%), ProtectedChanged=0, ProtectedViolated=0 (closes D48 for the lattice engine too). Lattice plans only 19 OCR mutations (vs legacy's 120) yet correctly fixes one more known error overall (149 vs 148): it fixes odun-kesmek-space-0001 ('koli ukta' -> 'koltukta', SpuriousSpace) that legacy left Deferred, and wrongly fixes odun-kesmek-garbage-0001 (':,ohbet' -> expected 'sohbet', observed ':,sohbet' - one character corrected, the leading garbage glyphs were not). Hyphenation is untouched by engine choice (its correction stage runs before and independently of ocrCorrectionPlanner), so its 100% recall is identical across both engines - this is why a class-recall floor can be set for it now without D63's overfitting risk. Not a like-for-like comparison with phase 4's book-health measurement (D65/D66) - this run only scores the 160 ground-truth records, not the whole book."
+        "note": "R5.0d re-measurement (was R5.0a's 12-record measurement: CorrectlyFixed=149, WronglyFixed=1, Deferred=10, recall 93.12%, gate PASS). Against the 288-record ground truth the gate now FAILS just as sharply as it passed before: recall 58.33% < 92.5%, ClassRecall:Hyphenation 88.64% < 100% - precision stays just above the 98% floor (98.25%) but is now measured on 168 correct fixes instead of 1. This is the headline confirmation of D68/D69's premise: the old 12-record gate never actually exercised the lattice engine's recall gap (D64); it does now. The KAYIP-sourced ground truth (119 records where legacy fixes and lattice does not) explains almost all of the recall drop. This measured recall (58.33%) is R5.4b's numeric starting point, not a new threshold (kural 4.5/D77 - thresholds only move up)."
       }
     }
   }
