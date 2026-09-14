@@ -154,13 +154,25 @@ EPUBFIXER_UPDATE_BASELINES=1 dotnet test tests/EpubFixer.Tests --filter "FullyQu
 ```
 
 ### 4.9 Commit disiplini
-Kalem başına ayrı commit; ilk satır `R5.x: <ne yapıldı>`. R5.0 dört, R5.4 iki alt adıma bölünmüştür;
-her alt adım kendi commit'inde ve **her commit'te tüm suite yeşil**.
+Kalem başına ayrı commit; ilk satır `R5.x: <ne yapıldı>`. Kalemlerin tek oturumluk bölünmesi
+[phase-5-tasks.md](phase-5-tasks.md) bölüm 2'dedir; her kalem kendi commit'inde ve **her commit'te
+tüm suite yeşil**.
 
 ### 4.10 Kapsam disiplini
 Her agent yalnızca kendi kalemini yapar. Yol boyunca fark edilen sorunlar düzeltilmez, bitiş
 raporunda "gözlem" olarak yazılır. Sözleşme değişikliği gerekiyorsa önce gerekçe bildirilir, karar
 bölüm 12'ye eklenir.
+
+### 4.11 İş boyutu bütçesi (D79)
+Bir kaleme devredilen iş **tek oturumda bitmelidir**. Ölçüt dörttür ve dördü birden sağlanmalıdır:
+tek commit, en fazla bir full-book koşusu, tek dosya ailesi, tek doğrulanabilir çıktı.
+
+Bu belgenin 8–12. bölümleri **sözleşme ve kabul** tanımıdır; o tanımların tek oturumluk kalemlere
+bölünmüş hâli [phase-5-tasks.md](phase-5-tasks.md)'dedir. Bir kalemi devralan agent önce buradaki
+ilgili bölümü (ne ve neden), sonra kuyruktaki satırını (tam olarak ne yapılacak) okur.
+
+**DUR kuralı:** Agent bütçeyi aşacağını anlarsa işi büyütmez ve yarım bırakmaz — durur, bulduğunu
+ve kalemin nasıl bölünmesi gerektiğini bildirir.
 
 ---
 
@@ -192,6 +204,10 @@ R5.0  Ölçüm tabanı ve teşhis
 **Paralel yürütülebilir:** R5.0b ile R5.0a; R5.3 ile R5.1/R5.4a. R5.0d tek başına en büyük alt
 adımdır (elle etiketleme) ve ayrı bir agent'a devredilebilir — ama R5.0b'nin ürettiği aday listesi
 olmadan başlamamalıdır (D70).
+
+> Yukarıdaki şema **kalem düzeyindedir**. R5.1, R5.3, R5.4a, R5.4b ve R5.5'in her biri tek oturuma
+> sığmaz; tek oturumluk bölünmeleri, güncel durumları ve gerçek kritik yol
+> [phase-5-tasks.md](phase-5-tasks.md) bölüm 2'dedir (D79).
 
 ---
 
@@ -525,6 +541,8 @@ eder** (Faz 0'ın geriye dönük uyumluluk kuralı).
 
 ## 8. R5.1 — Confusion maliyet kalibrasyonu
 
+> **Tek oturumluk bölünme:** R5.1a, R5.1b, R5.1c, R5.1d, R5.1e — [phase-5-tasks.md](phase-5-tasks.md) bölüm 2 ve 4 (D79).
+
 **Bağımlılık:** R5.0d (yeterli hizalama çifti), R5.0b (hangi vakaların maliyet kaynaklı olduğu).
 
 ### 8.1 Önce dikiş, sonra tablo
@@ -605,6 +623,8 @@ fonksiyonu `OcrEditCostModel` (R5.1'in öğrenilmiş tablosu dahil).
 
 ## 10. R5.3 — Düzeltme inceleme raporu
 
+> **Tek oturumluk bölünme:** R5.3a, R5.3b, R5.3c — [phase-5-tasks.md](phase-5-tasks.md) bölüm 2 ve 4 (D79).
+
 **Amaç:** İnsan doğrulama döngüsü. Faz 4'ün 7. kabul kriteri ("uygulanan her düzeltme elle
 incelenmiş") 10 düzeltmede elle yapılabildi; recall arttıkça 100+ düzeltmede yapılamaz.
 
@@ -629,6 +649,8 @@ yazar ve eskisine dokunmaz (ölmekte olan koda dokunulmaz — Faz 4 §13).
 ---
 
 ## 11. R5.4 — Eşik ve arama uzayı ayarı
+
+> **Tek oturumluk bölünme:** R5.4a-1..3, R5.4b-0..4 — [phase-5-tasks.md](phase-5-tasks.md) bölüm 2 ve 4 (D79).
 
 ### 11.1 R5.4a — Kapı eşiklerini `LatticeOptions`'a çıkar (D74)
 
@@ -672,6 +694,8 @@ düşmüş; süre bütçesi içinde; gerekçe belgelenmiş.
 ---
 
 ## 12. R5.5 — Varsayılanı çevir (R4.2c'nin devri, D73)
+
+> **Tek oturumluk bölünme:** R5.5a, R5.5b — [phase-5-tasks.md](phase-5-tasks.md) bölüm 2 ve 4 (D79).
 
 **Bu, Faz 5'in kapanış eylemidir ve Faz 4'ün yarım kalan R4.2c adımıdır.** Adımların tamamı
 [phase-4-plan.md](phase-4-plan.md) bölüm 8.3'te yazılıdır ve **aynen geçerlidir**; burada yalnızca
@@ -719,6 +743,7 @@ Numaralandırma Faz 4'ün D67'sinden devam eder.
 | D76 | Kalite kapısının **sınıf kırılımlı** hâle getirilmesi R5.0a'nın işidir, ama **OCR sınıflarına bu adımda eşik konmaz**; eşikler R5.0d'den sonra R5.4b'de belirlenir. | D63 aynen geçerli: 12 kayıt üzerinde eşik koymak yanlış güven, koymamak regresyon gizler. Çözüm eşiği ertelemek değil, **tabanı büyütmek**tir (R5.0d). Mekanizma önce, sayı sonra. | Bölüm 7.1 |
 | D77 | `quality-gate.json` eşikleri bu fazda **yalnızca yukarı** hareket edebilir. Aşağı hareket karar gerektirir. | Yol haritası risk #5: kapının gevşetilmesi regresyonu gizler. Faz 5 recall peşindedir ve recall için kapıyı indirmek en kolay yoldur — bu yüzden açıkça yasaklanır. | Bölüm 4.5 |
 | D78 | R5.3 mevcut `FullBookReaderPreview`'u **genişletmez**; lattice hattı için ayrı rapor yazar. | Dosya eski motor zincirine bağlı ve R4.3'ün silme listesinde. Ölmekte olan koda özellik eklenmez (Faz 4 §13'ün OCP kuralı). Yol haritasının "şu an commit edilmemiş" bilgisi de eskimiştir (`8b0e5e0`). | Bölüm 6.9, 10 |
+| D79 | **Kalemler tek oturumluk iş birimlerine bölünür** ve kuyruk ayrı bir belgede tutulur ([phase-5-tasks.md](phase-5-tasks.md)). Boyut ölçütü dörttür: tek commit, en fazla bir full-book koşusu, tek dosya ailesi, tek doğrulanabilir çıktı. | Planın ilk sürümünde R5.1, R5.3, R5.4a, R5.4b ve R5.5 birer kalem olarak yazılmıştı; her biri bir agent oturumuna sığmayacak büyüklükteydi. Saatler süren bir kalem, yarım kaldığında hiç başlanmamış iki küçük kalemden pahalıdır: ara durum test edilmemiş, commit'lenmemiş ve devredilemez olur. Ayrıca R5.4b'nin süpürmesi N full-book koşusu gerektiriyordu — bu, bir kalemin değil **eksik bir ölçüm altyapısının** (R5.4b-0) belirtisiydi. | Bölüm 4.11; kuyruk bölüm 1 |
 
 Yeni bir karar ihtiyacı doğarsa agent kendi başına karara varmaz; gerekçeyi bildirip bekler ve karar
 bu tabloya eklenir.
@@ -746,293 +771,19 @@ bu tabloya eklenir.
 
 ## 15. Devir promptları
 
-### R5.0a
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.0 alt adım a kalemini uygulayacaksın.
+Devir promptları **bu belgede değildir.** Kalemler tek oturumluk iş birimlerine bölündüğü için
+(D79, kural 4.11) prompt sayısı belgeyi okunmaz hâle getiriyordu ve her prompt ortak gövdenin
+kopyasını taşıyordu.
 
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 1, 3 (ön koşul), 4 (ortak kurallar, özellikle 4.4 ve 4.5),
-  6.1, 6.2, 7.1, 13 (D68, D76, D77), 14 (risk #4)
-- docs/phase-4-plan.md — bölüm 1b, 5.4, 5.4b, 10 (D63, D64)
-- benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkApplication.cs
-- benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkRunner.cs (özellikle satır 18-23 ve
-  CreateClassBreakdowns, satır 252-280)
-- benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkGateEvaluator.cs
-- benchmarks/EpubFixer.QualityBenchmarks/Models/QualityBenchmarkGateOptions.cs
-- src/EpubFixer.Adapters/Ocr/LatticeOcrPlannerFactory.cs
-- docs/baselines/quality-gate.json
+Kuyruk ve promptlar: **[phase-5-tasks.md](phase-5-tasks.md)** — bölüm 4'te bir **ortak gövde** ve
+kalem başına yalnızca **farkı** taşıyan kısa deltalar var.
 
-Kurallar:
-- ÖN KOŞUL: çalışma ağacı temiz ve suite yeşil olmalı. Değilse DUR ve bildir.
-- Bu kalem src/ altındaki üretim kodunu DEĞİŞTİRMEZ. Değişim gerekiyorsa DUR ve bildir.
-- SIRA ZORUNLU: (1) CreateClassBreakdowns'ın correct sayacını düzelt, (2) --ocr-engine
-  bayrağını benchmark'a ekle, (3) sınıf kırılımını gate mekanizmasına tak, (4) iki motorla koş.
-  Ters sırada koşarsan lattice'i bozuk aletle ölçersin.
-- OCR sınıflarına eşik KOYMA (D76). Bu adımda yalnızca mekanizma ve Hyphenation'ın bugünkü
-  ölçülmüş değeri girer.
-- Legacy koşusunun gate sonucu PASS kalmalı. Değişen tek şey sınıf kırılımı sayıları olmalı ve
-  her değişimi eski → yeni olarak raporla. Gate sonucu değişirse DUR.
-- Lattice koşusu kapıyı kırarsa KAPIYI GEVŞETME (kural 4.5 / D77). Ölçülen değeri kaydet.
-- Beklenen değerleri TAHMİN ETME. Önce koş, çıkan sayıyı oku, sonra yaz (kural 4.3).
-- Kapsam R5.0a ile sınırlı: taksonomi yok, ground truth genişletme yok, eşik ayarı yok.
+Bir kalemi devralan agent sırasıyla okur:
+1. Bu belgenin ilgili kalem bölümü (8–12) — **ne ve neden**, sözleşme ve kabul kriteri
+2. Bu belgenin bölüm 4'ü — her kalemde geçerli ortak kurallar
+3. Kuyruktaki kendi satırı — **tam olarak ne yapılacak**, hangi dosyalar, hangi DUR koşulu
 
-Bitirdiğinde: eklenen testler, legacy sınıf kırılımının eski/yeni sayıları, lattice koşusunun
-tam sonucu (precision/recall/sınıf kırılımı/ProtectedChanged/ProtectedViolated), planda
-güncellenmesi gereken bir şey olup olmadığı.
-```
-
-### R5.0b
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.0 alt adım b kalemini uygulayacaksın.
-Bu, Faz 5'in en kritik ölçüm işidir: 119 kaybın her birinin hangi aşamada düştüğünü bulmak.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 1, 4, 6.3, 6.4, 6.5, 7.2, 13 (D68, D72), 14 (risk #8)
-- docs/baselines/odun-kesmek.engine-diff.json (loss listesi — 119 kayıt)
-- docs/baselines/odun-kesmek.lattice.json (ham koşu, reason histogram)
-- src/EpubFixer.Core/Ocr/Lattice/CorrectionAcceptanceGate.cs (özellikle satır 31 ve 212-234)
-- src/EpubFixer.Core/Ocr/Lattice/WordLatticeBuilder.cs
-- src/EpubFixer.Core/Ocr/Lattice/LatticeDecoder.cs
-- src/EpubFixer.Adapters/Ocr/Lattice/SymSpellLexiconMatcher.cs
-- src/EpubFixer.Core/Ocr/OcrConfusionSet.cs
-
-Kurallar:
-- Bu kalem HİÇBİR ŞEYİ DÜZELTMEZ. Bulduğun sebep ne kadar bariz görünürse görünsün koda
-  dokunma. Ürünü tek bir teşhis dosyasıdır.
-- Her kayıp TAM OLARAK BİR sebep alır: zincirdeki İLK düşüş noktası. Sebep kodları 7.2'de.
-- Atfedilemeyen kayıt SIFIR olmalı. Atfedemiyorsan bu bir bulgudur, gizleme — dosyaya yaz.
-- 6.4'teki ChangedTokens hipotezini SINA: GateRejected:OriginalTokenIsValid alan her vaka için
-  hangi token'ın geçerli sayıldığını kaydet. Hipotez doğru VARSAYARAK hareket etme; doğrula
-  veya çürüt.
-- Çıktı: docs/baselines/odun-kesmek.loss-taxonomy.json (vaka başına kayıt + histogram).
-- Kapsam R5.0b ile sınırlı: ground truth genişletme yok, eşik değişikliği yok, D66 kök neden
-  analizi yok (o R5.0c).
-
-Bitirdiğinde: 119'un sebep histogramı, "hangi Faz 5 kalemi kaç vakaya dokunur" tablosu,
-ChangedTokens hipotezinin sonucu, ve MatcherMissedTarget payının %20 eşiğinin (D72) üstünde
-olup olmadığı.
-```
-
-### R5.0c
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.0 alt adım c kalemini uygulayacaksın.
-Tek işin D66'nın açık bıraktığı soruyu cevaplamak.
-
-Soru: "kol-1 ıı kta" parçası ham koşuda Leave/TooManyOrdinaryEdits, üretim koşusunda
-Apply/Accepted alıyor. MaxArcLength (D65) doğru cevabın üretilememesini açıklıyor ama kapının
-neden KABUL ettiğini açıklamıyor.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 4, 6.8, 7.3, 13 (D75), 14 (risk #7)
-- docs/phase-4-plan.md — bölüm 10, D65 ve D66
-- docs/baselines/odun-kesmek.engine-diff.json — rawVersusProduction düğümü
-- docs/baselines/odun-kesmek.lattice.md — ilgili region kaydı
-- src/EpubFixer.Core/Ocr/Lattice/CorrectionAcceptanceGate.cs (OrdinaryEdits, satır 80-95)
-- src/EpubFixer.Core/Ocr/LatticeOcrCorrectionPlanner.cs
-
-Kurallar:
-- Bu kalem hiçbir davranış düzeltmez. Ürünü bir açıklamadır.
-- İki koşunun kafesini, Top-1 yolunu, arc kırılımını ve OrdinaryEdits hesabını YAN YANA koy.
-  Farkın nereden doğduğunu mekanizma düzeyinde göster.
-- D66'daki "hazne/LM hyphenation sonrası kuruluyor" adayı bir HİPOTEZDİR. Doğrula veya çürüt.
-- Açıklayamazsan uydurma: loss-taxonomy.json'a status "unexplained" yaz. Bu durumda R5.4b'de
-  MaxArcLength büyütülmesi BLOKE olur (D75) ve bunu bitiş raporunda açıkça belirt.
-
-Bitirdiğinde: farkın mekanizması, kanıtı, ve MaxArcLength'in R5.4b'de büyütülmesinin serbest
-olup olmadığı.
-```
-
-### R5.0d
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.0 alt adım d kalemini uygulayacaksın:
-ground truth'un OCR kolunu genişletmek. Bu fazın en emek yoğun kalemidir.
-
-ÖN KOŞUL: R5.0b tamamlanmış ve docs/baselines/odun-kesmek.loss-taxonomy.json üretilmiş
-olmalıdır. Aday listesi oradan gelir.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 4, 6.1, 6.10, 7.4, 13 (D70, D71, D76), 14 (risk #1, #2, #12)
-- docs/phase-4-plan.md — bölüm 5.10, 10 (D63, D64)
-- docs/baselines/odun-kesmek.engine-diff.json (KAYIP 119 / KAZANÇ 9 / ÇATIŞMA 1)
-- docs/baselines/odun-kesmek.loss-taxonomy.json
-- test-data/odun-kesmek/ground-truth.json (schemaVersion 2, 160 kayıt)
-- benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkDatasetLoader.cs
-- benchmarks/EpubFixer.QualityBenchmarks/GroundTruthProposer.cs (--propose zaten var)
-- benchmarks/EpubFixer.QualityBenchmarks/Models/GroundTruthDocument.cs, Models/OcrErrorClass.cs
-
-Kurallar:
-- Örnekleme RASTGELE DEĞİL: adaylar motorların gerçekten dokunduğu bölgelerden gelir (D70).
-  Kaynak listesi 7.4'teki tabloda.
-- LEGACY'NİN ÇIKTISI GROUND TRUTH DEĞİLDİR (D71). Her kaydı bağlamıyla (çevresindeki cümle)
-  oku ve elle doğrula. Legacy'nin önerisi legacyProposal alanında ayrı durur; yanlışsa doğru
-  değeri sen yaz ve yanlış olduğunu işaretle.
-- Hedef: OCR kolu >= 60 kayıt, her sınıfta >= 5 (MissingSpace ve Mixed dahil — bugün sıfırlar).
-- schemaVersion 2 -> 3. Loader şema 2'yi okumaya DEVAM ETMELİ; bunu kanıtlayan test yaz.
-- Genişletmeden sonra benchmark'ı HER İKİ motorla koş ve yeni sınıf kırılımını kaydet.
-- KAPI KIRILABİLİR — beklenen budur (risk #12). Eşiği İNDİRME (D77). Ölçülen değeri kaydet;
-  o değer R5.4b'nin hedefidir.
-- Kapsam R5.0d ile sınırlı: eşik ayarı yok, maliyet kalibrasyonu yok, motor değişikliği yok.
-
-Bitirdiğinde: eklenen kayıt sayısı ve sınıf dağılımı, legacy'nin yanlış çıktığı vaka sayısı,
-her iki motorun yeni sınıf kırılımı, kapı sonucu, ve şema uyumluluk testinin durumu.
-```
-
-### R5.1
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.1 kalemini uygulayacaksın:
-confusion maliyet kalibrasyonu.
-
-ÖN KOŞUL: R5.0d tamamlanmış (genişletilmiş ground truth) ve R5.0b'nin taksonomisi okunmuş
-olmalı. Taksonomi "maliyet kaynaklı" (DecoderRankedOther) vaka göstermiyorsa DUR ve bildir.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 4, 6.5, 8, 13 (D68), 14 (risk #2, #3, #9)
-- docs/ocr-correction-roadmap.md — R5.1 maddesi
-- src/EpubFixer.Core/Ocr/OcrEditCostModel.cs
-- src/EpubFixer.Core/Ocr/OcrConfusionSet.cs
-- src/EpubFixer.Core/Ocr/WeightedEditAligner.cs (özellikle satır 126-172)
-- src/EpubFixer.Core/Ocr/Lattice/CorrectionAcceptanceGate.cs (satır 10 — enjekte edilemeyen aligner)
-- src/EpubFixer.Adapters/Ocr/LatticeOcrPlannerFactory.cs (satır 22)
-- tests/EpubFixer.Tests/CoreLayeringTests.cs
-
-Kurallar:
-- ÖNCE DİKİŞ, SONRA TABLO (8.1). Dikiş adımlarından sonra TÜM baseline'lar bit düzeyinde aynı
-  kalmalı. Değişirse dikiş davranış değiştirmiştir — DUR.
-- Öğrenilmiş tablo ÇİFT BAŞINA maliyet taşır; bugün tek düz KnownGlyphSubstitution=0.25 var.
-- Düzleştirme ZORUNLU ve yöntemi belgelenir. 60 kayıtlık tabandan sıfır frekanslı çiftler çıkar.
-- HELD-OUT ZORUNLU: tablo yalnızca eğitim bölümünden öğrenilir, rapor held-out üzerinden verilir.
-- Diskten tablo okuyan kod Adapters'a gider; Core yalnızca tipi tanır (CoreLayeringTests).
-- Tabloyu VARSAYILAN YAPMA. Bayrak/parametre arkasında gelir; varsayılan kararı R5.4b'nin.
-- A/B: Top-1'i düşürmez VE yanlış düzeltme sayısını artırmaz (kural 4.6). İkisinden biri
-  bozuluyorsa tablo reddedilir.
-- Kapsam R5.1 ile sınırlı: eşik değiştirme yok, MaxArcLength yok, trie yok.
-
-Bitirdiğinde: dikişin baseline'ları değiştirmediğinin kanıtı, öğrenilmiş tablonun held-out
-sonucu, A/B karşılaştırması, ve tablonun varsayılan yapılmaya hazır olup olmadığı.
-```
-
-### R5.3
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.3 kalemini uygulayacaksın:
-lattice hattı için düzeltme inceleme raporu.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 4, 6.9, 10, 13 (D78)
-- docs/phase-4-plan.md — bölüm 13 (Diagnostics sözleşmesi), 9.2 (R4.3 silme listesi)
-- src/EpubFixer.Cli/OcrReconstruction/FullBookReaderPreview.cs (BAŞLANGIÇ NOKTASI DEĞİL —
-  neden olmadığını 6.9 açıklıyor; oku ama genişletme)
-- src/EpubFixer.Core/Ocr/IOcrCorrectionPlanner.cs (OcrCorrectionPlanResult.Diagnostics)
-- src/EpubFixer.Core/Ocr/LatticeOcrCorrectionPlanner.cs
-- src/EpubFixer.Core/Mutation/RegionMutationPlanner.cs (RegionMutationPlanResult)
-- src/EpubFixer.Cli/Program.cs (debug-lattice raporu, satır 342-464)
-
-Kurallar:
-- FullBookReaderPreview.cs'e DOKUNMA (D78). O dosya eski motor zincirine bağlı ve R4.3'ün
-  silme listesinde; ölmekte olan koda özellik eklenmez.
-- Rapor ÇATIŞMA bölümüyle başlar (en tehlikeli sınıf), sonra KAZANÇ/KAYIP, sonra Apply'lar
-  bağlamıyla, sonra Review, sonra Leave histogramı ve bilerek dokunulmayan kütle.
-- Rapor artifacts/ altına yazılır (gitignore'lu); yalnızca özeti docs/baselines/'e gider.
-- Kapsam R5.3 ile sınırlı: motor davranışı değişmez, eşik değişmez.
-
-Bitirdiğinde: raporun hangi bölümleri içerdiği, full koşuda kaç düzeltme/Review/Leave
-gösterdiği, ve engine-diff.json'ı komutla üretebilir hâle gelip gelmediği.
-```
-
-### R5.4a
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.4 alt adım a kalemini uygulayacaksın:
-kapı eşiklerini LatticeOptions'a çıkarmak. Bu, D45'in Faz 3'ten beri açık olan borcudur.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 4, 6.6, 6.7, 6.8, 11.1, 13 (D74)
-- docs/phase-4-plan.md — bölüm 13
-- src/EpubFixer.Core/Ocr/Lattice/LatticeOptions.cs
-- src/EpubFixer.Core/Ocr/Lattice/CorrectionAcceptanceGate.cs (tamamı)
-- src/EpubFixer.Core/Ocr/Lattice/WordLatticeBuilder.cs (satır 60 ve 88-89)
-- src/EpubFixer.Adapters/Ocr/Lattice/SymSpellLexiconMatcher.cs (satır 9-11)
-- src/EpubFixer.Core/Ocr/Lattice/Models/DecodedPath.cs (EditCost vs Cost)
-
-Kurallar:
-- VARSAYILANLAR BUGÜNKÜ DEĞERLER. Bu adım davranış değiştirmez ve kanıtı tüm baseline'ların
-  bit düzeyinde aynı kalmasıdır. Değişirse DUR.
-- 6.6'daki dört sabit LatticeOptions'a çıkar: uzunluk oranı kuralları, "ıe"/"ie" kara listesi,
-  ProperNameRisk'in büyük harf kuralı, IsValidOriginalToken'ın BookCount eşiği.
-- 6.7'deki iki ölü alanı (MaxQueriesPerSpan, MaxMatchesPerSpan) ya gerçekten bağla ya kaldır.
-  Ölü bırakırsan R5.4b'nin süpürmesi "etkisi yok" diye yanlış bilgi üretir.
-- 6.8'deki MaxPathCost(EditCost) / MinMargin(Cost) asimetrisini ya düzelt ya KASITLI olduğunu
-  belgele. Düzeltmek davranış değiştirir — o durumda DUR ve önce bildir.
-- Kapsam R5.4a ile sınırlı: hiçbir eşik DEĞERİ değişmez, yalnızca yeri değişir.
-
-Bitirdiğinde: çıkarılan eşiklerin listesi, baseline'ların değişmediğinin kanıtı, ölü alanlar
-için verilen karar, ve asimetri hakkındaki bulgu.
-```
-
-### R5.4b
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.4 alt adım b kalemini uygulayacaksın:
-eşik ve arama uzayı süpürmesi.
-
-ÖN KOŞUL — hepsi gerekli:
-- R5.0d tamamlanmış (genişletilmiş ground truth = hedef fonksiyonun tabanı)
-- R5.4a tamamlanmış (süpürülebilir tek nesne)
-- R5.0c'nin sonucu okunmuş: "unexplained" ise MaxArcLength BÜYÜTÜLEMEZ (D75)
-Biri eksikse DUR ve bildir.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 4 (özellikle 4.5 ve 4.6), 6.3, 6.4, 6.6, 6.8, 11.2,
-  13 (D75, D77), 14 (risk #3, #5, #6, #7, #8)
-- docs/baselines/odun-kesmek.loss-taxonomy.json (süpürme listesi BURADAN türetilir)
-- docs/baselines/odun-kesmek.engine-diff.json
-- tests/EpubFixer.Tests/PerformanceBudgetTests.cs (satır 75, 114-115 — kısıtlar)
-
-Kurallar:
-- HEDEF FONKSİYONU ÖNCE YAZ: genişletilmiş ground truth üzerinde precision >= %98 kısıtı
-  altında recall maksimizasyonu. Süpürmeden SONRA "şu metrik daha iyi görünüyordu" deme.
-- Yanlış düzeltme sayısını sıfırın üstüne çıkaran hiçbir nokta seçilmez — ne kadar recall
-  getirdiğine bakılmaksızın (kural 4.6).
-- Kapıyı GEVŞETME yoluyla recall kazanma (D77). quality-gate.json eşikleri yalnızca yukarı.
-- Süre her noktada ölçülür; 30 sn / 2.500 state ve 120 sn / legacy+35 sn KISITTIR, çıktı değil.
-- Seçilen nokta held-out bölümde de doğrulanır (overfit koruması).
-- Çıktı: docs/baselines/odun-kesmek.threshold-sweep.json — taranan noktalar, her noktada
-  (precision, recall, yanlış düzeltme, süre, KAYIP) ve seçimin gerekçesi.
-- Beklenen değerleri TAHMİN ETME (kural 4.3).
-
-Bitirdiğinde: süpürülen parametreler ve aralıkları, eğri, seçilen nokta ve gerekçesi, yeni
-KAYIP sayısı, ve R5.5'in beş ön koşulundan hangilerinin artık sağlandığı.
-```
-
-### R5.5
-```
-EpubFixer projesinde docs/phase-5-plan.md'deki R5.5 kalemini uygulayacaksın:
-varsayılan motoru lattice'e çevirmek. Bu, Faz 4'ün yarım kalan R4.2c adımıdır.
-
-ÖN KOŞUL — bölüm 12'deki beş koşulun HEPSİ sağlanmalı. Biri sağlanmıyorsa varsayılanı
-ÇEVİRME; bulguyu raporla ve kapanış tablosunu doldur. Ölçülmüş bir "henüz değil" kabul
-edilebilir sonuçtur.
-
-Önce şunları oku:
-- docs/phase-5-plan.md — bölüm 2 (kabul), 4, 12, 13 (D73), 14 (risk #10)
-- docs/phase-4-plan.md — bölüm 8.3 (R4.2c'nin adımları AYNEN geçerli), 10 (D60, D61, D65, D66)
-- docs/baselines/odun-kesmek.threshold-sweep.json
-- docs/baselines/odun-kesmek.engine-diff.json
-- tests/EpubFixer.Tests/MorphologyCallTraceTests.cs (golden SHA-256 — kasten değişecek)
-- tests/EpubFixer.Tests/OcrMutationBaselineTests.cs
-- src/EpubFixer.Cli/Program.cs (satır 64-67, 978-982 — --ocr-engine)
-
-Kurallar:
-- ÖLÇ, SONRA YAZ. Golden hash kasten değişir; yeni değeri ÖLÇEREK yaz, tahmin etme.
-  Değişen her beklenen değeri bitiş raporunda gerekçelendir (kural 4.3).
-- Fark raporunu üret ve ÜÇ LİSTENİN TAMAMINI elle incele (KAZANÇ / KAYIP / ÇATIŞMA).
-  ÇATIŞMA en tehlikeli sınıftır, önce onu incele.
-- Yanlış düzeltme bulursan: eşik oynatarak kapatma. DUR, bildir, varsayılanı legacy'ye al.
-- --ocr-engine legacy seçilebilir kalır. R4.3 BU FAZDA YAPILMAZ (D73).
-- Çıktı EPUB'a yanlış düzeltme yazan bir sürüm commit edilmez.
-
-Bitirdiğinde: beş ön koşulun her birinin ölçülmüş değeri, varsayılanın çevrilip çevrilmediği,
-çevrilmediyse hangi koşulun hangi sayıyla sağlanmadığı, ve güncellenen baseline'ların listesi.
-```
-
----
+Tamamlanmış kalemlerin (R5.0a–R5.0d) özgün promptları git geçmişindedir (`7431021` ve sonrası).
 
 ## 16. Faz 5'in Faz 6 ile sözleşmesi
 
