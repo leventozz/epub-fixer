@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using EpubFixer.QualityBenchmarks.Models;
 
 namespace EpubFixer.QualityBenchmarks;
@@ -24,6 +25,16 @@ public sealed class QualityBenchmarkGateEvaluator
 
         AddMinimumRateFailure(failures, "Precision", result.Precision, options.MinimumPrecision);
         AddMinimumRateFailure(failures, "Recall", result.Recall, options.MinimumRecall);
+
+        foreach (var threshold in options.ClassRecallThresholds)
+        {
+            var breakdown = result.ClassBreakdowns.FirstOrDefault(item => item.ErrorClass == threshold.ErrorClass);
+            AddMinimumRateFailure(
+                failures,
+                $"ClassRecall:{threshold.ErrorClass}",
+                breakdown?.Recall,
+                threshold.MinimumRecall);
+        }
 
         return new QualityBenchmarkGateResult(failures.Count == 0, failures);
     }

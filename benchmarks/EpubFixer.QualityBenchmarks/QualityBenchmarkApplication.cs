@@ -1,6 +1,7 @@
 using EpubFixer.QualityBenchmarks.Models;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using EpubFixer.Adapters.Ocr;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Ocr;
@@ -11,7 +12,7 @@ namespace EpubFixer.QualityBenchmarks;
 public sealed class QualityBenchmarkApplication
 {
     private readonly Func<string, QualityBenchmarkDataset> _load;
-    private readonly Func<QualityBenchmarkDataset, QualityBenchmarkResult> _run;
+    private readonly Func<QualityBenchmarkDataset, IOcrCorrectionPlanner?, QualityBenchmarkResult> _run;
     private readonly QualityBenchmarkGateEvaluator _gateEvaluator;
     private readonly string _gateProfileDescription;
 
@@ -23,7 +24,7 @@ public sealed class QualityBenchmarkApplication
     private QualityBenchmarkApplication(DefaultDependencies dependencies)
         : this(
             directory => new QualityBenchmarkDatasetLoader().Load(directory),
-            dataset => new QualityBenchmarkRunner().Run(dataset),
+            (dataset, planner) => new QualityBenchmarkRunner(planner).Run(dataset),
             new QualityBenchmarkGateEvaluator(dependencies.Options),
             dependencies.Description)
     {
@@ -33,13 +34,21 @@ public sealed class QualityBenchmarkApplication
         Func<string, QualityBenchmarkDataset> load,
         Func<QualityBenchmarkDataset, QualityBenchmarkResult> run,
         QualityBenchmarkGateEvaluator gateEvaluator)
+        : this(load, (dataset, _) => run(dataset), gateEvaluator, "injected")
+    {
+    }
+
+    internal QualityBenchmarkApplication(
+        Func<string, QualityBenchmarkDataset> load,
+        Func<QualityBenchmarkDataset, IOcrCorrectionPlanner?, QualityBenchmarkResult> run,
+        QualityBenchmarkGateEvaluator gateEvaluator)
         : this(load, run, gateEvaluator, "injected")
     {
     }
 
     private QualityBenchmarkApplication(
         Func<string, QualityBenchmarkDataset> load,
-        Func<QualityBenchmarkDataset, QualityBenchmarkResult> run,
+        Func<QualityBenchmarkDataset, IOcrCorrectionPlanner?, QualityBenchmarkResult> run,
         QualityBenchmarkGateEvaluator gateEvaluator,
         string gateProfileDescription)
     {
@@ -58,24 +67,23 @@ public sealed class QualityBenchmarkApplication
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
-        if (args.Length == 2 && string.Equals(args[0], "--propose", StringComparison.OrdinalIgnoreCase))
+        var parsed = ParseArguments(args);
+        if (parsed.Mode == BenchmarkMode.Usage)
         {
-            return RunPropose(args[1], output, error);
+            PrintUsage(error);
+            return 1;
         }
 
-        if (args.Length != 1 || string.IsNullOrWhiteSpace(args[0]))
+        if (parsed.Mode == BenchmarkMode.Propose)
         {
-            error.WriteLine(
-                "Usage: dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- <dataset-directory>");
-            error.WriteLine(
-                "       dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- --propose <dataset-directory>");
-            return 1;
+            return RunPropose(parsed.DatasetDirectory!, output, error);
         }
 
         try
         {
-            var dataset = _load(args[0]);
-            var result = _run(dataset);
+            var dataset = _load(parsed.DatasetDirectory!);
+            var planner = ResolvePlanner(parsed.OcrEngine!);
+            var result = _run(dataset, planner);
             QualityBenchmarkReportWriter.Write(output, dataset.Name, result);
             output.WriteLine();
             output.WriteLine($"Quality gate profile: {_gateProfileDescription}");
@@ -93,6 +101,58 @@ public sealed class QualityBenchmarkApplication
             return 2;
         }
     }
+
+    /// <summary>
+    /// Resolves the CLI-selected engine name to the planner the runner should use.
+    /// "legacy" (the default) maps to null so <see cref="QualityBenchmarkRunner"/> falls back
+    /// to its own default (<c>LegacyOcrCorrectionPlanner</c>) exactly as it did before this
+    /// flag existed - the default composition is unchanged (plan section 7.1, item 2).
+    /// </summary>
+    private static IOcrCorrectionPlanner? ResolvePlanner(string ocrEngine) =>
+        string.Equals(ocrEngine, "lattice", StringComparison.OrdinalIgnoreCase)
+            ? LatticeOcrPlannerFactory.Create()
+            : null;
+
+    private static void PrintUsage(TextWriter error)
+    {
+        error.WriteLine(
+            "Usage: dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- <dataset-directory>");
+        error.WriteLine(
+            "       dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- --propose <dataset-directory>");
+        error.WriteLine(
+            "       dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- --ocr-engine legacy|lattice <dataset-directory>");
+    }
+
+    internal enum BenchmarkMode { Usage, Propose, Measure }
+
+    internal readonly record struct ParsedArguments(BenchmarkMode Mode, string? DatasetDirectory, string? OcrEngine);
+
+    internal static ParsedArguments ParseArguments(string[] args)
+    {
+        if (args.Length == 2 && string.Equals(args[0], "--propose", StringComparison.OrdinalIgnoreCase))
+        {
+            return new ParsedArguments(BenchmarkMode.Propose, args[1], null);
+        }
+
+        if (args.Length == 1 && !string.IsNullOrWhiteSpace(args[0]))
+        {
+            return new ParsedArguments(BenchmarkMode.Measure, args[0], "legacy");
+        }
+
+        if (args.Length == 3
+            && string.Equals(args[0], "--ocr-engine", StringComparison.OrdinalIgnoreCase)
+            && IsKnownEngine(args[1])
+            && !string.IsNullOrWhiteSpace(args[2]))
+        {
+            return new ParsedArguments(BenchmarkMode.Measure, args[2], args[1].ToLowerInvariant());
+        }
+
+        return new ParsedArguments(BenchmarkMode.Usage, null, null);
+    }
+
+    private static bool IsKnownEngine(string value) =>
+        string.Equals(value, "legacy", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(value, "lattice", StringComparison.OrdinalIgnoreCase);
 
     private static int RunPropose(string datasetDirectory, TextWriter output, TextWriter error)
     {
@@ -145,10 +205,17 @@ public sealed class QualityBenchmarkApplication
 
 internal static class QualityBenchmarkGateProfileLoader
 {
-    private static readonly JsonSerializerOptions Options = new()
+    private static readonly JsonSerializerOptions Options = CreateOptions();
+
+    private static JsonSerializerOptions CreateOptions()
     {
-        PropertyNameCaseInsensitive = true
-    };
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
+    }
 
     public static QualityBenchmarkGateOptions? LoadCurrent(string path)
     {

@@ -249,7 +249,7 @@ public sealed class QualityBenchmarkRunner
         return detections;
     }
 
-    private static IReadOnlyList<QualityBenchmarkClassBreakdown> CreateClassBreakdowns(
+    internal static IReadOnlyList<QualityBenchmarkClassBreakdown> CreateClassBreakdowns(
         IReadOnlyList<KnownErrorOccurrence> knownErrors,
         IReadOnlyList<KnownErrorOccurrence> missed,
         IReadOnlyList<KnownErrorCorrectionFailure> failures)
