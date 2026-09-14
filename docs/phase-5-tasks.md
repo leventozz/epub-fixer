@@ -29,6 +29,23 @@ hiç başlanmamış iki küçük kalemden pahalıdır.
 sığıyorsa bir oturuma da sığar. Sığmıyorsa ölçüm altyapısı eksiktir ve **önce o yazılır**
 (R5.4b-0'ın varlık sebebi budur).
 
+### 1b. Elle etiketleme kalemleri parti hâlinde bölünür (D79'un eki)
+
+Yukarıdaki dört ölçüt **kod kalemleri** için yeterlidir; **elle etiketleme** kalemleri için değildir.
+Etiketleme tek commit'e, tek dosyaya ve tek çıktıya sığar ama süresi kayıt sayısıyla doğrusal artar.
+
+R5.0d bunu ölçtü: 129 kaydın elle doğrulanması **kesintisiz ~2 saat** sürdü ve oturum dışarıdan
+durduruldu. İş tamamlanmıştı, ama bu şans eseriydi — 15 dakika erken durdurulsaydı yarım kalmış,
+commit'lenmemiş ve devredilemez bir ground truth kalırdı.
+
+**Kural:** Elle etiketleme kalemi **≤ 25 kayıtlık partilere** bölünür. Her parti kendi commit'i,
+kendi ölçümü. Parti sınırı keyfi değil: doğrulama hızı ~1 kayıt/dk civarında ve 25 kayıt bir
+oturumun etiketleme payına sığıyor.
+
+**Neden önemli:** etiketleme işi geri alınamaz emek harcar. Kod kalemi yarım kalırsa `git checkout`
+ile atılır ve hiçbir şey kaybolmaz; yarım kalan etiketleme, insanın okuduğu 60 cümlenin çöpe
+gitmesidir.
+
 ---
 
 ## 2. Kuyruk
@@ -41,8 +58,9 @@ Durum kodları: ✅ bitti · 🔄 devam ediyor · ⬜ hazır · 🔒 ön koşulu
 | 1 | R5.0a — benchmark motor anahtarı + sınıf kırılımlı kapı | ✅ `73b1618` | — | iki motorun OCR-stage ölçümü |
 | 2 | R5.0b — 119 kaybın sebep taksonomisi | ✅ `d8d8f24` | — | `loss-taxonomy.json` |
 | 3 | R5.0c — D66'nın kök nedeni | ✅ `d512427` | R5.0b | `rawVersusProduction: explained` |
-| 4 | R5.0d — ground truth schemaVersion 3 | 🔄 commit'lenmemiş | R5.0b | 288 kayıt, OCR kolu 112 |
-| 5 | R5.0e — eksik sınıfları tamamla | ⬜ | R5.0d | `MissingSpace` ≥5, `SpuriousSpace` ≥5 |
+| 4 | R5.0d — ground truth schemaVersion 3 | ✅ `33d4b87` | R5.0b | 288 kayıt, OCR kolu 112; iki motor yeniden ölçüldü |
+| 5 | R5.0e — `MissingSpace` / `SpuriousSpace` boşluğunu karara bağla | ⬜ | R5.0d | karar: doldur, ertele veya kapsam dışı yaz |
+| 5b | R5.0f — kapı profilini yeni ölçüm tabanına taşı | ⬜ | R5.0d + **D80 onayı** | karşılaştırılabilir kapı |
 | | **R5.1 — Maliyet kalibrasyonu** | | | |
 | 6 | R5.1a — `IOcrConfusionSet` portu | ⬜ | — | baseline değişmedi |
 | 7 | R5.1b — aligner enjeksiyon dikişi | 🔒 | R5.1a | baseline değişmedi |
@@ -69,9 +87,67 @@ Durum kodları: ✅ bitti · 🔄 devam ediyor · ⬜ hazır · 🔒 ön koşulu
 | 23 | R5.5b — anahtarı çevir + yeniden ölç | 🔒 | R5.5a hepsi yeşil | yeni baseline'lar |
 
 **Paralel yürüyebilenler:** (6) R5.1a ile (14) R5.4a-1 ile (11) R5.3a — üçü ayrı dosya ailelerine
-dokunur. (5) R5.0e de bunlardan bağımsızdır.
+dokunur. (5) R5.0e ve (5b) R5.0f de bunlardan bağımsızdır.
 
-**Kritik yol:** R5.0d → R5.1a → R5.1b → R5.1c → R5.1d → R5.4b-0 → eksenler → R5.4b-4 → R5.5a → R5.5b
+**Kritik yol:** R5.0f → R5.1a → R5.1b → R5.1c → R5.1d → R5.4b-0 → eksenler → R5.4b-4 → R5.5a → R5.5b
+
+---
+
+## 2b. R5.0d ne ölçtü — Faz 5'in başlangıç noktası
+
+R5.0d ground truth'u 160 → 288 kayda çıkardı (176 `Hyphenation` + **112 OCR kolu**, eskiden 12) ve
+iki motoru da bu yeni taban üzerinde yeniden ölçtü. Sonuç, D68/D69'un dayandığı varsayımı **ilk kez
+doğrudan** doğruluyor:
+
+| | Legacy | Lattice |
+|---|---:|---:|
+| Precision | %98,85 | %98,25 |
+| **Recall** | **%89,93** | **%58,33** |
+| Doğru düzeltilen | 259 | 168 |
+| Yanlış düzeltilen | 3 | 3 |
+| Ertelenen | 26 | **117** |
+| `ProtectedChanged` / `ProtectedViolated` | 0 / 0 | 0 / 0 |
+
+**Recall farkı 31,6 puan.** R5.4b'nin kapatmaya çalışacağı mesafe budur ve artık tek bir sayıdır.
+
+Üç bulgu:
+
+1. **Eski kapı hiçbir şey ölçmüyormuş.** 12 kayıtlık tabanda lattice **geçiyordu** (recall %93,12);
+   112 kayıtlık tabanda %58,33'e düşüyor. Motor değişmedi — ölçüm aleti değişti. D64'ün tespiti
+   sayıya dönüştü.
+2. **Legacy de altın standart değil (D71 doğrulandı).** Yeni tabanda legacy'nin **3 yanlış
+   düzeltmesi** görünür oldu; en çarpıcısı `olın` → `olan` (doğrusu **`John`**). D71'in "legacy'nin
+   çıktısı ground truth sayılmaz" kuralı olmasaydı bu üç hata doğru cevap olarak sabitlenecekti.
+3. **Kapı artık her iki motorda da kırmızı.** Bu beklenen sonuçtu (plan risk #12) ama bir yan etkisi
+   var: eşikler eski tabana göre ayarlandığı için **legacy bile geçemiyor**. Bu, D80'i gerektiriyor
+   (bkz. bölüm 2c).
+
+### 2c. Çözülmesi gereken gerilim: D77 kapıyı kilitledi (D80 önerisi)
+
+Kapının bugünkü eşikleri: precision ≥ %98, recall ≥ %92,5, `ClassRecall:Hyphenation` = %100.
+Bunlar **160 kayıtlık eski taban** üzerinde ölçülmüştü. Yeni tabanda legacy %89,93, lattice %58,33
+— yani **hiçbir motor geçemiyor ve geçemeyecek.**
+
+D77 diyor ki: "eşikler yalnızca yukarı hareket edebilir." Harfiyen uygulanırsa kapı kalıcı olarak
+kırmızıdır ve R5.4b'nin yeşil bir hedefi yoktur.
+
+**Gerilimin kaynağı:** eşik, *aynı ölçümün* tekrarları hakkında bir iddiadır. Ground truth değişince
+ölçüm değişti; %92,5 artık daha sıkı bir çıta değil, **başka bir çıta**. D77 gevşetmeyi yasaklamak
+için kondu ve o amacı hâlâ geçerli — ama taban değişimini gevşetme saymak, doğru ölçüme geçmeyi
+cezalandırır.
+
+**D80 önerisi:** Ölçüm tabanı değiştiğinde eşikler **yeni taban üzerinde yeniden kurulur**; eski
+profil tabanıyla birlikte dosyada arşivlenir. Üç koruma:
+
+1. Yeni eşik **seçilmez, ölçülür**: iyi olan motorun (bugün legacy) ölçülmüş değeri alınır.
+   Aşağı yuvarlanmaz.
+2. Eski profil `supersededProfiles` altında **tabanıyla** saklanır — değişim denetlenebilir kalır.
+3. D77 **taban içinde aynen geçerlidir**: yeniden kurulduktan sonra eşikler yalnızca yukarı.
+
+Bu, lattice için kapıyı "legacy'ye yetiş" koşuluna çevirir — Faz 5'in hedefinin tam olarak kendisi.
+
+> **D80 onay bekliyor.** Bu, plan bölüm 13'ün "agent kendi başına karara varmaz" kuralına giren bir
+> karardır: kapı eşiğine dokunuyor. Onaylanana kadar R5.0f başlamaz ve R5.4b'nin hedefi tanımsızdır.
 
 ---
 
@@ -92,6 +168,11 @@ R5.0b'nin ölçtüğü 119 kaybın hangi kaleme düştüğü. **Süpürme eksenl
 **Ulaşılabilir tavan:** 32 vaka kapsam dışı, 10 vaka düşürüldü → Faz 5'in dokunabileceği en fazla
 **77 vaka**. KAYIP 119 → 42'nin altına inemez. Bu sayı R5.5a'nın 2. koşulunu (kitap sağlığı)
 değerlendirirken hatırlanmalıdır: lattice'in legacy'yi geçmesi bu fazda **beklenmemektedir**.
+
+**R5.0d'nin ölçümüyle birlikte okunduğunda:** lattice recall %58,33, legacy %89,93 (bölüm 2b).
+77 vakanın tamamı kurtarılsa bile lattice legacy'ye *yaklaşır*, geçmez. R5.4b'nin başarı ölçütü
+"legacy'yi geç" değil, **"aradaki 31,6 puanın ölçülebilir bir kısmını kapat ve precision'ı
+%98'in üstünde tut"**tur.
 
 ---
 
@@ -129,13 +210,38 @@ güncellenmesi gereken bir şey olup olmadığı.
 
 ---
 
-#### R5.0e — Eksik ground truth sınıflarını tamamla
+#### R5.0e — `MissingSpace` / `SpuriousSpace` boşluğunu karara bağla
 - **PLAN BÖLÜMÜ:** 7.4, 13 (D70, D71)
 - **DOSYALAR:** `test-data/odun-kesmek/ground-truth.json`, `docs/baselines/odun-kesmek.loss-taxonomy.json`
-- **YAP:** `MissingSpace` (bugün 0) ve `SpuriousSpace` (bugün 1) sınıflarını ≥5 kayda çıkar.
-  Adaylar taksonomi dosyasındaki vakalardan seçilir (D70 — rastgele değil, karar sınırından).
-- **DUR:** Legacy'nin önerisini doğrulamadan kayıt yazma (D71). Her kayıt `verifiedBy: "manual"`.
-- **ÇIKTI:** yeni sınıf dağılımı ve her iki motorun güncel sınıf kırılımı.
+- **BAĞLAM:** R5.0d bu iki sınıfı dolduramadı ve sebebini yazdı: **D70'in aday havuzunda yoklar.**
+  Havuz motorların dokunduğu yerlerden oluşuyor; hiçbir motor `MissingSpace`'e dokunmadığı için
+  o vakalar diff'e hiç girmiyor. Bu bir ihmal değil, D70'in doğrudan sonucu.
+- **YAP:** Üç seçenekten birini **gerekçeyle** seç:
+  (a) havuz dışına çıkıp elle bul — D70'den sapma olur, gerekçesi yazılır;
+  (b) Faz 6'ya ertele — ölçüm boşluğu olarak kaydedilir;
+  (c) kapsam dışı yaz — kitapta bu sınıf gerçekten yoksa.
+  Önce **(c)'yi sına**: kitapta `MissingSpace` örneği var mı? Yoksa karar kendiliğinden verilir.
+- **DUR:** Kayıt eklemeye karar verirsen ≤25 kayıtlık parti (bölüm 1b) ve her kayıt
+  `verifiedBy: "manual"` (D71).
+- **ÇIKTI:** verilen karar ve gerekçesi; kayıt eklendiyse yeni sınıf dağılımı.
+
+---
+
+#### R5.0f — Kapı profilini yeni ölçüm tabanına taşı
+- **PLAN BÖLÜMÜ:** 13 (D77); **kuyruk bölüm 2c (D80)**
+- **DOSYALAR:** `docs/baselines/quality-gate.json`,
+  `benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkGateEvaluator.cs`
+- **ÖN KOŞUL:** **D80 onaylanmış olmalı.** Onaylanmadıysa bu kalem BAŞLAMAZ — kapı eşiğine
+  dokunmak agent'ın tek başına vereceği bir karar değildir (plan bölüm 13).
+- **BAĞLAM:** Eşikler 160 kayıtlık eski taban üzerinde ölçülmüştü; 288 kayıtlık yeni tabanda
+  **legacy bile geçemiyor** (recall %89,93 < %92,5). Kapı kalıcı kırmızı ve R5.4b'nin yeşil
+  hedefi yok.
+- **YAP:** Eşikleri yeni taban üzerinde yeniden kur. Üç koruma (bölüm 2c): yeni eşik **ölçülür,
+  seçilmez** (legacy'nin değeri, aşağı yuvarlanmadan); eski profil `supersededProfiles` altında
+  **tabanıyla** arşivlenir; D77 taban içinde aynen geçerli kalır.
+- **DUR:** Eşiği legacy'nin ölçülmüş değerinin **altına** koyma. Lattice'in geçmesi için indirme —
+  lattice'in geçmesi R5.4b'nin işi, kapının değil.
+- **ÇIKTI:** yeni profil, arşivlenen eski profil, ve legacy'nin kapıdan geçtiğinin doğrulanması.
 
 ---
 
