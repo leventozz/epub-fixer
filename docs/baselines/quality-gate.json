@@ -6,13 +6,59 @@
   "current": {
     "minimumPrecision": 0.98,
     "minimumRecall": 0.925,
-    "measuredOn": "2026-09-12",
-    "note": "R0.2 OCR-class records added; measured current recall is 148/160 with OCR classes detected but deferred.",
+    "measuredOn": "2026-09-14",
+    "note": "R5.0a: gate is now class-breakdown aware and can run with either OCR engine (--ocr-engine legacy|lattice). Aggregate thresholds unchanged (D77 - this fazda yalnizca yukari hareket edebilir); classRecallThresholds only carries Hyphenation, at its measured value, per D76 (OCR classes stay unthresholded until R5.0d grows the ground truth past 12 records).",
+    "classRecallThresholds": [
+      {
+        "errorClass": "Hyphenation",
+        "minimumRecall": 1.0
+      }
+    ],
     "ocrStageMeasurement": {
-      "measuredOn": "2026-09-13",
-      "engine": "legacy",
-      "ocrClassKnownErrorRecords": 12,
-      "note": "R4.0c: benchmark's OCR mutation stage measured with the legacy engine. CorrectlyFixed=148, WronglyFixed=0, Deferred=12 (precision 100%, recall 92.5%), matching this gate's thresholds unchanged. All 12 OCR-class ground-truth records (Fragmentation 5, GlyphConfusion 4, GarbageInsertion 2, SpuriousSpace 1) were Deferred, not WronglyFixed - the legacy engine's 120 mutations do not intersect any of the 160 ground-truth records (D64). Thresholds are not adjusted by this measurement (D63)."
+      "legacy": {
+        "measuredOn": "2026-09-13",
+        "engine": "legacy",
+        "ocrClassKnownErrorRecords": 12,
+        "correctlyFixed": 148,
+        "wronglyFixed": 0,
+        "deferred": 12,
+        "precision": 1.0,
+        "recall": 0.925,
+        "ocrPlanned": 120,
+        "ocrApplied": 120,
+        "protectedChanged": 0,
+        "protectedViolated": 0,
+        "classBreakdown": {
+          "Hyphenation": { "known": 148, "detected": 148, "correct": 148, "wrong": 0, "precision": 1.0, "recall": 1.0 },
+          "GlyphConfusion": { "known": 4, "detected": 4, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
+          "SpuriousSpace": { "known": 1, "detected": 1, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
+          "GarbageInsertion": { "known": 2, "detected": 2, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
+          "Fragmentation": { "known": 5, "detected": 5, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 }
+        },
+        "note": "R4.0c: benchmark's OCR mutation stage measured with the legacy engine. CorrectlyFixed=148, WronglyFixed=0, Deferred=12 (precision 100%, recall 92.5%), matching this gate's thresholds unchanged. All 12 OCR-class ground-truth records (Fragmentation 5, GlyphConfusion 4, GarbageInsertion 2, SpuriousSpace 1) were Deferred, not WronglyFixed - the legacy engine's 120 mutations do not intersect any of the 160 ground-truth records (D64). Thresholds are not adjusted by this measurement (D63)."
+      },
+      "lattice": {
+        "measuredOn": "2026-09-14",
+        "engine": "lattice",
+        "ocrClassKnownErrorRecords": 12,
+        "correctlyFixed": 149,
+        "wronglyFixed": 1,
+        "deferred": 10,
+        "precision": 0.9933333333333333,
+        "recall": 0.93125,
+        "ocrPlanned": 19,
+        "ocrApplied": 19,
+        "protectedChanged": 0,
+        "protectedViolated": 0,
+        "classBreakdown": {
+          "Hyphenation": { "known": 148, "detected": 148, "correct": 148, "wrong": 0, "precision": 1.0, "recall": 1.0 },
+          "GlyphConfusion": { "known": 4, "detected": 4, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
+          "SpuriousSpace": { "known": 1, "detected": 1, "correct": 1, "wrong": 0, "precision": 1.0, "recall": 1.0 },
+          "GarbageInsertion": { "known": 2, "detected": 2, "correct": 0, "wrong": 1, "precision": 0.0, "recall": 0.0 },
+          "Fragmentation": { "known": 5, "detected": 5, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 }
+        },
+        "note": "R5.0a: first benchmark run of the lattice engine via --ocr-engine lattice (previously impossible - plan section 6.1 point 2). Gate PASSES: precision 99.33% (>= 98%), recall 93.12% (>= 92.5%), ProtectedChanged=0, ProtectedViolated=0 (closes D48 for the lattice engine too). Lattice plans only 19 OCR mutations (vs legacy's 120) yet correctly fixes one more known error overall (149 vs 148): it fixes odun-kesmek-space-0001 ('koli ukta' -> 'koltukta', SpuriousSpace) that legacy left Deferred, and wrongly fixes odun-kesmek-garbage-0001 (':,ohbet' -> expected 'sohbet', observed ':,sohbet' - one character corrected, the leading garbage glyphs were not). Hyphenation is untouched by engine choice (its correction stage runs before and independently of ocrCorrectionPlanner), so its 100% recall is identical across both engines - this is why a class-recall floor can be set for it now without D63's overfitting risk. Not a like-for-like comparison with phase 4's book-health measurement (D65/D66) - this run only scores the 160 ground-truth records, not the whole book."
+      }
     }
   }
 }
