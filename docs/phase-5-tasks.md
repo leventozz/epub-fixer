@@ -60,7 +60,7 @@ Durum kodları: ✅ bitti · 🔄 devam ediyor · ⬜ hazır · 🔒 ön koşulu
 | 3 | R5.0c — D66'nın kök nedeni | ✅ `d512427` | R5.0b | `rawVersusProduction: explained` |
 | 4 | R5.0d — ground truth schemaVersion 3 | ✅ `33d4b87` | R5.0b | 288 kayıt, OCR kolu 112; iki motor yeniden ölçüldü |
 | 5 | R5.0e — `MissingSpace` / `SpuriousSpace` boşluğunu karara bağla | ⬜ | R5.0d | karar: doldur, ertele veya kapsam dışı yaz |
-| 5b | R5.0f — kapı profilini yeni ölçüm tabanına taşı | ⬜ | R5.0d + **D80 onayı** | karşılaştırılabilir kapı |
+| 5b | R5.0f — kapı profilini yeni ölçüm tabanına taşı | ⬜ | R5.0d | karşılaştırılabilir kapı |
 | | **R5.1 — Maliyet kalibrasyonu** | | | |
 | 6 | R5.1a — `IOcrConfusionSet` portu | ⬜ | — | baseline değişmedi |
 | 7 | R5.1b — aligner enjeksiyon dikişi | 🔒 | R5.1a | baseline değişmedi |
@@ -136,7 +136,7 @@ kırmızıdır ve R5.4b'nin yeşil bir hedefi yoktur.
 için kondu ve o amacı hâlâ geçerli — ama taban değişimini gevşetme saymak, doğru ölçüme geçmeyi
 cezalandırır.
 
-**D80 önerisi:** Ölçüm tabanı değiştiğinde eşikler **yeni taban üzerinde yeniden kurulur**; eski
+**D80 (ONAYLANDI 2026-09-14, plan bölüm 13):** Ölçüm tabanı değiştiğinde eşikler **yeni taban üzerinde yeniden kurulur**; eski
 profil tabanıyla birlikte dosyada arşivlenir. Üç koruma:
 
 1. Yeni eşik **seçilmez, ölçülür**: iyi olan motorun (bugün legacy) ölçülmüş değeri alınır.
@@ -146,8 +146,8 @@ profil tabanıyla birlikte dosyada arşivlenir. Üç koruma:
 
 Bu, lattice için kapıyı "legacy'ye yetiş" koşuluna çevirir — Faz 5'in hedefinin tam olarak kendisi.
 
-> **D80 onay bekliyor.** Bu, plan bölüm 13'ün "agent kendi başına karara varmaz" kuralına giren bir
-> karardır: kapı eşiğine dokunuyor. Onaylanana kadar R5.0f başlamaz ve R5.4b'nin hedefi tanımsızdır.
+> **D80 onaylandı** ve plan bölüm 13'e işlendi. R5.0f açıktır; R5.4b'nin hedefi yeniden kurulmuş
+> kapı üzerinden tanımlanır.
 
 ---
 
@@ -231,8 +231,7 @@ güncellenmesi gereken bir şey olup olmadığı.
 - **PLAN BÖLÜMÜ:** 13 (D77); **kuyruk bölüm 2c (D80)**
 - **DOSYALAR:** `docs/baselines/quality-gate.json`,
   `benchmarks/EpubFixer.QualityBenchmarks/QualityBenchmarkGateEvaluator.cs`
-- **ÖN KOŞUL:** **D80 onaylanmış olmalı.** Onaylanmadıysa bu kalem BAŞLAMAZ — kapı eşiğine
-  dokunmak agent'ın tek başına vereceği bir karar değildir (plan bölüm 13).
+- **ÖN KOŞUL:** D80 onaylandı (plan bölüm 13). Bu kalem D80'i **uygular**; kapsamını genişletmez.
 - **BAĞLAM:** Eşikler 160 kayıtlık eski taban üzerinde ölçülmüştü; 288 kayıtlık yeni tabanda
   **legacy bile geçemiyor** (recall %89,93 < %92,5). Kapı kalıcı kırmızı ve R5.4b'nin yeşil
   hedefi yok.
