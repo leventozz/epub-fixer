@@ -237,6 +237,14 @@ Bugünkü 12 OCR kaydının hepsi `Deferred` (tespit edilmedi), dolayısıyla s�
 için yanıltıcı biçimde yüksek precision gösterir. R5.0a bu sayacı düzeltmeden sınıf kırılımlı kapı
 takılamaz — **alet önce doğrulanır** (kural 4.4).
 
+> **R5.0a güncellemesi (commit `29bc238`):** bu tespit güncel kodda **doğrulanmadı**.
+> `QualityBenchmarkCorrectionEvaluator.Evaluate` hem `Deferred` hem `WronglyFixed`
+> sınıflandırmalarını `failures` listesine ekliyor; `CreateClassBreakdowns`'ın
+> `correct = group.Count(item => !failureIds.Contains(item.Id))` satırı bu yüzden tespit
+> edilmemiş kayıtları zaten dışlıyor. Sayaç doğru; iddia bu planın yazıldığı andaki koda değil,
+> muhtemelen daha eski bir sürüme aitti. `QualityBenchmarkClassBreakdownTests` bu davranışı
+> artık pinliyor.
+
 ### 6.3 Kaybın profili: hedeflerin çoğu kafeste üretilebilir durumda
 
 119 kaybın `original` alanları üzerinde ölçüldü:
