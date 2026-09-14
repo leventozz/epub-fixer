@@ -60,6 +60,40 @@ matcher (R5.2), diff raporu (R5.3), ikinci geçiş OCR (R6.1). Bunlar Faz 5'tir;
 
 ---
 
+## 1b. Faz 4'ün kapanış durumu (2026-09-14, `d135a16` + ölçüm commit'i)
+
+Faz 4 **R4.2b'ye kadar tamamlandı ve orada durduruldu**. Bu "bitti" değil, "gerekçeli olarak
+durduruldu"dur: yedi kabul kriterinin dördü açıktır ve dördü de tek bir karara (R4.2c'nin
+ertelenmesi, D65) bağlıdır. **Faz 5 agent'ı bu tabloyu okumadan başlamasın.**
+
+| # | Kabul kriteri | Durum | Kanıt |
+|---|---|---|---|
+| 1 | Suite yeşil | ✅ | 467/467, ~2 dk 53 sn |
+| 2 | `fix` varsayılan olarak lattice kullanır | ❌ **varsayılan legacy** | D65; `--ocr-engine lattice` çalışır durumda ama varsayılan değil |
+| 3 | Çıktı `EpubOutputValidator`'dan geçer | ⚠️ lattice için testle doğrulandı (`Fix_WithLatticeEngine_ProducesValidOutput`), ama üretimde çalışan motor legacy | |
+| 4 | Benchmark OCR kolu açıkken kapıdan geçer | ⚠️ geçiyor — **legacy** ile (148/0/12, precision %100, recall %92,5); lattice ile hiç ölçülmedi | `quality-gate.json` → `ocrStageMeasurement` |
+| 5 | `measure` legacy'ye göre kötüleşmemiş | ❌ **kötüleşiyor** | `engine-diff.json` → `bookHealth`: unresolvable 2.674 → 2.739, suspicious 169 → 226, oran 57,30 → 58,61 |
+| 6 | Süre ≤ 120 sn ve legacy + 35 sn | ❌ ölçülmedi | R4.2c ertelendiği için üretim süresi lattice ile kaydedilmedi |
+| 7 | Yanlış düzeltme sayısı sıfır | ❌ **1 yanlış** | `kol-1 ıı kta` → `koli nokta`; D65, D66 |
+
+**Ölçülen motor profili** (`odun-kesmek.fix-lattice.json`, üretim hattı, hyphenation sonrası):
+lattice 10 düzeltme uyguluyor (legacy 120). Elle incelemede 9'u doğru, 1'i yanlış.
+
+**Üç yönlü fark** (`odun-kesmek.engine-diff.json`):
+
+| | Sayı | Anlamı |
+|---|---:|---|
+| KAZANÇ | 9 | lattice düzeltiyor, legacy düzeltmiyor |
+| KAYIP | **119** | legacy düzeltiyor, lattice bırakıyor |
+| ÇATIŞMA | 1 | ikisi de dokunuyor, farklı sonuç — ve bu tam olarak yanlış olan vaka |
+
+**KAYIP = 119 iki şeyi birden söylüyor:** kriter 5'in neden sağlanmadığını (legacy'nin düzelttiği
+119 yer açıkta kalıyor), ve **R4.3'ün neden uygulanamaz olduğunu** — bölüm 9.1 alt küme kanıtı
+kayıp listesinin **boş** olmasını istiyor, 119 ölçüldü. D62'nin "beklenen sonuç R4.3 ertelenir"
+tahmini artık tahmin değil, sayıdır.
+
+---
+
 ## 2. Ön koşul
 
 1. **Çalışma ağacı temiz olmalıdır.** Bu plan yazılırken `HEAD = 4ce5da9`
@@ -887,9 +921,10 @@ R4.2c tekrar denenir. Çıktı EPUB'a yanlış düzeltme yazan bir sürüm commi
 > yaşamaya devam eder ve silme Faz 5'e (R5.4 kalibrasyonundan sonra) ertelenir. Bir agent bu kalemi
 > "hazır görünüyor" diye başlatmaz.
 >
-> **Durum: uygulanamaz.** R4.2c ertelendiği için (D65) `docs/baselines/odun-kesmek.engine-diff.json`
-> hiç üretilmedi; bölüm 9.1'in ön koşulu ölçülecek bir girdiye sahip değil. R4.3, R4.2c'nin
-> varsayılanı çevirip alt küme kanıtını üretmesinden önce ele alınamaz.
+> **Durum: uygulanamaz — ölçüldü (D67).** `docs/baselines/odun-kesmek.engine-diff.json` üretildi:
+> bölüm 9.1'in ön koşulu (kayıp listesi boş) **sağlanmıyor, KAYIP = 119**. Legacy'nin düzelttiği
+> 119 yeri lattice bırakıyor; eski motorun silinmesi bugün doğrudan bir recall çöküşü demektir.
+> R4.3 Faz 5'e ertelenir.
 
 ### 9.1 Ön koşul: alt küme kanıtı
 
@@ -970,6 +1005,9 @@ Numaralandırma Faz 3'ün D48'inden devam eder.
 |---|---|---|---|
 | D64 | Planın ilk sürümündeki "**ölçüm altyapısı zaten motor-bağımsız, tracker'lar canlı DOM `IRange`'leri üzerinde, üç sayacın hesabına dokunulmaz**" tespiti **yanlıştı ve geri alındı**. `MapOffset` sezgiseli hyphenation aşamaları için korunur; OCR aşamasından sonra tracker'lar **mutation geometrisiyle kesin olarak** yeniden hizalanır (`Resync`). | Tracker `IRange`'i yaratıp `Detach()` ediyor ama hiç okumuyor; okuma tek karakterlik lookahead'i olan `MapOffset` üzerinden. Hyphenation her düzeltmede tam bir karakter siliyor, OCR ise 120 mutation'ın **52'sinde** uzunluğu ≥2 değiştiriyor. İlk R4.0c denemesi bu yüzden `148/0/12` → `141/8/11` verdi; oysa 120 mutation ile ground truth'un 160 kaydı arasında hiç kesişim yok — metin değil, ölçüm bozulmuştu. | Bölüm 5.4, 5.4b, 6.3 kural 4, 11 risk #12 |
 | D65 | **R4.2c ertelendi.** Tek doğrulanmış yanlış düzeltme (`kol-1 ıı kta` → `koli nokta`, doğrusu `koltukta`) bir eşik sorunu değil, arama uzayı sınırı sorunudur: parça 12 karakter, `MaxArcLength` 11, dolayısıyla doğru cevap kafeste hiç üretilmiyor. Aynı hatanın 9 karakterlik örneği (`koli ukta`) doğru düzeltiliyor. Kapı doğru çalıştı (ı→o, 1→i karışım; tek olağan düzenleme ı→n). Bilinen çözüm `MaxArcLength`'i büyütmek; bedeli süre bütçesidir ve artık R4.0b'nin testiyle ölçülebilir (28,8 sn / 30 sn sınırı). Karar D44'e bağlıdır, R5.4'ün süre-kalite eğrisinde ele alınacaktır. | Faz 4 kabul kriteri 7 (uygulanan her düzeltme sıfır yanlış) sağlanmıyor; plan §8.3 bu durumda "DUR" diyor ve `LatticeOptions` bu fazda kalibre edilmez (bölüm 1). Kök neden bir kalibrasyon/eşik ayarı değil, D44'ün yapısal bir sınırı (`MaxArcLength`) olduğundan düzeltme R5.4'ün kapsamına girer, R4.2c'nin değil. | Bölüm 1 kabul #7, 8.3, 11 risk #1 |
+
+| D66 | **D65'in kök neden açıklaması eksiktir ve tamamlanmamıştır.** `MaxArcLength` (11 < 12) doğru cevabın (`koltukta`) kafeste hiç üretilmemesini açıklar — bu doğrudur. Ama **kapının neden kabul ettiğini açıklamaz.** Ölçüm: aynı parça Faz 3'ün ham koşusunda `Leave` / `TooManyOrdinaryEdits` almış, üretim koşusunda `Apply` / `Accepted` almıştır. Yanlış yazma için iki koşul birlikte gerekti; D65 yalnızca birincisini açıklıyor. İkincisinin sebebi **ölçülmemiştir**; en olası aday, hazne ve dil modelinin hyphenation sonrası metinden kurulması nedeniyle seçilen yolun ve dolayısıyla `OrdinaryEdits` sayısının değişmesidir — **doğrulanmadı**. | Yalnızca `MaxArcLength` büyütülüp bu vaka kapanırsa, kapıyı üretimde gevşeten etki **açıklanmamış olarak yerinde kalır** ve başka bir parçada aynı biçimde yanlış yazabilir. R5.4 bu iki etkiyi ayrı ayrı ele almalıdır. Destekleyici ölçüm: ham koşuda `MaxArcLength`'i aşan 141 region'ın **hiçbiri** Apply almıyor (kapı uzun region'lar için fiilen kapalı), üretimde ise 12 karakterlik bir parça Apply aldı. | Bölüm 1b, `engine-diff.json` → `rawVersusProduction` |
+| D67 | **R4.3 uygulanamaz — artık ölçümle.** Bölüm 9.1'in ön koşulu (kayıp listesi boş) `engine-diff.json` ile ölçüldü: **KAYIP = 119**. R4.3 Faz 5'e ertelenir ve ancak lattice'in recall'ü legacy'ye yaklaştıktan sonra yeniden değerlendirilir. | D62 bunu tahmin ediyordu; artık tahmin değil. 119 kayıp, legacy'nin silinmesinin doğrudan %99'luk bir recall kaybı anlamına geldiğini gösteriyor. | Bölüm 9, 1b |
 
 Yeni bir karar ihtiyacı doğarsa agent kendi başına karara varmaz; gerekçeyi bildirip bekler ve karar
 bu tabloya eklenir.

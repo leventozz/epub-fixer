@@ -44,3 +44,17 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
 - `odun-kesmek.lattice.json`: Faz 3 lattice motorunun full-book debug kosusu. Exact decoder
   state birlestirme ve lattice fanout sinirlari sonrasi gecerlidir; kosu 563 OCR region icin
   30 saniye butcesinin altinda tamamlanir ve gerekce histogramini raporlar.
+
+## Phase 4 engine baselines
+
+- `odun-kesmek.fix-legacy.json`: `fix --apply-ocr-corrections` legacy motorunun uyguladigi 120
+  mutation'in imzasi. `OcrMutationBaselineTests.FullBookFix_LegacyEngineMutationProfileIsPinned`
+  bu dosyaya karsi dogrular.
+- `odun-kesmek.fix-lattice.json`: ayni kosunun `--ocr-engine lattice` ile hali (10 mutation).
+  **Olcum kaydidir; uretim varsayilani legacy'dir (D60/D65).**
+- `odun-kesmek.engine-diff.json`: iki motorun uc yonlu farki (KAZANC 9 / KAYIP 119 / CATISMA 1),
+  kitap sagligi karsilastirmasi ve `rawVersusProduction` bulgusu (D66). R4.3'un alt kume
+  kanitinin girdisidir (D67).
+- Baseline'lari yeniden uretmek icin:
+  `EPUBFIXER_UPDATE_BASELINES=1 dotnet test tests/EpubFixer.Tests --filter "FullyQualifiedName~OcrMutationBaselineTests"`
+

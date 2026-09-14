@@ -1,0 +1,111 @@
+{
+  "engine": "lattice",
+  "plannedCount": 10,
+  "appliedCount": 10,
+  "singleSourceCount": 8,
+  "multiSourceCount": 2,
+  "documentsChanged": 2,
+  "unexpectedTextChanges": 0,
+  "mutations": [
+    {
+      "documentPath": "main-3.xhtml",
+      "logicalStart": 32929,
+      "logicalLength": 7,
+      "originalSourceText": "k\u00FC-^:\u00FCk",
+      "replacementText": "k\u00FC\u00E7\u00FCk",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-3.xhtml",
+      "logicalStart": 68637,
+      "logicalLength": 6,
+      "originalSourceText": "\u0131\u0131\u003C\u0131da",
+      "replacementText": "y\u0131lda",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-3.xhtml",
+      "logicalStart": 74463,
+      "logicalLength": 4,
+      "originalSourceText": "entz",
+      "replacementText": "Gentz",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-3.xhtml",
+      "logicalStart": 87365,
+      "logicalLength": 5,
+      "originalSourceText": "ohbet",
+      "replacementText": "sohbet",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-3.xhtml",
+      "logicalStart": 87424,
+      "logicalLength": 9,
+      "originalSourceText": "koli ukta",
+      "replacementText": "koltukta",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-3.xhtml",
+      "logicalStart": 135062,
+      "logicalLength": 9,
+      "originalSourceText": "bi-^:imde",
+      "replacementText": "bi\u00E7imde",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-3.xhtml",
+      "logicalStart": 152467,
+      "logicalLength": 12,
+      "originalSourceText": "kol-1 \u0131\u0131 kta",
+      "replacementText": "koli nokta",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-4.xhtml",
+      "logicalStart": 218564,
+      "logicalLength": 11,
+      "originalSourceText": "Strind-berg",
+      "replacementText": "Strindberg",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-4.xhtml",
+      "logicalStart": 264303,
+      "logicalLength": 9,
+      "originalSourceText": "Gert-rude",
+      "replacementText": "Gertrude",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    },
+    {
+      "documentPath": "main-4.xhtml",
+      "logicalStart": 281794,
+      "logicalLength": 7,
+      "originalSourceText": "Za-al\u0027a",
+      "replacementText": "Zaal\u0027a",
+      "decisionRule": "Accepted",
+      "confidence": "None",
+      "sourceSpanCount": 1
+    }
+  ]
+}
