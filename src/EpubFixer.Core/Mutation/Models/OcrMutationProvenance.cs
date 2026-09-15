@@ -5,7 +5,8 @@ namespace EpubFixer.Core.Mutation.Models;
 public enum OcrCorrectionEngine
 {
     Legacy,
-    Lattice
+    Lattice,
+    Hybrid
 }
 
 public sealed record OcrMutationProvenance(
