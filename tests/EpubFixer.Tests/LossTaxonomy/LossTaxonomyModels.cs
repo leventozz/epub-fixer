@@ -9,7 +9,7 @@ public sealed record LossCase(
     string DecisionRule);
 
 /// <summary>
-/// The full diagnosis of one <see cref="LossCase"/>: the fields docs/phase-5-plan.md section 7.2
+/// The full diagnosis of one <see cref="LossCase"/>: the fields docs/phase-5-plan.md@adc202d section 7.2
 /// requires (original, expected, lossReason, gateReason, validToken, targetInLattice, arcLength),
 /// plus a few extra fields kept for methodology transparency (rule 4.3 - measurements are
 /// reported, not asserted from memory).

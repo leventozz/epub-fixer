@@ -4,7 +4,7 @@ using EpubFixer.QualityBenchmarks.Models;
 namespace EpubFixer.Tests;
 
 /// <summary>
-/// R5.0a alt adim 1: docs/phase-5-plan.md bolum 6.2, tespit edilmemis (deferred) bir kaydin
+/// R5.0a alt adim 1: docs/phase-5-plan.md@adc202d bolum 6.2, tespit edilmemis (deferred) bir kaydin
 /// sinif kirilimindaki "correct" sayacina yanlislikla dahil edilip edilmedigini dogrular.
 ///
 /// Bulgu (kural 4.4 - once alet dogrulanir): "correct" sayaci zaten "failures" listesindeki

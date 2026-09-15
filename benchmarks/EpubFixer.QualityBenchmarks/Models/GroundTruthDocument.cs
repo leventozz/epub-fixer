@@ -18,7 +18,7 @@ public sealed record KnownErrorOccurrence(
 
     /// <summary>
     /// schemaVersion 3+: who established <see cref="Expected"/> for this occurrence (e.g.
-    /// "manual" - read against the book's own surrounding sentence, per docs/phase-5-plan.md
+    /// "manual" - read against the book's own surrounding sentence, per docs/phase-5-plan.md@adc202d
     /// section 7.4 / D71). Absent on records written before schemaVersion 3.
     /// </summary>
     public string? VerifiedBy { get; init; }

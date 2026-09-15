@@ -1,7 +1,7 @@
 namespace EpubFixer.Tests.LossTaxonomy;
 
 /// <summary>
-/// Proves the classifier checks reasons in the exact order docs/phase-5-plan.md section 7.2
+/// Proves the classifier checks reasons in the exact order docs/phase-5-plan.md@adc202d section 7.2
 /// prescribes - the "first failure point in the chain" rule - not just that each branch is
 /// individually correct. Each "outranks" test sets every later-stage flag to a value that
 /// would ALSO justify a different code, and asserts the earlier code still wins.

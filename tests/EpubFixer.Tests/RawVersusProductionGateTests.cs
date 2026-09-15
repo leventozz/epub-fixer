@@ -16,7 +16,7 @@ using EpubFixer.Tests.LossTaxonomy;
 namespace EpubFixer.Tests;
 
 /// <summary>
-/// R5.0c (docs/phase-5-plan.md section 7.3): D66 left one question open. The corrupted fragment
+/// R5.0c (docs/phase-5-plan.md@adc202d section 7.3): D66 left one question open. The corrupted fragment
 /// "kol-1 ıı kta" gets Leave/TooManyOrdinaryEdits in Faz 3's raw (pre-hyphenation) lattice run
 /// (docs/baselines/odun-kesmek.lattice.md line 451) but Apply/Accepted in the production run
 /// (post-hyphenation stream, docs/baselines/odun-kesmek.fix-lattice.json / engine-diff.json's

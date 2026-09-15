@@ -1,671 +1,364 @@
 # OCR Düzeltme Motoru — Yol Haritası
 
-> Bu belge, her maddesi ayrı bir oturumda ayrı bir agent'a devredilecek şekilde yazılmıştır.
-> Her iş kaleminde **Amaç / Kapsam / Sözleşme / Kabul kriteri / Bağımlılık** alanları vardır.
-> Belgenin sonundaki [devir şablonunu](#devir-şablonu) kullanın.
+> **Sürüm 2 — 2026-09-15.** Sürüm 1 (Faz 0–5 planları) `adc202d`'de arşivlendi ve silindi.
+> Neden yeniden yazıldı: sürüm 1'in dayandığı varsayım — *"lattice motoru legacy'nin yerini
+> alacak"* — üç kez ölçüldü ve üç kez yanlışlandı. Bkz. bölüm 2.
+>
+> Kararların gerekçeleri ayrı belgededir: **[decisions.md](decisions.md)**.
+> Her iş kalemi ayrı bir oturuma devredilebilir; devir şablonu bölüm 8'dedir.
 
 ---
 
 ## 1. Hedef
 
 Türkçe OCR ile üretilmiş bir EPUB'ın okunabilir hale gelmesi. **%100 doğruluk hedef değil.**
-Kabul edilen denge:
 
-| | Hedef |
-|---|---|
-| Precision (uygulanan düzeltmelerin doğruluğu) | ≥ %98 — yanlış düzeltme, düzeltilmemiş hatadan pahalıdır |
-| Recall (yakalanan hata oranı) | ≥ %60 — geri kalanı **dokunulmadan** bırakılır |
-| Full-book çalışma süresi | ≤ 120 sn (hard gate) |
-| Çevrimdışı | Zorunlu — ağ yok, harici servis yok |
-
-Emin olunmayan her durumda karar **"dokunma"**dır.
-
----
-
-## 2. Mevcut durum tespiti
-
-### İyi durumda — korunacak
-
-- `EpubPackageReader` / `LogicalTextStreamBuilder` / `EpubPackageWriter` — DOM ve source-location güvenliği
-- `OcrCorrectionMutationPlanner` / `OcrCorrectionMutationApplier` / `EpubOutputValidator` — mutation ve bütünlük doğrulama
-- `OcrRegionDetector` / `OcrAnomalyDetector` — bozuk bölge tespiti
-- `OcrEditCostModel` — kalibre edilmiş OCR maliyet modeli (yeni motorda aynen kullanılacak)
-- `QualityBenchmark*` altyapısı — ground-truth koşum iskeleti
-
-### Bozuk — değişecek
-
-**B1 — Arama yanlış boyutta tanımlı.**
-`NoisyChannelRegionReconstructor.Expand` her pozisyon için 29 harfin tamamını deniyor
-(`TurkishLetters`), successor sayısı ≈ 29·L. Üstüne `RetentionKey` her expanded state için
-`Expand`'i **bir kez daha** çağırıyor (one-step lookahead):
-
-```
-beam 256 × successor ~870          ≈ 2,2×10⁵  state / derinlik
-+ lookahead re-expansion           ≈ 1,9×10⁸  state / derinlik
-× 4 derinlik × 459 region          ≈ 3,5×10¹¹
-```
-
-Bu iş bitmez. "Pathological input" denen şey, yalnızca uzunluğu büyük olan ilk region'dır.
-
-**B2 — Skorlayıcı tek-token, veri çok-token.**
-`Score` tüm region string'ini tek kelime gibi değerlendiriyor
-(`cleanLexicon.Contains`, `analyzer.IsValidWord`). Ama `OcrRegionDetector.CanExpand` komşu
-fragment'lere yayılarak çok kelimeli span üretiyor. Boşluk içeren doğru cevap hiçbir zaman
-geçerli sayılamaz → `Score` null döner → o region'da **hiç aday üretilmez**. 10 örneklik
-fixture tek kelimelik hedeflerden oluştuğu için bu maskelenmişti.
-
-**B3 — Birbirine bağlanmamış iki paralel hat.**
-
-```
-ÜRETİM   (fix --apply-ocr-corrections)
-  OcrAnomalyDetector → OcrCorrectionCandidateGenerator → OcrCorrectionDecisionEvaluator
-    → OcrCorrectionMutationPlanner → OcrCorrectionMutationApplier → EPUB
-
-DENEYSEL (yalnızca debug-ocr-* / reader-preview komutları)
-  OcrRegionDetector → NoisyChannelRegionReconstructor → DeterministicOcrCandidateReranker
-    → (hiçbir yere bağlanmıyor)
-```
-
-Üzerinde çalışılan motor EPUB'a hiç dokunmuyor. Yeni motor **üretim hattına** inmeli.
-
-**B4 — TRmorph sıcak döngüde.**
-`IsValidWord` çağrı yerleri: `OcrRegionDetector` (fragment başına), `OcrAnomalyDetector`
-(aday başına), `NoisyChannel.Score` (beam state başına), `DeterministicOcrCandidateReranker`
-(bağlam kelimesi başına). Her biri native `flookup` process'ine gidiş-dönüş. Batching/cache
-semptomu hafifletti, nedeni çözmedi.
-
-**B5 — Katman ihlali.**
-`CleanTurkishLexicon`, `BookContextIndex`, `NoisyChannelRegionReconstructor`,
-`DeterministicOcrCandidateReranker`, `OcrEditCostModel` — hepsi `EpubFixer.Cli` içinde.
-Bunlar I/O değil, **politika**. Core'a taşınmalı; Cli'da yalnızca dosya yükleme adapter'ı kalmalı.
-
-**B6 — Yönü ölçen bir sayı yok.**
-Tek ölçüt 10 örneklik fixture ve sayaç dolu raporlar. "Hiyeroglif gibi görünmesin" şu an
-ölçülebilir değil. Ayrıca `QualityBenchmarkGateEvaluator` tüm oranlarda **tam %100** talep
-ediyor (`AddPerfectRateFailure`) — istatistiksel bir motor için kullanılamaz bir kapı.
-
-**B7 — Ground truth yanlış sınıfı kapsıyor.**
-`test-data/odun-kesmek/ground-truth.json` 148 kayıt içeriyor ama ağırlıklı olarak tireleme
-(`Auers-berger`, `Vi-yana`, `Jo-ana`) — zaten çözülmüş kolay sınıf. Zor sınıflar
-(`koli ukta`, `ı ıç`, `:,ohbet`, `ge-^:cn`) temsil edilmiyor.
-
----
-
-## 3. Hedef mimari
-
-Temel fikir: **string'ler üzerinde arama yapmayı bırak; küçük bir pencerenin segmentasyonları
-üzerinde arama yap, ve adayları *üreterek* değil *sorgulayarak* elde et.**
-
-```
-┌─ Build (kitap başına bir kez, disk cache) ────────────────────────────┐
-│  MorphologyOracle   ← TRmorph, TEK batch, sonra runtime'da hiç çağrılmaz │
-│  BookVocabulary     ← kitabın temiz token'ları + tr_50k + doğrulanmış formlar │
-│  BookLanguageModel  ← kitabın temiz bölgelerinden bigram + unigram backoff │
-└───────────────────────────────────────────────────────────────────────┘
-                                  │
-┌─ Decode (region başına, bounded) ─────────────────────────────────────┐
-│  1. Pencere      region + iki yanından 1 token, ≤ 48 karakter          │
-│  2. ILexiconMatcher(span, budget) → (word, cost)[]   ← sorgu, üretim değil │
-│  3. WordLattice  arc = (i, j, word, cost); boşluk = ucuz normal sembol │
-│  4. LatticeDecoder  Viterbi: best[j] = min(best[i] + cost + λ·−logP(w|prev)) │
-│  5. AcceptanceGate  eşik + margin + "temiz token'a dokunma" + confusion sınırı │
-└───────────────────────────────────────────────────────────────────────┘
-                                  │
-                    RegionMutationPlanner → mevcut Applier → EPUB
-```
-
-**Split/join neden bedava çözülür:** boşluk özel bir operatör değil, maliyeti düşük sıradan
-bir sembol (silme 0.25, ekleme 0.5). Bir arc birden fazla iç boşluk kapsarsa → *join*; bir arc
-token ortasında biterse → *split*. Üçü de tek weighted-edit uzayında.
-
-```
- k  o  l  i  ␣  u  k  t  a
- 0  1  2  3  4  5  6  7  8  9
- └────────── arc 0→9 "koltukta" ──────────┘   space-del 0.25 + subst(i→t) 1.0 = 1.25  ✓
- └── 0→4 "koli" ─┘└──── 5→9 "ukta" ────┘     her ikisi de OOV → budget aşımı          ✗
-```
-
-**Bağlam neden reranker'da değil decoder'da:** `P(koltukta | berjer)` bu kitapta çok yüksek.
-Kararı verirken kullanmak, verdikten sonra düzeltmeye çalışmaktan hem doğru hem ucuz.
-
----
-
-## 4. Fazlar
-
-Faz 0 **önce** gelir: ölçüm olmadan optimizasyon yön duygusu olmadan yürümektir.
-
-| Faz | Başlık | Çıktı |
+| | Hedef | Bugün |
 |---|---|---|
-| 0 | Ölçüm ve emniyet ağı | Yönü gösteren tek sayı + gerçekçi kalite kapısı |
-| 1 | Morfolojiyi sıcak döngüden çıkar | TRmorph runtime'da sıfır çağrı |
-| 2 | Kelime haznesi + dil modeli | Decode için gereken bilgi tabanı |
-| 3 | Yeni düzeltme motoru | Lattice + Viterbi + gate |
-| 4 | Üretim hattına bağlama | `fix` komutu yeni motoru kullanır |
-| 5 | Kalite turu | Eşik kalibrasyonu, weighted matcher, insan incelemesi |
-| 6 | Tavan yükseltme (opsiyonel) | Second-pass OCR |
+| Precision (uygulanan düzeltmelerin doğruluğu) | ≥ %98 | %98,85 (legacy) |
+| Recall (yakalanan hata oranı) | ≥ %60 | %89,93 (legacy) |
+| Full-book çalışma süresi | ≤ 120 sn (hard gate) | ~28 sn (legacy), lattice pass +28 sn |
+| Çevrimdışı | Zorunlu — ağ yok, harici servis yok | ✅ |
+
+Emin olunmayan her durumda karar **"dokunma"**dır. Yanlış düzeltme, düzeltilmemiş hatadan pahalıdır.
 
 ---
 
-### Faz 0 — Ölçüm ve emniyet ağı
+## 2. Nerede olduğumuz
 
-#### R0.1 — Kitap sağlık metriği
+### 2.1 Ne kuruldu (Faz 0–4, tamamlandı)
 
-- **Amaç:** "Hiyeroglif gibi görünmesin"i tek bir sayıya indirgemek. Yol haritasının kuzey yıldızı.
-- **Kapsam:** `EpubFixer.Core/Quality/BookHealthMetric.cs` + CLI `measure` komutu.
-- **Sözleşme:**
-  ```csharp
-  public sealed record BookHealth(
-      int TotalTokens,
-      int UnresolvableTokens,      // ne vocabulary'de ne morfolojik olarak geçerli
-      int SuspiciousTokens,        // garbage glyph / gömülü rakam / izole ı,i,l,1
-      double UnresolvableRate,     // 1000 kelimede
-      IReadOnlyList<string> WorstExamples);
+Sürüm 1'in beş fazı bitti ve **mimari olarak hedefe ulaştı**:
 
-  public interface IBookHealthMeter { BookHealth Measure(LogicalTextStream stream); }
-  ```
-- **Kabul:** `measure` komutu hem kaynak hem çıktı EPUB için çalışır; `odun-kesmek` için
-  bugünkü değer baseline olarak `docs/baselines/` altına yazılır. Birim testler sentetik
-  stream'lerle.
-- **Bağımlılık:** yok. **Boyut:** S.
+- **Ölçüm ağı** — `BookHealthMetric`, `measure` komutu, performans bütçe testleri, sınıf kırılımlı kalite kapısı
+- **Morfoloji sıcak döngüden çıktı** — `IMorphologyOracle` + disk cache; TRmorph runtime'da sıfır çağrı
+- **Bilgi tabanı** — `BookVocabulary`, `BookLanguageModel`; politika Core'da, I/O Adapters'da
+- **Lattice motoru** — `ILexiconMatcher` → `WordLatticeBuilder` → `LatticeDecoder` → `CorrectionAcceptanceGate`
+- **Üretim hattına bağlandı** — `IOcrCorrectionPlanner` portu, `RegionMutationPlanner`, `--ocr-engine legacy|lattice`
 
-#### R0.2 — Ground truth'u zor sınıflarla genişlet
+Suite: **522/522 yeşil** (~3 dk 33 sn). `EpubFixer.Core` 7.676 satır, testler 12.020 satır.
 
-- **Amaç:** Mevcut 148 kayıt ağırlıklı olarak tireleme; zor OCR sınıfları temsil edilmiyor.
-- **Kapsam:** `test-data/odun-kesmek/ground-truth.json` şemasına `errorClass` alanı ekle,
-  full-book'tan stratified örnekleme ile **sınıf başına ≥ 25 kayıt** olacak şekilde genişlet.
-- **Hata sınıfları:** `Hyphenation`, `GlyphConfusion` (ı/i/l/1), `SpuriousSpace` (`koli ukta`),
-  `MissingSpace`, `GarbageInsertion` (`:,ohbet`, `ge-^:cn`), `Fragmentation` (`1 ı iç`), `Mixed`.
-- **Sözleşme:** `schemaVersion` 1 → 2; `QualityBenchmarkDatasetLoader` geriye dönük uyumlu kalır.
-- **Kabul:** Loader yeni şemayı okur, eski dosyayı da okumaya devam eder;
-  `QualityBenchmarkReportWriter` sınıf kırılımlı precision/recall basar.
-- **Bağımlılık:** yok (R0.4 ile paralel yürüyebilir). **Boyut:** M — etiketleme emek ister.
+### 2.2 Ne ölçüldü — ve varsayımı nasıl yanlışladı
 
-#### R0.3 — Performans bütçesi testi
+288 kayıtlık ground truth üzerinde (R5.0d, `33d4b87`):
 
-- **Amaç:** Regresyonun sessizce geri gelmemesi.
-- **Kapsam:** `tests/EpubFixer.Tests/PerformanceBudgetTests.cs`.
-- **Kabul:** Full `odun-kesmek` koşusu 120 sn'yi aşarsa test **kırmızı**. Ayrıca region başına
-  ziyaret edilen state sayısı için üst sınır assert'i (algoritmik regresyonu saatlerce
-  beklemeden yakalar).
-- **Bağımlılık:** yok. **Boyut:** S.
+| | Legacy | Lattice |
+|---|---:|---:|
+| Precision | %98,85 | %98,25 |
+| **Recall** | **%89,93** | **%58,33** |
+| Üretimde uygulanan mutation | 120 | 10 |
+| Kitap sağlığı (çözümlenemeyen/1000) | 57,30 | **58,61** (kötüleşiyor) |
+| `ProtectedViolated` | 0 | 0 |
 
-#### R0.4 — Kalite kapısını gerçekçi hale getir
+**KAYIP = 119** (legacy düzeltiyor, lattice düzeltmiyor). Sebep taksonomisi
+(`odun-kesmek.loss-taxonomy.json`, atfedilemeyen kayıt sıfır):
 
-- **Amaç:** `QualityBenchmarkGateEvaluator` şu an her oranda tam %100 talep ediyor
-  (`AddPerfectRateFailure`). İstatistiksel motorla kullanılamaz.
-- **Kapsam:** Mutlak eşik yerine bütçe: `Precision ≥ 0.98`, `Recall ≥ 0.60`,
-  `ProtectedViolated == 0` (bu sıfır kalmalı), `UnexpectedTextChanges == 0`.
-- **Kabul:** Kapı eşikleri yapılandırılabilir ve testlerde açıkça belirtilir;
-  precision hesabı sınıf kırılımlı raporlanır.
-- **Bağımlılık:** R0.2 (sınıf kırılımı için). **Boyut:** S.
+| Sebep | Vaka | Ulaşılabilir mi |
+|---|---:|---|
+| `RegionNotDetected` | 32 | ❌ dedektörün sınırı, motorun değil |
+| `TargetNotInLattice` | 27 | ✅ arama uzayı |
+| `GateRejected:OriginalTokenIsValid` | 24 | ✅ kapı eşiği (hipotez 24/24 doğrulandı) |
+| `DecoderRankedOther` | 23 | ✅ maliyet tablosu + `Lambda` |
+| `MatcherMissedTarget` | 10 | ❌ düşürüldü (D72) |
+| diğer | 3 | ✅ |
 
-#### R0.5 — OCR dedektörlerini benchmark'a bağla
+**Ulaşılabilir tavan 77 vaka** — yani KAYIP en iyi ihtimalle 42'ye iner. Bu, en kusursuz kalibrasyon
+turundan sonra bile **lattice'in legacy'yi geçemeyeceği** anlamına gelir. Sürüm 1'in bütün Faz 5
+kuyruğu (19 kalem, kritik yol 10 adım) bu duvara koşuyordu.
 
-- **Amaç:** `QualityBenchmarkRunner` yalnızca tireleme hattını koşuyor (B3). R0.2 ile eklenen
-  zor sınıflarda "detected" sayısı yapısal olarak 0 kalır; sınıf kırılımı motor iyileştikçe
-  hareket etmez. Faz 1–3 boyunca elde yön gösteren sayı olması için hattın bağlı olması gerekir.
-- **Kapsam:** Bir known error, `OcrAnomalyDetector` veya `OcrRegionDetector` çıktısındaki bir span
-  onun logical aralığını **kapsıyorsa** (kesişme değil) "detected" sayılır. Mevcut tireleme
-  eşleştirmesi değişmez. Tespit ölçülür, mutasyon değil (o R4.2).
-- **Kabul:** `Hyphenation` sınıfının sayıları birebir aynı kalır; en az bir OCR sınıfında
-  `detected > 0`; benchmark koşusu 120 sn bütçesini aşmaz.
-- **Bağımlılık:** R0.2. **Boyut:** M.
+### 2.3 Gözden kaçan veri
 
-> Faz 0'ın uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
-> [phase-0-plan.md](phase-0-plan.md).
+Lattice'in **9 KAZANCI** var — legacy'nin yapamadığı düzeltmeler
+(`odun-kesmek.engine-diff.json`):
+
+```
+kü-^:ük   → küçük        ıı<ıda    → yılda        entz      → Gentz
+ohbet     → sohbet       koli ukta → koltukta     bi-^:imde → biçimde
+Strind-berg → Strindberg Gert-rude → Gertrude     Za-al'a   → Zaal'a
+```
+
+Sınıf kırılımı da aynı şeyi söylüyor: `SpuriousSpace`'te lattice 1/1, legacy 0/1.
+
+**İki motor birbirinin alternatifi değil, tamamlayıcısı.** Sürüm 1 bunu D52 ile ("iki motor
+birbirini dışlar") yapısal olarak görünmez kılmıştı.
 
 ---
 
-### Faz 1 — Morfolojiyi sıcak döngüden çıkar
+## 3. Strateji: hibrit hat (D81)
 
-#### R1.1 — `IMorphologyOracle` port'u
+> **Legacy varsayılan kalır ve birincil motordur. Lattice, legacy'nin dokunmadığı yerlerde koşar.**
 
-- **Amaç:** B4. Runtime'da TRmorph'a sıfır çağrı.
-- **Kapsam:** `EpubFixer.Core/Morphology/IMorphologyOracle.cs` + in-memory implementasyon.
-- **Sözleşme:**
-  ```csharp
-  public interface IMorphologyOracle
-  {
-      bool IsValid(string word);                                  // asla I/O yapmaz
-      IReadOnlyList<TurkishMorphologicalAnalysis> Analyze(string word);
-      bool IsKnown(string word);                                  // oracle bu kelimeyi gördü mü
-  }
+Bu, sürüm 1'in "yerine geçme" hedefini **terk eder**. Gerekçe bölüm 2.2'dir: yerine geçme
+ölçülebilir biçimde ulaşılamaz, tamamlayıcılık ise bugün ölçülmüş 9 vakalık bir kazanç.
 
-  public interface IMorphologyOracleBuilder
-  {
-      IMorphologyOracle Build(IEnumerable<string> vocabulary);    // TEK batch
-  }
-  ```
-- **Kural:** `IsValid` bilinmeyen kelimede **exception atar**, sessizce `false` dönmez —
-  eksik ön-doldurma sessiz kalite kaybı değil, gürültülü hata olsun.
-- **Kabul:** `FomaTurkishMorphologyAnalyzer` tek `AnalyzeBatch` çağrısıyla oracle'ı doldurur;
-  fake oracle ile birim testler.
-- **Bağımlılık:** yok. **Boyut:** S.
+Ne değişir:
 
-#### R1.2 — Oracle disk cache'i
+| | Sürüm 1 | Sürüm 2 |
+|---|---|---|
+| Lattice'in başarı ölçütü | legacy'nin recall'üne yetişmek | legacy'nin **üstüne** net kazanç koymak |
+| KAYIP 119'un anlamı | kapatılması gereken açık | **anlamsız** — legacy zaten düzeltiyor |
+| R5.4b süpürmesinin amacı | recall kurtarmak | **precision** korumak |
+| R4.3 (legacy'yi silmek) | ertelenmiş borç | **kalıcı olarak düşürüldü** (D84) |
+| D52 (motorlar birbirini dışlar) | geçerli | **iptal** (D81) |
 
-- **Amaç:** Aynı kitapta tekrar koşularda TRmorph'u hiç başlatmamak.
-- **Kapsam:** `EpubFixer.Cli/Morphology/MorphologyOracleCache.cs` (adapter katmanı — I/O burada).
-- **Sözleşme:** Cache anahtarı = kaynak EPUB SHA-256 + TRmorph fst hash'i. Bozuk/eksik cache
-  sessizce yeniden üretilir.
-- **Kabul:** İkinci koşuda `processInvocations == 0`.
-- **Bağımlılık:** R1.1. **Boyut:** S.
+### 3.1 Mimari — Composite planner
 
-#### R1.3 — Çağrı yerlerini oracle'a taşı
+Port zaten doğru yerde duruyor; hiçbir mevcut planner değişmez (OCP):
 
-- **Amaç:** `ITurkishMorphologyAnalyzer` bağımlılığını sıcak yollardan kaldırmak.
-- **Kapsam:** `OcrRegionDetector`, `OcrAnomalyDetector`, `OcrCorrectionCandidateGenerator`,
-  `HyphenationMorphologyAnalyzer` → `IMorphologyOracle` alacak şekilde. Ön-doldurma pass'i:
-  metnin tüm unique token'ları tek seferde.
-- **Dikkat:** `OcrRegionDetector` ve `OcrAnomalyDetector` **kendi girdileri dışındaki** formları
-  da soruyor (örn. `TrimBoundaryPunctuation` sonrası). Ön-doldurma bunları da kapsamalı;
-  R1.1'deki "bilinmeyende exception" kuralı bu eksikleri açığa çıkaracaktır.
-- **Kabul:** Mevcut tüm testler yeşil; full koşuda flookup tek process ve `BatchRequests` sabit.
-  (Yol haritası burada önce `ProcessInvocations ≤ 1` diyordu; o alan constructor'da `1` atanıp hiç
-  artmadığı için bir şey ölçmüyor — bkz. phase-1-plan.md karar D6.)
-- **Bağımlılık:** R1.1. **Boyut:** M — okunan koda göre gerçekçi boyut **L**.
+```
+IOcrCorrectionPlanner.CreatePlan(stream, oracleBuilder) → OcrCorrectionPlanResult
 
-> Faz 1'in uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
-> [phase-1-plan.md](phase-1-plan.md). Plan, yol haritasında olmayan bir **R1.0 (ölçüm)** kalemi
-> ekler ve onu kritik yolun başına koyar.
+                    CompositeOcrCorrectionPlanner
+                     │
+      ┌──────────────┴──────────────┐
+  LegacyOcrCorrectionPlanner   LatticeOcrCorrectionPlanner
+      │  (birincil)                 │  (ikincil)
+      └──────────────┬──────────────┘
+                     ▼
+        birleştirme: aynı snapshot üzerinde
+        logical aralık çakışmasında BİRİNCİL kazanır
+                     ▼
+        OcrCorrectionMutationApplier (değişmez) → EPUB
+```
 
----
+**Birleştirme neden güvenli — üç ölçülmüş gerçek:**
 
-### Faz 2 — Kelime haznesi ve dil modeli
+1. **Aynı snapshot.** Her iki planner da `EpubFixService`'in verdiği aynı `finalStream`'i alır ve
+   planını onun üzerine kurar. Birleştirme iki *karar modelini* uzlaştırmak değil, iki mutation
+   kümesini **geometriyle** ayıklamaktır (D82).
+2. **Applier zaten doğruluyor.** `OcrCorrectionMutationApplier` her span için `ExpectedText`
+   eşleşmesini kontrol ediyor; çakışmayan düzenlemeler tek geçişte güvenle uygulanır.
+3. **A/B ölçümü birebir taşınır.** R4.2c'de her iki motor da aynı `finalStream`'i görmüştü —
+   lattice'in gördüğü girdi hibritte **değişmiyor**.
 
-#### R2.1 — `BookVocabulary`
+Bundan **doğrulanabilir bir tahmin** çıkar:
 
-- **Amaç:** Türkçe sondan eklemeli; 50k'lık liste tek başına yetersiz kapsama veriyor.
-  Kitabın kendisi domain-matched ve özel isimleri içeriyor (*Auersberger*, *Simmeringer*, *Rennweg*).
-- **Kapsam:** `EpubFixer.Core/Lexicon/BookVocabulary.cs`.
-- **Sözleşme:**
-  ```csharp
-  public sealed class BookVocabulary
-  {
-      bool Contains(string word);
-      double UnigramLogProbability(string word);   // backoff dahil
-      VocabularySource SourceOf(string word);      // Book | Frequency | Morphology
-  }
-  ```
-- **Bileşim:** kitabın token'ları (frekans ≥ 2 **veya** morfolojik olarak geçerli) + `tr_50k`
-  + oracle'da geçerli formlar. Bozuk region'lardaki token'lar **hariç tutulur**
-  (`BookContextIndex.Build` bunu zaten yapıyor — aynı yaklaşım).
-- **Kabul:** `odun-kesmek` için kapsama raporu: kitabın temiz token'larının ≥ %95'i vocabulary'de.
-- **Bağımlılık:** R1.1. **Boyut:** M.
+> Hibrit **129 mutation** uygulamalı: 120 legacy + 9 lattice KAZANÇ.
+> Tek çakışma (`kol-1 ıı kta`) birincile, yani legacy'ye gider.
+> **Sayı 129 çıkmazsa birleştirmede hata vardır** — motorda değil.
 
-#### R2.2 — `BookLanguageModel`
-
-- **Amaç:** Bağlamı decoder'ın içine almak (B2'nin ikinci yarısı).
-- **Kapsam:** `EpubFixer.Core/Lexicon/BookLanguageModel.cs`.
-- **Sözleşme:**
-  ```csharp
-  public interface ILanguageModel
-  {
-      double LogProbability(string word, string? previousWord);   // stupid backoff
-  }
-  ```
-- **Kabul:** `P(koltukta | berjer) > P(koltukta | <herhangi>)` gibi doğrulanabilir
-  iddialar birim testlerde; bilinmeyen bigramda unigram'a, bilinmeyen unigram'da sabit
-  cezaya düşer.
-- **Bağımlılık:** R2.1. **Boyut:** S.
-
-#### R2.3 — Katman düzeltmesi: Cli → Core
-
-- **Amaç:** B5. Politika Core'a, I/O Cli'da kalsın.
-- **Kapsam:** `CleanTurkishLexicon`, `BookContextIndex`, `OcrEditCostModel` → `EpubFixer.Core`.
-  `tr_50k` dosya yüklemesi Cli'da `ITurkishFrequencyListSource` adapter'ı olarak kalır.
-- **Kabul:** `EpubFixer.Core` hiçbir dosya sistemi/process API'si import etmez;
-  bunu doğrulayan bir mimari testi eklenir.
-- **Bağımlılık:** yok (Faz 3'ten **önce** yapılırsa Faz 3 doğru yere yazılır — sıralaması önemli).
-- **Boyut:** M.
-
-> Faz 2'nin uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
-> [phase-2-plan.md](phase-2-plan.md). Plan üç noktada yol haritasından ayrılır ve gerekçelerini
-> karar tablosuna yazar: **R2.3 fazın başına alınır** (D12), `BookContextIndex` **taşınmaz**
-> (D13, R4.3'te siliniyor), Core'un mimari testi bugünkü dört EPUB I/O dosyası için **izin
-> listesiyle** yazılır (D14). Ayrıca yol haritasında olmayan bir **R2.4 (bilgi tabanı + ölçüm)**
-> kalemi ekler ve "kitabın token'larının %95'i haznede" ölçütünü döngüsel olduğu için held-out +
-> hedef kapsaması ikilisiyle değiştirir (D19).
+Bu, H3'ün kabul kriteridir. (Çakışan tek vakada **her iki motor da yanlış**: legacy
+`kol-1 ı kta`, lattice `koli nokta`, doğrusu `koltukta`. Birincil kuralı burada kalite değil
+öngörülebilirlik seçiyor — D83.)
 
 ---
 
-### Faz 3 — Yeni düzeltme motoru
+## 4. İş kalemleri
 
-> Bu fazın tamamı `EpubFixer.Core/Ocr/Lattice/` altında yeni tiplerdir.
-> Mevcut `NoisyChannelRegionReconstructor`'a **dokunulmaz** — A/B karşılaştırması için yaşar.
+Durum kodları: ✅ bitti · ⬜ hazır · 🔒 ön koşulu bekliyor · ⛔ düşürüldü
 
-#### R3.1 — `ILexiconMatcher` + SymSpell adapter
+### M1 — Kapıyı ölçülebilir yap (ön koşul)
 
-- **Amaç:** Aday getirme: *üretim* değil *sorgulama*.
-- **Sözleşme:**
-  ```csharp
-  public readonly record struct LexiconMatch(string Word, double Cost);
+Kapı bugün **her iki motorda da kırmızı**, çünkü eşikler 160 kayıtlık eski taban üzerinde
+ölçülmüştü. Kapı kırmızıyken hiçbir kalemin "başarılı" tanımı yoktur — bu yüzden ilk sırada.
 
-  public interface ILexiconMatcher
-  {
-      IReadOnlyList<LexiconMatch> Match(ReadOnlySpan<char> span, double budget);
-  }
-  ```
-- **İlk implementasyon:** `SymSpellLexiconMatcher` — SymSpell zaten dependency (6.7.3), hızlı kurulur.
-  Sınırı: weighted cost desteklemiyor, `ı/i/l/1` karışmasını sıradan substitution sayıyor.
-  Bu bilinçli bir geçici kabul; R5.2'de değiştirilecek.
-- **Kabul:** `koltukta`, `üç`, `hiç`, `sohbet`, `geçen`, `yürümeye` hedefleri ilgili
-  span'ler için dönen listede **var** (sıralama bu adımda önemsiz).
-- **Bağımlılık:** R2.1, R2.3. **Boyut:** M.
+| # | Kalem | Durum | Ön koşul | Çıktı |
+|---|---|---|---|---|
+| G1 | Kapı profilini yeni ölçüm tabanına taşı (D80'i uygula) | ⬜ | — | legacy kapıdan geçiyor |
+| G2 | `MissingSpace` / `SpuriousSpace` boşluğunu karara bağla | ⬜ | — | karar + gerekçe |
 
-#### R3.2 — `WordLatticeBuilder`
+**G1 — Kapı profili.** Eşikler 288 kayıtlık yeni taban üzerinde yeniden kurulur. Üç koruma (D80):
+yeni eşik **ölçülür, seçilmez** (legacy'nin değeri, aşağı yuvarlanmadan); eski profil
+`supersededProfiles` altında **tabanıyla** arşivlenir; D77 taban içinde aynen geçerli kalır.
+**DUR:** eşiği legacy'nin ölçülmüş değerinin altına koyma.
+*Dosyalar:* `docs/baselines/quality-gate.json`, `QualityBenchmarkGateEvaluator.cs`
 
-- **Amaç:** Split + join + karakter bozulmasını tek uzayda toplamak.
-- **Sözleşme:**
-  ```csharp
-  public sealed record LatticeArc(int From, int To, string Word, double Cost);
-  public sealed record WordLattice(string Window, int WindowOffset, IReadOnlyList<LatticeArc> Arcs);
+**G2 — Ölçüm boşluğu.** R5.0d bu iki sınıfı dolduramadı: D70'in aday havuzu motorların dokunduğu
+yerlerden oluşuyor, hiçbir motor `MissingSpace`'e dokunmuyor. Üç seçenekten birini **gerekçeyle**
+seç: (a) havuz dışına çıkıp elle bul, (b) ertele ve ölçüm boşluğu olarak kaydet, (c) kapsam dışı
+yaz. **Önce (c)'yi sına:** kitapta bu sınıf gerçekten var mı?
+*Dosyalar:* `test-data/odun-kesmek/ground-truth.json`, `odun-kesmek.loss-taxonomy.json`
 
-  public interface IWordLatticeBuilder
-  {
-      WordLattice Build(CorruptedTextRegion region, string fullText, LatticeOptions options);
-  }
+### M2 — Hibrit hattı (fazın kalbi)
 
-  public sealed record LatticeOptions(
-      int MaxWindowLength = 48,
-      int MaxArcLength = 20,
-      int ContextTokens = 1,
-      double BudgetBase = 1.0,
-      double BudgetPerFourChars = 1.0,
-      double BudgetCap = 3.0);
-  ```
-- **Kritik davranış:** boşluk maliyeti `OcrEditCostModel`'den gelir (silme 0.25, ekleme 0.5);
-  arc'lar iç boşluk kapsayabilir ve token ortasında bitebilir.
-- **Sınır:** `MaxWindowLength`'i aşan region **atlanır** ve `SkippedTooLong` olarak raporlanır —
-  false negative ucuz, sonsuz arama pahalı.
-- **Kabul:** Fixture'daki 10 hedefin her biri için ilgili arc lattice'te mevcut;
-  arc sayısı pencere başına üst sınırın altında (regresyon assert'i).
-- **Bağımlılık:** R3.1. **Boyut:** L — bu fazın kalbi.
+| # | Kalem | Durum | Ön koşul | Çıktı |
+|---|---|---|---|---|
+| H1 | `CompositeOcrCorrectionPlanner` + birleştirme kuralı | ⬜ | — | birim testler, üretim değişmedi |
+| H2 | `--ocr-engine hybrid` + composition root bağlantısı | 🔒 | H1 | bayrak çalışıyor |
+| H3 | Hibriti ölç | 🔒 | H2, G1 | baseline'lar + kapı sonucu |
+| H4 | Lattice'in eklediği her mutation elle incelenir | 🔒 | H3, R1 | yanlış düzeltme sayısı |
+| H5 | Varsayılanı hibrit yap | 🔒 | H4 temiz | yeni golden'lar |
 
-#### R3.3 — `LatticeDecoder`
+**H1 — Composite.** Saf bir birleştirme fonksiyonu: iki `OcrCorrectionPlanResult` al, ikincinin
+logical aralığı birincininkiyle çakışan mutation'larını **atla**, kalanları birleştir. Atlananlar
+`Diagnostics`'e yazılır — sessizce düşen düzeltme ölçülemeyen kayıptır (D56'nın kuralı).
+`OcrCorrectionEngine` enum'una `Hybrid` **sona** eklenir (D36).
+**DUR:** Mevcut iki planner'ın içine dokunma. Bu kalem üretim davranışını değiştirmez —
+varsayılan hâlâ legacy, tüm baseline'lar bit düzeyinde aynı kalmalı.
+*Dosyalar:* `src/EpubFixer.Core/Ocr/CompositeOcrCorrectionPlanner.cs`, `OcrMutationProvenance.cs`, testler
 
-- **Amaç:** DAG üzerinde exact shortest path. Beam yok, yaklaşım yok.
-- **Sözleşme:**
-  ```csharp
-  public sealed record DecodedPath(string Text, double Cost, IReadOnlyList<LatticeArc> Arcs);
+**H2 — Bayrak.** `--ocr-engine legacy|lattice|hybrid`. İki composition root (Cli ve Benchmarks)
+aynı kuruluma ihtiyaç duyar; üçüncü bir kopya doğmasın.
+**DUR:** Varsayılanı ÇEVİRME — o H5'in işi.
+*Dosyalar:* `src/EpubFixer.Cli/Program.cs`, `QualityBenchmarkApplication.cs`
 
-  public interface ILatticeDecoder
-  {
-      IReadOnlyList<DecodedPath> Decode(WordLattice lattice, int kBest = 3);
-  }
-  ```
-- **Skor:** `best[j] = min over arcs i→j of best[i] + arc.Cost + lambda * -LM.LogProbability(...)`.
-  `lambda` `LatticeOptions`'a taşınır (R5.4'te kalibre edilecek).
-- **Kabul:** `odun-kesmek-region-01` fixture'ının **10/10**'u Top-1. k-best çıktısı
-  R3.4'ün margin hesabı için farklı path'ler döndürür.
-- **Bağımlılık:** R3.2, R2.2. **Boyut:** M.
+**H3 — Ölçüm.** Tek full-book koşusu. Ölçülecekler: mutation sayısı (**beklenen 129**),
+benchmark precision/recall + sınıf kırılımı, kapı sonucu, `measure` metriği, süre,
+`ProtectedViolated` / `ProtectedChanged` / `UnexpectedTextChanges` / `NonTextChanges`.
+**Süre kısıtı:** ≤ 120 sn **ve** legacy + 35 sn (D61).
+**DUR:** 129 çıkmazsa sebebi bul ve bildir — sayıyı açıklamadan ilerleme.
+*Çıktı:* `docs/baselines/odun-kesmek.fix-hybrid.json`, güncellenmiş `quality-gate.json`
 
-#### R3.4 — `CorrectionAcceptanceGate`
+**H4 — İnceleme.** Lattice'in eklediği ~9 mutation'ın **her biri** bağlamıyla elle incelenir.
+**DUR:** Bir tane bile yanlış düzeltme bulursan eşik oynatarak kapatma — DUR, bildir.
+*Ön koşul:* R1 (inceleme raporu)
 
-- **Amaç:** Precision. Yol haritasının en önemli tek kalemi.
-- **Sözleşme:**
-  ```csharp
-  public enum AcceptanceVerdict { Apply, Review, Leave }
-  public sealed record AcceptanceResult(AcceptanceVerdict Verdict, string? Replacement, IReadOnlyList<string> Reasons);
+**H5 — Anahtarı çevir.** Varsayılan motor `hybrid` olur. Golden SHA-256 **kasten değişir** ve
+yeni değeri **ölçülerek** yazılır. `OcrMutationBaselineTests`, `PerformanceBudgetTests`,
+`MorphologyCallTraceTests`, `measure` baseline'ı yeniden ölçülür.
+*Ön koşul:* H4'te yanlış düzeltme **sıfır**, süre bütçede, kapı yeşil, `ProtectedViolated == 0`
 
-  public interface ICorrectionAcceptanceGate
-  {
-      AcceptanceResult Evaluate(CorruptedTextRegion region, IReadOnlyList<DecodedPath> paths);
-  }
-  ```
-- **Kurallar (hepsi sağlanmalı):**
-  1. En iyi path'in maliyeti mutlak eşiğin altında
-  2. İkinci en iyi **farklı** path ile margin ≥ δ
-  3. Orijinal token zaten geçerli değil — vocabulary'de frekans ≥ 2 **veya** morfolojik olarak
-     geçerliyse **asla dokunma**
-  4. Path'te confusion set dışı ("ordinary") substitution sayısı ≤ 1
-- **Kabul:** "Temiz token'a dokunmaz" testi bu kalemin en kritik testidir — ground truth'un
-  `protectedOccurrences` listesi üzerinde `ProtectedViolated == 0`.
-- **Bağımlılık:** R3.3. **Boyut:** M.
+### M3 — İnceleme ve görünürlük
 
-#### R3.5 — `LatticeRegionReconstructor` + A/B
+| # | Kalem | Durum | Ön koşul | Çıktı |
+|---|---|---|---|---|
+| R1 | İnceleme raporu — Apply bölümü | ⬜ | — | rapor üretildi |
+| R2 | Review + Leave + dokunulmayan kütle | 🔒 | R1 | rapor bölümleri |
+| R3 | Motor kaynağı raporda görünür | 🔒 | R1, H2 | hangi mutation hangi motordan |
 
-- **Amaç:** Yeni motoru mevcut port arkasına koymak, eskiyle yan yana ölçmek.
-- **Kapsam:** `IOcrRegionReconstructor` implementasyonu + `OcrReconstructionComparison`'a
-  üçüncü sütun olarak eklenmesi.
-- **Kabul:** Karşılaştırma raporu üç motoru (Current / NoisyChannel / Lattice) aynı tabloda
-  Top-1, Top-5, süre ve region başına state sayısıyla gösterir.
-- **Bağımlılık:** R3.4. **Boyut:** S.
+**R1.** Lattice hattı için yeni Markdown rapor: her uygulanan düzeltme öncesi/sonrası cümle
+bağlamıyla. **DUR:** `FullBookReaderPreview.cs`'e dokunma (D78) — eski zincire bağlı.
+**R2.** `Review` kararları, `Leave` sebep histogramı, bilerek dokunulmayan kütle.
+**R3.** Hibritte her mutation'ın `Provenance`'ından motoru okunabilir olmalı; atlanan çakışmalar
+raporun **en üstünde** (en tehlikeli sınıf).
 
-> Faz 3'ün uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
-> [phase-3-plan.md](phase-3-plan.md). Plan yol haritasından dört noktada ayrılır ve gerekçelerini
-> karar tablosuna yazar: yol haritasında olmayan bir **R3.0 (karışım kümesi + ağırlıklı hizalayıcı)**
-> kalemi eklenip kritik yolun başına konur (D26), `SymSpellLexiconMatcher` **Cli'da kalır** (D27),
-> kafese **identity ve literal arc'ları** girer (D29), `AcceptanceResult` **mutlak aralık** taşır
-> (D33). Ayrıca boşluk maliyetlerinin bu belgedeki "0.25 / 0.5" değerlerinin eskidiğini,
-> `OcrEditCostModel`'deki gerçek değerlerin **0.30 / 0.70** olduğunu kayda geçer (D28).
->
-> **Faz 3 uygulandı** (`2ec7252`). Kapanış durumu, hangi kabul kriterinin sağlandığı/açık kaldığı ve
-> uygulama sırasında verilen D40–D48 kararları için [phase-3-plan.md](phase-3-plan.md) bölüm 1b ve 12.
-> Özet: full kitap 28,3 sn içinde 563 region → 31 `Apply` (elle incelemede tamamı doğru), fixture
-> Top-1 8/10; `ProtectedViolated` ölçülmedi ve `fix` çıktısının değişmediği testle kanıtlanmadı —
-> ikisi de R4.2'nin ön koşuludur (plan bölüm 15.1).
+### M4 — Precision derinleştirme (KOŞULLU)
 
----
+> **Bu blok yalnızca H3/H4 bir precision sorunu gösterirse açılır.** Hibritte lattice'in payı
+> ~9 mutation; 9 vaka için L boyutunda kalibrasyon işi ödemek ölçüm göstermeden yapılamaz.
+> Sürüm 1'de bu blok kritik yoldaydı çünkü amacı recall'dü; artık değil.
 
-### Faz 4 — Üretim hattına bağlama
+| # | Kalem | Durum | Ön koşul |
+|---|---|---|---|
+| P1 | Kapının dört eşiğini `LatticeOptions`'a çıkar (D45 borcu) | ⬜ | — |
+| P2 | `LatticeOptions`'ın iki ölü alanı: bağla veya kaldır | 🔒 | P1 |
+| P3 | `MaxPathCost` / `MinMargin` asimetrisini belgele | 🔒 | P1 |
+| P4 | `IOcrConfusionSet` portu + aligner enjeksiyon dikişi | 🔒 | H4 precision sorunu gösterdi |
+| P5 | Maliyet kalibrasyon aracı + A/B | 🔒 | P4 |
+| P6 | Eşik süpürme altyapısı + eksenler | 🔒 | P1, H3 |
 
-> B3'ün çözüldüğü faz. Yol haritasının **en riskli** kısmı — iki hattın veri modelleri uyumsuz.
+P1–P3 **koşulsuzdur** ve hemen yapılabilir: eşiklerin dağınık olması D45'ten beri açık bir borç ve
+ölü alanlar her ölçümü yanıltır. P4–P6 ölçüme bağlıdır.
 
-#### R4.1 — `RegionMutationPlanner`
+### M5 — Tek kitap borcu (D87)
 
-- **Amaç:** Region tabanlı düzeltmeyi mutation geometrisine çevirmek.
-  Üretim hattı kelime-oluşumu tabanlı (`OcrWordCandidate`, tek logical span);
-  lattice motoru region tabanlı (çok token, **token sayısını değiştirebilir**).
-- **Sözleşme:**
-  ```csharp
-  public sealed record RegionCorrection(int LogicalStart, int LogicalEndExclusive, string Replacement, AcceptanceResult Acceptance);
+| # | Kalem | Durum | Çıktı |
+|---|---|---|---|
+| B1 | İkinci kitabı ölçüm tabanına ekle | ⬜ | ikinci `ground-truth.json` |
+| B2 | Baseline'ları kitap başına ayır | 🔒 (B1) | kitap-bağımsız kapı |
 
-  public sealed class RegionMutationPlanner
-  {
-      OcrCorrectionMutationPlan Create(IReadOnlyList<RegionCorrection> corrections, LogicalTextStream stream);
-  }
-  ```
-- **Risk azaltıcı:** `OcrCorrectionMutationPlanner` zaten `logicalStart..logicalEnd` aralığını
-  `stream.GetSourceLocationAt` ile karakter karakter span'lere çeviriyor
-  ([OcrCorrectionMutationPlanner.cs:55-64](../src/EpubFixer.Core/Mutation/OcrCorrectionMutationPlanner.cs#L55)).
-  Yeni planner o tekniği aynen kullanır — sıfırdan geometri yazılmayacak.
-- **Kabul:** Üretilen plan mevcut `OcrCorrectionMutationApplier` ve `EpubOutputValidator` ile
-  değişiklik gerektirmeden çalışır; overlap/conflict tespiti korunur.
-- **Bağımlılık:** R3.4. **Boyut:** M.
+**Bugünkü bütün ölçüm tek kitaba (`odun-kesmek`) dayanıyor.** Sürüm 1 bunu açık borç olarak
+kaydetti ama kalem açmadı. Öğrenilmiş her eşik, her maliyet tablosu ve kapının her sayısı bu
+kitaba overfit olabilir — ve bunu söyleyecek ölçüm yok.
 
-#### R4.2 — `EpubFixService` entegrasyonu
+**Bu blok M2'den sonra, M4'ten önce gelmelidir:** hibrit hattı ikinci kitapta doğrulanmadan
+eşik kalibrasyonuna girmek, tek kitaba iki kat daha fazla overfit etmektir.
 
-- **Amaç:** `fix --apply-ocr-corrections` yeni motoru kullansın.
-- **Kapsam:** `EpubFixService.Fix` içindeki OCR bloğu; motor seçimi CLI bayrağıyla
-  (`--ocr-engine lattice|legacy`) geçişli olsun ki A/B üretim üzerinde de yapılabilsin.
-- **Kabul:** `QualityBenchmark` full koşusu R0.4 kapısından geçer; çıktı EPUB
-  `EpubOutputValidator`'dan geçer; R0.1 metriği baseline'a göre **iyileşir**.
-- **Bağımlılık:** R4.1, R0.4. **Boyut:** M.
+### M6 — Kapsam dışı kütle (Faz 6)
 
-#### R4.3 — Eski yolların kaldırılması
+| # | Kalem | Durum | Not |
+|---|---|---|---|
+| X1 | Kalan hata raporu | ⬜ | `RegionNotDetected` 32 vaka — **dedektörün** sınırı |
+| X2 | Legacy'nin 3 yanlış düzeltmesi | ⬜ | `olın`→`olan` (doğrusu `John`) dahil |
+| X3 | Second-pass OCR (Tesseract) | ⛔ | yalnızca orijinal PDF/görüntü varsa; XL |
+| — | R4.3 — eski yolların silinmesi | ⛔ | **kalıcı düşürüldü** (D84) |
 
-- **Amaç:** Tek bir düzeltme yolu. İki motor yaşarsa ikisi de çürür.
-- **Kapsam:** Lattice motoru kapıdan geçtikten **sonra**: `NoisyChannelRegionReconstructor`,
-  `SymSpellRegionReconstructor`, `CurrentRegionReconstructor`, `DeterministicOcrCandidateReranker`
-  ve `OcrCorrectionCandidateGenerator` kaldırılır.
-- **Not:** Tek token'lı region, 1 arc'lı lattice'tir — `OcrCorrectionCandidateGenerator`'ın
-  kapsadığı durumlar yeni motorun alt kümesidir. Kaldırmadan önce bunu ölçüyle doğrulayın:
-  generator'ın AutoFix ürettiği her vakada lattice de aynı sonucu vermeli.
-- **Kabul:** Kaldırma sonrası kalite kapısı hâlâ yeşil; ölü kod kalmaz.
-- **Bağımlılık:** R4.2 + iki sürüm boyunca stabil koşu. **Boyut:** M.
-
-> Faz 4'ün uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
-> [phase-4-plan.md](phase-4-plan.md). Plan yol haritasından altı noktada ayrılır ve gerekçelerini
-> karar tablosuna (D49–D63) yazar: yol haritasında olmayan bir **R4.0 (ölçüm ve emniyet ağı)**
-> kalemi eklenip kritik yolun başına konur (D49), `OcrCorrectionMutation` eski karar modelinden
-> **`OcrMutationProvenance`'a** geçer (D54), çakışan bölge düzeltmeleri plan hatası değil
-> **atlama** olur (D55), `RegionMutationPlanner` **`RegionMutationPlanResult`** döner (D56), yeni
-> bir **`src/EpubFixer.Adapters`** projesi doğar (D57) ve **R4.3 koşullu hâle gelir** (D62).
->
-> Plan ayrıca yol haritasının iki varsayımını düzeltir: R4.2'nin "`QualityBenchmark` kapıdan geçer"
-> kriteri bugün **boştur** çünkü benchmark OCR düzeltmelerini hiç uygulamıyor (plan bölüm 5.4), ve
-> lattice motoru üretimde **hyphenation'dan sonra** koştuğu için Faz 3'te ölçülen 31 `Apply`
-> sayısı üretim hattına doğrudan taşınmaz (plan bölüm 5.2).
->
-> **Uygulama durumu:** R4.0a (`ca2cdf1`) ve R4.0b (`a06c04b`) tamam — legacy OCR mutation baseline'ı
-> (120 mutation) ve lattice süre bütçesi (28,8 sn, 563 region, 31 Apply) kilitlendi. R4.0c ilk
-> denemede kapıyı kırdı; sebep motorda değil **ölçüm aletinde** çıktı: benchmark tracker'ı yalnızca
-> tek karakterlik düzenlemeye dayanıklı, OCR mutation'larının 52'si uzunluğu ≥2 değiştiriyor. Planın
-> bu konudaki ilk tespiti yanlıştı ve **D64** ile düzeltildi (plan bölüm 5.4b).
+**X2 önemli:** legacy artık birincil motor ve kendi 3 yanlış düzeltmesi var. Sürüm 1'de bunlar
+"legacy zaten ölecek" diye görmezden gelinebilirdi; hibritte **ölmüyor**, dolayısıyla hataları
+artık kalıcı.
 
 ---
 
-### Faz 5 — Kalite turu
+## 5. Sıra
 
-#### R5.1 — Confusion maliyet kalibrasyonu
+```
+G1 ──┐
+G2   ├──► H1 ──► H2 ──► H3 ──► H4 ──► H5
+R1 ──┘                   ▲       ▲
+                         │       │
+P1 ─► P2                 │      R3
+  └─► P3                 │
+                        B1 ─► B2
+```
 
-- **Amaç:** `OcrEditCostModel` sabitleri elle ayarlanmış. Ground truth'tan öğrenilebilir.
-- **Kapsam:** `benchmarks/` altında offline kalibrasyon aracı: ground-truth
-  (bozuk → doğru) hizalamalarından karakter karışım sayımları → maliyet tablosu.
-- **Kabul:** Öğrenilmiş tablo elle ayarlanmış tabloya karşı A/B'de Top-1'i düşürmez.
-- **Bağımlılık:** R0.2, R3.5. **Boyut:** M.
+**Kritik yol:** `G1 → H1 → H2 → H3 → H4 → H5` — altı kalem.
 
-#### R5.2 — `TrieLexiconMatcher` (weighted)
+**Paralel yürüyebilenler:** G1 · G2 · H1 · R1 · P1 — beşi ayrı dosya ailelerine dokunur.
 
-- **Amaç:** SymSpell'in weighted cost eksiğini kapatmak (R3.1'de bilinçli olarak ertelendi).
-- **Kapsam:** Vocabulary bir trie'ye konur; `Match` trie üzerinde yürürken her node'da DP
-  satırını taşır, `min(row) > budget` olunca **tüm alt ağacı budar** (Levenshtein-automaton /
-  Schulz–Mihov yaklaşımı). Maliyet fonksiyonu `OcrEditCostModel`.
-- **Kabul:** Aynı `ILexiconMatcher` sözleşmesi; A/B'de precision artar veya süre düşer,
-  ikisi birden kötüleşmez. Üstteki hiçbir katman değişmez.
-- **Bağımlılık:** R3.1, R5.1. **Boyut:** L.
-
-#### R5.3 — Reader preview / diff raporu
-
-- **Amaç:** İnsan doğrulama döngüsü. `FullBookReaderPreview.cs` (şu an commit edilmemiş)
-  bu işin başlangıcı.
-- **Kapsam:** Uygulanan her düzeltmeyi bağlamıyla yan yana gösteren HTML/Markdown diff;
-  `Review` kararları ayrı bölümde.
-- **Kabul:** 459 region'lık koşunun çıktısı tek dosyada gözden geçirilebilir.
-- **Bağımlılık:** R4.2. **Boyut:** M.
-
-#### R5.4 — Eşik ayarı
-
-- **Amaç:** `lambda`, maliyet eşiği ve `δ` margin'ini precision/recall eğrisi üzerinde seçmek.
-- **Kapsam:** Parametre süpürmesi + `docs/baselines/` altına eğri raporu.
-- **Kabul:** Seçilen nokta R0.4 kapısını sağlar ve gerekçesi belgelenir.
-- **Bağımlılık:** R5.1, R5.3. **Boyut:** S.
-
-> Faz 5'in uygulama planı, sözleşmeleri, test listeleri ve devir promptları için:
-> [phase-5-plan.md](phase-5-plan.md). Plan, Faz 4'ün kapanış ölçümleri nedeniyle **fazın hedefini
-> yeniden tanımlar** (D68): bu bölümdeki "kalite turu" tarifi, lattice motorunun varsayılan olacağı
-> varsayımına dayanıyordu; Faz 4 o varsayımı yanlışladı (KAYIP = 119, kitap sağlığı lattice'te
-> kötüleşiyor, varsayılan hâlâ legacy). Faz 5'in gerçek işi **recall kurtarmak ve varsayılanı
-> çevirmek**tir; R5.1–R5.4 bunun araçlarıdır, amacı değil.
->
-> Plan yol haritasından şu noktalarda ayrılır ve gerekçelerini D68–D78 tablosuna yazar: kritik yolun
-> başına yol haritasında olmayan bir **R5.0 (ölçüm tabanı ve teşhis)** kalemi konur (D68), fazın
-> sonuna Faz 4'ün yarım kalan R4.2c adımı **R5.5** olarak eklenir (D73), ground truth genişletmesi
-> rastgele değil **motorların dokunduğu karar sınırından** örneklenir (D70) ve legacy'nin çıktısı
-> ground truth sayılmaz (D71), **R5.2 koşullu hâle gelir** (D72), D45'in kapı içi sabit eşikleri
-> süpürmeden **önce ayrı bir alt adımda** çıkarılır (D74) ve `MaxArcLength` büyütmesi D66'nın
-> açıklanmasına bağlanır (D75).
->
-> Plan ayrıca bu bölümün iki bilgisini düzeltir: kalite kapısı bugün OCR motorunu **hiç ölçmüyor**
-> (üretim mutation'ları ile ground truth kayıtları hiç kesişmiyor, benchmark lattice ile
-> koşulamıyor, kapı sınıf kırılımını okumuyor — plan bölüm 6.1), ve R5.3'ün "`FullBookReaderPreview.cs`
-> şu an commit edilmemiş" ifadesi **eskimiştir**: dosya `8b0e5e0`'de girdi ama lattice motorunu hiç
-> çağırmıyor, bu yüzden R5.3 onu genişletmez (D78).
+Sürüm 1'in kritik yolu 10 adımdı ve sonunda ölçülmüş bir "henüz değil" vardı. Bu altı adımın
+sonunda üretimde **129 düzeltme** var.
 
 ---
 
-### Faz 6 — Tavan yükseltme (opsiyonel)
+## 6. İş boyutu bütçesi (D79 — aynen geçerli)
 
-#### R6.1 — Second-pass OCR
+Bir kalem şu dördünü birden sağlamalıdır. Sağlamıyorsa **bölünmemiştir**:
 
-- **Amaç:** En yüksek kalite tavanı. **Yalnızca orijinal PDF/görüntü elde varsa.**
-- **Yaklaşım:** Tesseract 5 + `tur.traineddata` ile yeniden OCR; mevcut pipeline sadece
-  artık hatalar için çalışır. Post-correction'ın hiçbir zaman ulaşamayacağı sınıfları
-  (tamamen okunamamış kelimeler) çözer.
-- **Not:** Farklı bir proje kapsamı — çevrimdışı kalır ama yeni bir native bağımlılık getirir.
-  Faz 0–5 hedefe ulaşmak için yeterlidir; bu madde tavanı yükseltmek içindir.
-- **Bağımlılık:** Faz 4 tamam. **Boyut:** XL.
+| # | Kural | Nasıl kontrol edilir |
+|---|---|---|
+| 1 | **Tek commit** | Kalem bittiğinde tek bir commit çıkar |
+| 2 | **En fazla bir full-book koşusu** | İkiden fazla gerekiyorsa ya kalem büyüktür ya altyapı eksiktir |
+| 3 | **Tek dosya ailesi** | Bir port + implementasyonu + testi = bir aile |
+| 4 | **Tek doğrulanabilir çıktı** | "Baseline değişmedi" **veya** "şu dosya üretildi" **veya** "şu sayı ölçüldü" |
 
-#### R6.2 — Kalan hata raporu
+**DUR kuralı:** Bir agent kalemin bu bütçeyi aşacağını anlarsa **işi yarım bırakmaz ve büyütmez** —
+durur, ne bulduğunu ve kalemin nasıl bölünmesi gerektiğini bildirir.
 
-- **Amaç:** Motorun çözemediği region'ları sınıflandırıp raporlamak — bir sonraki turun girdisi.
-- **Bağımlılık:** R4.2. **Boyut:** S.
-
----
-
-## 5. Acil ara çözüm (yol haritasından bağımsız)
-
-Yeni motor yazılırken elde çalışan bir baseline kalması için:
-[NoisyChannelRegionReconstructor.cs:66](../src/EpubFixer.Cli/OcrReconstruction/NoisyChannelRegionReconstructor.cs#L66)
-içindeki `RetentionKey`'in gövdesindeki iç `Expand(text, state)` çağrısını kaldırın.
-Tek başına ~500× hızlanma verir. **Kalite sorununu (B2) çözmez** — yalnızca koşunun bitmesini sağlar.
+**Elle etiketleme kalemleri ≤ 25 kayıtlık partilere bölünür.** Ölçüldü: 129 kaydın elle
+doğrulanması kesintisiz ~2 saat sürdü. Kod kalemi yarım kalırsa `git checkout` ile atılır;
+yarım kalan etiketleme, insanın okuduğu 60 cümlenin çöpe gitmesidir.
 
 ---
 
-## 6. Risk kaydı
+## 7. Risk kaydı
 
 | # | Risk | Etki | Azaltma |
 |---|---|---|---|
-| 1 | Vocabulary kirli — bozuk token'lar vocabulary'ye sızarsa motor hatayı "doğru" sayar | Yüksek | R2.1'de region'lar hariç tutulur, frekans ≥ 2 eşiği, morfoloji doğrulaması |
-| 2 | İki hattın veri modeli uyumsuzluğu (R4.1) | Yüksek | Mevcut planner'ın span üretme tekniği yeniden kullanılır; bu faz tek başına ele alınır |
-| 3 | Ground truth'un tireleme ağırlıklı olması yanlış güven verir | Orta | R0.2 sınıf bazlı raporlama |
-| 4 | Özel isimler (*Auersberger*, *Rennweg*) "düzeltilir" | Orta | R3.4 kural 3 + `ProperNameRisk` mantığı korunur |
-| 5 | Kalite kapısının gevşetilmesi (R0.4) regresyonu gizler | Orta | `ProtectedViolated` ve `UnexpectedTextChanges` sıfır kalmaya devam eder |
-| 6 | R5.2 (trie) hiç gerekmeyebilir | Düşük | Sözleşme aynı; SymSpell yeterliyse madde düşürülür |
+| 1 | **Hibrit iki motorun hatalarını toplar** — legacy'nin 3 yanlışı + lattice'in eklediği ne varsa | Yüksek | H4 elle inceleme, yanlış düzeltme sıfır kısıtı; X2 legacy'nin kendi hatalarını hedefler |
+| 2 | **Birleştirme sessizce mutation düşürür** ve recall kaybı ölçülmez | Yüksek | H1: atlanan her mutation `Diagnostics`'e yazılır; R3 raporda en üstte gösterir |
+| 3 | **Süre bütçesi patlar** — hibrit iki motorun maliyetini toplar (~28 + ~28 sn) | Orta | D61 zaten bunu öngörüyor (legacy + 35 sn); H3'te ölçülür, aşarsa DUR |
+| 4 | **Tek kitaba overfit** — bütün ölçüm `odun-kesmek` üzerinde | Yüksek | M5 kalem olarak açıldı ve M4'ün önüne kondu |
+| 5 | **İki motor birlikte çürür** — R4.3 kalıcı düştüğü için ikisi de yaşayacak | Orta | Legacy'ye yeni özellik eklenmez; X2 dışında yalnızca hata düzeltmesi alır |
+| 6 | **Kapı gevşetilerek yeşile boyanır** | Yüksek | D77 (yalnızca yukarı) + D80 (taban değişimi ölçülür, seçilmez) |
+| 7 | **Özel isimler "düzeltilir"** (*Auersberger*, *Rennweg*) | Orta | `ProperNameRisk` + `OriginalTokenIsValid` korunur; P1 bunları süpürülebilir yapar ama gevşetmez |
+| 8 | **Recall için precision feda edilir** | Yüksek | Yanlış düzeltme sayısını sıfırın üstüne çıkaran hiçbir değişiklik kabul edilmez |
 
 ---
 
-## 7. Bağımlılık grafiği
+## 8. Devir şablonu
 
 ```
-R0.1 ─┐
-R0.3 ─┤ (bağımsız, önce)
-R0.2 ─┴─► R0.4 ─────────────────────────────┐
-  └─────► R0.5                              │
-                                             │
-R1.1 ─► R1.2                                 │
-  └───► R1.3                                 │
-  └───► R2.1 ─► R2.2 ──┐                     │
-                        │                     │
-R2.3 ───────────────────┤                     │
-                        ▼                     │
-              R3.1 ─► R3.2 ─► R3.3 ─► R3.4 ─► R3.5
-                        │                     │
-                        │              R4.1 ◄─┘
-                        │                │
-                        │              R4.2 ◄────────────────┘
-                        │                │
-                        │              R4.3
-                        │                │
-              R5.1 ◄────┘         R5.3 ◄─┘
-                │                   │
-              R5.2                R5.4
-```
-
-**Kritik yol:** R1.1 → R2.1 → R2.3 → R3.1 → R3.2 → R3.3 → R3.4 → R4.1 → R4.2
-
----
-
-## Devir şablonu
-
-Her iş kalemini ayrı bir oturuma devrederken:
-
-```
-EpubFixer projesinde docs/ocr-correction-roadmap.md yol haritasındaki <ID> kalemini
-uygulayacaksın.
+EpubFixer projesinde docs/ocr-correction-roadmap.md'deki <KALEM> kalemini uygulayacaksın.
 
 Önce şunları oku:
-- docs/ocr-correction-roadmap.md — özellikle <ID> maddesi, "Hedef mimari" ve "Risk kaydı"
-- <ilgili kaynak dosyalar>
+- docs/ocr-correction-roadmap.md — bölüm 3 (strateji), 4 (<KALEMİN BLOĞU>), 6 (iş boyutu), 7 (risk)
+- docs/decisions.md — hâlâ bağlayıcı kararlar
+- <KALEME ÖZEL DOSYALAR>
 
-Kurallar:
+Her kalemde geçerli kurallar:
+- ÖN KOŞUL: çalışma ağacı temiz ve suite yeşil olmalı. Değilse DUR ve bildir.
 - Test-first: kırmızı test → minimum kod → refactor. Testi olmayan üretim kodu yazma.
 - Bağımlılıklar içeri doğru: Core'a framework/IO importu girmez.
-- Yol haritasındaki sözleşmeyi (interface imzaları) aynen kullan; değiştirmen gerekirse
-  önce gerekçesini söyle.
-- Kapsam <ID> ile sınırlı. Başka bir kalemin işini yapma; fark ettiğin sorunları raporla.
+- Beklenen değerleri TAHMİN ETME. Önce koş, çıkan sayıyı oku, sonra yaz.
+- Kapıyı GEVŞETME, eşik İNDİRME (D77 / D80).
+- Yanlış düzeltme sayısını artıran hiçbir değişiklik kabul edilmez.
+- İŞ BOYUTU: tek commit, en fazla bir full-book koşusu, tek dosya ailesi, tek çıktı.
+  Bu bütçeyi aşacağını anlarsan DUR — işi büyütme, kalemin nasıl bölüneceğini bildir.
+- Kapsam yalnızca bu kalem. Fark ettiğin başka sorunları düzeltme, bitiş raporunda
+  "gözlem" olarak yaz.
+- Yeni bir karar gerekiyorsa kendi başına verme: gerekçeyi bildir, karar decisions.md'ye eklensin.
 
-Bitirdiğinde: hangi testlerin eklendiği, kabul kriterinin karşılanıp karşılanmadığı ve
-yol haritasında güncellenmesi gereken bir şey olup olmadığı.
+Bitirdiğinde: ne değişti, hangi testler eklendi, <KALEME ÖZEL ÇIKTI>, ve roadmap'te
+güncellenmesi gereken bir şey olup olmadığı.
 ```
+
+---
+
+## 9. Bakım
+
+- Bir kalem bittiğinde bölüm 4'teki durumu ve commit hash'i **aynı commit'te** güncellenir.
+- Bir kalem bölünürse yeni satırlar buraya eklenir; karar kaydı **gerekmez** — bölme operasyonel
+  bir karardır, mimari bir karar değil.
+- Bir kalem düşürülürse satırı ⛔ olarak **kalır** ve gerekçesi yazılır. Silinmez: düşürülmüş bir
+  kalem, hiç düşünülmemiş bir kalemden farklıdır.
+- Yeni mimari karar `decisions.md`'ye eklenir, buraya değil.

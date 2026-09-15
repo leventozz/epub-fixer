@@ -13,7 +13,7 @@ namespace EpubFixer.Tests.LossTaxonomy;
 
 /// <summary>
 /// A test-only <see cref="IOcrCorrectionPlanner"/> that performs the EXACT same steps as
-/// <see cref="LatticeOcrCorrectionPlanner"/> (docs/phase-5-plan.md forbids touching that class or
+/// <see cref="LatticeOcrCorrectionPlanner"/> (docs/phase-5-plan.md@adc202d forbids touching that class or
 /// any other file under src/) but keeps every intermediate per-region result instead of
 /// discarding them into a handful of summary strings. Driving <see cref="EpubFixService"/> with
 /// this planner instead of the real one reproduces the exact production run (same hyphenation

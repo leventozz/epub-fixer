@@ -2,7 +2,7 @@ namespace EpubFixer.Tests.LossTaxonomy;
 
 /// <summary>
 /// Why the lattice does or does not reach the correct arc when it does not, per
-/// docs/phase-5-plan.md section 7.2's "TargetNotInLattice" vs "MatcherMissedTarget" split.
+/// docs/phase-5-plan.md@adc202d section 7.2's "TargetNotInLattice" vs "MatcherMissedTarget" split.
 /// </summary>
 public enum LatticeUnreachableCause
 {
@@ -37,7 +37,7 @@ public enum LatticeUnreachableCause
 
 /// <summary>
 /// The facts a <see cref="LossTaxonomyProbe"/> establishes about a single loss case, in the
-/// exact order docs/phase-5-plan.md section 7.2 attributes a first-failure reason. Every field
+/// exact order docs/phase-5-plan.md@adc202d section 7.2 attributes a first-failure reason. Every field
 /// is a plain, dependency-free flag so the attribution ORDER (not just each branch's own
 /// correctness) is unit-testable without the real book, the real matcher, or the real gate.
 /// </summary>
@@ -51,7 +51,7 @@ public sealed record LossProbeSignals(
     bool GateVerdictAppliedUnexpectedly,
     string? GateReason);
 
-/// <summary>Reason codes from docs/phase-5-plan.md section 7.2.</summary>
+/// <summary>Reason codes from docs/phase-5-plan.md@adc202d section 7.2.</summary>
 public static class LossReasonCodes
 {
     public const string RegionNotDetected = "RegionNotDetected";
@@ -82,7 +82,7 @@ public static class LossReasonCodes
 }
 
 /// <summary>
-/// Pure decision logic for R5.0b (docs/phase-5-plan.md section 7.2): given where a single loss
+/// Pure decision logic for R5.0b (docs/phase-5-plan.md@adc202d section 7.2): given where a single loss
 /// case's evaluation through the lattice pipeline first diverges from success, attributes it to
 /// exactly one reason code. Contains no I/O and touches none of the real pipeline types, so the
 /// checking ORDER - which is the entire point of "first failure point in the chain" - is

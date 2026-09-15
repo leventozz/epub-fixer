@@ -12,7 +12,7 @@ using EpubFixer.Tests.LossTaxonomy;
 namespace EpubFixer.Tests;
 
 /// <summary>
-/// R5.0b (docs/phase-5-plan.md section 7.2): attributes each of the 119 losses in
+/// R5.0b (docs/phase-5-plan.md@adc202d section 7.2): attributes each of the 119 losses in
 /// docs/baselines/odun-kesmek.engine-diff.json to exactly one first-failure reason in the
 /// lattice pipeline, and pins the result as docs/baselines/odun-kesmek.loss-taxonomy.json -
 /// the same regenerate-and-compare pattern <see cref="OcrMutationBaselineTests"/> uses.
@@ -139,7 +139,7 @@ public sealed class LossTaxonomyBaselineTests
             "(region detection -> window -> lattice -> decoder -> gate, on the same post-" +
             "hyphenation text the production engine used) and attributed to the first stage " +
             "at which it diverges from applying the correct replacement. See " +
-            "docs/phase-5-plan.md section 7.2 for the reason codes and docs/baselines/" +
+            "docs/phase-5-plan.md@adc202d section 7.2 for the reason codes and docs/baselines/" +
             "odun-kesmek.loss-taxonomy.json's own 'notes' field per case for known " +
             "approximations (composite multi-arc reconstructions are not exhaustively modeled " +
             "in the TargetNotInLattice/MatcherMissedTarget split).",

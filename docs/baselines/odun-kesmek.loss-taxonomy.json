@@ -1,7 +1,7 @@
 {
   "dataset": "odun-kesmek",
   "measuredOn": "2026-09-14",
-  "methodology": "Each loss case is re-run through the real production lattice pipeline (region detection -\u003E window -\u003E lattice -\u003E decoder -\u003E gate, on the same post-hyphenation text the production engine used) and attributed to the first stage at which it diverges from applying the correct replacement. See docs/phase-5-plan.md section 7.2 for the reason codes and docs/baselines/odun-kesmek.loss-taxonomy.json\u0027s own \u0027notes\u0027 field per case for known approximations (composite multi-arc reconstructions are not exhaustively modeled in the TargetNotInLattice/MatcherMissedTarget split).",
+  "methodology": "Each loss case is re-run through the real production lattice pipeline (region detection -\u003E window -\u003E lattice -\u003E decoder -\u003E gate, on the same post-hyphenation text the production engine used) and attributed to the first stage at which it diverges from applying the correct replacement. See docs/phase-5-plan.md@adc202d section 7.2 for the reason codes and docs/baselines/odun-kesmek.loss-taxonomy.json\u0027s own \u0027notes\u0027 field per case for known approximations (composite multi-arc reconstructions are not exhaustively modeled in the TargetNotInLattice/MatcherMissedTarget split).",
   "totalLosses": 119,
   "unattributedCount": 0,
   "reasonHistogram": {

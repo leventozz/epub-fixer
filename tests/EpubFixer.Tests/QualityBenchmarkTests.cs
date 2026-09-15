@@ -40,7 +40,7 @@ public sealed class QualityBenchmarkTests
 
         var result = new QualityBenchmarkRunner().Run(dataset);
 
-        // R5.0d (docs/phase-5-plan.md section 7.4) grew the ground truth's OCR arm from 12 to 112
+        // R5.0d (docs/phase-5-plan.md@adc202d section 7.4) grew the ground truth's OCR arm from 12 to 112
         // records (plus 28 new Hyphenation records), so these figures moved from the previous
         // 160/148/0/12/9 baseline - re-measured directly against the real dataset (kural 4.3).
         Assert.Equal(288, result.KnownErrors);
@@ -325,7 +325,7 @@ public sealed class QualityBenchmarkTests
     [Fact]
     public void Loader_StillReadsSchemaVersionTwo_AfterSchemaVersionThreeWasIntroduced()
     {
-        // R5.0d (docs/phase-5-plan.md section 7.4): schemaVersion moved to 3 to carry
+        // R5.0d (docs/phase-5-plan.md@adc202d section 7.4): schemaVersion moved to 3 to carry
         // verifiedBy/legacyProposal/source. The loader must keep reading a plain schemaVersion 2
         // document - one written before those fields existed - without requiring any of them.
         const string json = """

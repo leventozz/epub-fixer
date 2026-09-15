@@ -8,7 +8,7 @@ using EpubFixer.Core.Ocr.Models;
 namespace EpubFixer.Tests.LossTaxonomy;
 
 /// <summary>
-/// The R5.0b measurement instrument (docs/phase-5-plan.md section 7.2). Given the real pipeline's
+/// The R5.0b measurement instrument (docs/phase-5-plan.md@adc202d section 7.2). Given the real pipeline's
 /// intermediate results for the region a loss case falls into - or the absence of a region, or of
 /// a built window - establishes the <see cref="LossProbeSignals"/> and hands them to
 /// <see cref="LossTaxonomyClassifier"/>.
