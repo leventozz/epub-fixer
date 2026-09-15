@@ -36,7 +36,7 @@ Sürüm 1'in beş fazı bitti ve **mimari olarak hedefe ulaştı**:
 - **Lattice motoru** — `ILexiconMatcher` → `WordLatticeBuilder` → `LatticeDecoder` → `CorrectionAcceptanceGate`
 - **Üretim hattına bağlandı** — `IOcrCorrectionPlanner` portu, `RegionMutationPlanner`, `--ocr-engine legacy|lattice`
 
-Suite: **522/522 yeşil** (~3 dk 33 sn). `EpubFixer.Core` 7.676 satır, testler 12.020 satır.
+Suite: **542/542 yeşil** (~3 dk 36 sn; sürüm 2 başlarken 522'ydi, G1+H1+H2 20 test ekledi).
 
 ### 2.2 Ne ölçüldü — ve varsayımı nasıl yanlışladı
 
@@ -149,19 +149,27 @@ Durum kodları: ✅ bitti · ⬜ hazır · 🔒 ön koşulu bekliyor · ⛔ dü�
 
 ### M1 — Kapıyı ölçülebilir yap (ön koşul)
 
-Kapı bugün **her iki motorda da kırmızı**, çünkü eşikler 160 kayıtlık eski taban üzerinde
-ölçülmüştü. Kapı kırmızıyken hiçbir kalemin "başarılı" tanımı yoktur — bu yüzden ilk sırada.
+Kapı, eşikleri 160 kayıtlık eski taban üzerinde ölçüldüğü için **her iki motorda da kırmızıydı**.
+Kapı kırmızıyken hiçbir kalemin "başarılı" tanımı yoktur — bu yüzden ilk sırada.
+**G1 ile çözüldü:** kapı artık legacy'de yeşil, lattice'te kırmızı; aradaki mesafe Faz 5'in
+ölçmek istediği şeydir ve kapı düşürülerek kapatılmadı.
 
 | # | Kalem | Durum | Ön koşul | Çıktı |
 |---|---|---|---|---|
-| G1 | Kapı profilini yeni ölçüm tabanına taşı (D80'i uygula) | ⬜ | — | legacy kapıdan geçiyor |
+| G1 | Kapı profilini yeni ölçüm tabanına taşı (D80'i uygula) | ✅ `cd5b5ef` | — | legacy geçiyor, lattice geçmiyor |
 | G2 | `MissingSpace` / `SpuriousSpace` boşluğunu karara bağla | ⬜ | — | karar + gerekçe |
+| G3 | Profil bulunamazsa/bozuksa kapı gürültülü patlasın | ⬜ | — | sessiz zayıflama kapandı |
 
-**G1 — Kapı profili.** Eşikler 288 kayıtlık yeni taban üzerinde yeniden kurulur. Üç koruma (D80):
-yeni eşik **ölçülür, seçilmez** (legacy'nin değeri, aşağı yuvarlanmadan); eski profil
-`supersededProfiles` altında **tabanıyla** arşivlenir; D77 taban içinde aynen geçerli kalır.
-**DUR:** eşiği legacy'nin ölçülmüş değerinin altına koyma.
-*Dosyalar:* `docs/baselines/quality-gate.json`, `QualityBenchmarkGateEvaluator.cs`
+**G1 — Kapı profili.** ✅ `cd5b5ef`. Eşikler 288 kayıtlık taban üzerinde yeniden kuruldu:
+precision `0.9885496183206107`, recall `0.8993055555555556`, `ClassRecall:Hyphenation`
+`0.9659090909090909` — üçü de legacy'nin **ölçülmüş, yuvarlanmamış** değerleri. Eski profil
+`supersededProfiles[0]` altında tabanıyla (`{160, v2}`) arşivlendi. Üretim kodu değişmedi.
+`QualityBenchmarkGateProfilePinTests` D80 kural 1'i pinler: eşikleri ve ölçüm sayımlarını
+JSON'dan okur, recall'ü sayımlardan **yeniden hesaplar**, sabit sayı barındırmaz — biri eşiği
+legacy'nin ölçtüğünün üstüne çekerse benchmark koşusu gerekmeden kırmızıya döner.
+*Gözlem (açık):* pin testi sınıf kırılımını kurarken `detected = known` veriyor; kapı `detected`
+okumadığı için bugün etkisiz, ama kapıya `detected` tabanlı bir kural eklenirse test sessizce
+yanlış şeyi doğrular.
 
 **G2 — Ölçüm boşluğu.** R5.0d bu iki sınıfı dolduramadı: D70'in aday havuzu motorların dokunduğu
 yerlerden oluşuyor, hiçbir motor `MissingSpace`'e dokunmuyor. Üç seçenekten birini **gerekçeyle**
@@ -169,28 +177,44 @@ seç: (a) havuz dışına çıkıp elle bul, (b) ertele ve ölçüm boşluğu ol
 yaz. **Önce (c)'yi sına:** kitapta bu sınıf gerçekten var mı?
 *Dosyalar:* `test-data/odun-kesmek/ground-truth.json`, `odun-kesmek.loss-taxonomy.json`
 
+**G3 — Sessiz zayıflama.** G1 sırasında bulundu. `QualityBenchmarkGateProfileLoader.LoadCurrent`
+dosya yoksa **veya** `current` düğümü yoksa `null` döner; `QualityBenchmarkGateEvaluator` ise
+`options ?? new QualityBenchmarkGateOptions()` ile varsayılana düşer — **precision %98, recall
+%60, sınıf eşiği yok.** Yani profili bozan bir düzenleme kapıyı %89,93'ten %60'a indirir ve
+**koşu yeşil görünür.** Kapının tek işi regresyonu yakalamak; sessizce zayıflayan kapı, kapı
+değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**.
+*Dosyalar:* `QualityBenchmarkApplication.cs` (loader), `QualityBenchmarkGateEvaluator.cs`
+
 ### M2 — Hibrit hattı (fazın kalbi)
 
 | # | Kalem | Durum | Ön koşul | Çıktı |
 |---|---|---|---|---|
-| H1 | `CompositeOcrCorrectionPlanner` + birleştirme kuralı | ⬜ | — | birim testler, üretim değişmedi |
-| H2 | `--ocr-engine hybrid` + composition root bağlantısı | 🔒 | H1 | bayrak çalışıyor |
-| H3 | Hibriti ölç | 🔒 | H2, G1 | baseline'lar + kapı sonucu |
+| H1 | `CompositeOcrCorrectionPlanner` + birleştirme kuralı | ✅ `7ed1e03` | — | 7 birim test, üretim değişmedi |
+| H2 | `--ocr-engine hybrid` + composition root bağlantısı | ✅ `42699f4` | H1 | bayrak çalışıyor |
+| H3 | Hibriti ölç | ⬜ | H2, G1 | baseline'lar + kapı sonucu |
 | H4 | Lattice'in eklediği her mutation elle incelenir | 🔒 | H3, R1 | yanlış düzeltme sayısı |
 | H5 | Varsayılanı hibrit yap | 🔒 | H4 temiz | yeni golden'lar |
 
-**H1 — Composite.** Saf bir birleştirme fonksiyonu: iki `OcrCorrectionPlanResult` al, ikincinin
-logical aralığı birincininkiyle çakışan mutation'larını **atla**, kalanları birleştir. Atlananlar
-`Diagnostics`'e yazılır — sessizce düşen düzeltme ölçülemeyen kayıptır (D56'nın kuralı).
-`OcrCorrectionEngine` enum'una `Hybrid` **sona** eklenir (D36).
-**DUR:** Mevcut iki planner'ın içine dokunma. Bu kalem üretim davranışını değiştirmez —
-varsayılan hâlâ legacy, tüm baseline'lar bit düzeyinde aynı kalmalı.
+**H1 — Composite.** ✅ `7ed1e03`. İki planner aynı `stream`/`oracleBuilder` üzerinde koşar;
+ikincinin mutation'ı birincininkiyle `DocumentPath` + `[LogicalStart, LogicalStart+LogicalLength)`
+kesişiyorsa **atlanır** ve `Diagnostics`'e yazılır (D83 + D56). Çıktı `(DocumentPath, LogicalStart)`
+sırasıyla deterministik. `OcrCorrectionEngine.Hybrid` enum'un **sonuna** eklendi (D36).
+Composite hiçbir yere bağlanmadı, mevcut iki planner'a dokunulmadı — varsayılan hâlâ legacy.
+**D88** verildi: plan geçerliliği yalnızca birincilin `Failures`'ına bağlıdır.
+
+*Gözlem (açık):* `OverlapsAny` adayı yalnızca **birincilin** mutation'larına karşı sınıyor.
+Bir planner'ın kendi planı içinde çakışma üretmediği **varsayılıyor ama doğrulanmıyor** — bugün
+doğru (lattice D55, legacy kendi çakışma tespiti) ama applier bu ihlali yakalayamaz: her span
+`ExpectedText`'i *orijinal* node verisine karşı doğrular, aynı aralığa iki düzenleme de geçer ve
+ikisi birden uygulanır. Yeni bir ikincil planner eklenirse **önce bu değişmez assert edilmelidir.**
 *Dosyalar:* `src/EpubFixer.Core/Ocr/CompositeOcrCorrectionPlanner.cs`, `OcrMutationProvenance.cs`, testler
 
-**H2 — Bayrak.** `--ocr-engine legacy|lattice|hybrid`. İki composition root (Cli ve Benchmarks)
-aynı kuruluma ihtiyaç duyar; üçüncü bir kopya doğmasın.
-**DUR:** Varsayılanı ÇEVİRME — o H5'in işi.
-*Dosyalar:* `src/EpubFixer.Cli/Program.cs`, `QualityBenchmarkApplication.cs`
+**H2 — Bayrak.** ✅ `42699f4`. `--ocr-engine legacy|lattice|hybrid` her iki composition root'ta
+çalışıyor. Motor adı → planner çözümlemesi tek yerde toplandı: `OcrPlannerFactory` (Adapters),
+tanınmayan adda **exception atar**, sessizce legacy'ye düşmez — **D89**. İki root çözümleme,
+arg doğrulama ve kullanım metni için aynı factory'yi çağırıyor; motor adı listesi artık tek
+kaynakta. Varsayılan değişmedi (`OcrEngine ?? "legacy"`).
+*Dosyalar:* `src/EpubFixer.Adapters/Ocr/OcrPlannerFactory.cs`, `Program.cs`, `QualityBenchmarkApplication.cs`
 
 **H3 — Ölçüm.** Tek full-book koşusu. Ölçülecekler: mutation sayısı (**beklenen 129**),
 benchmark precision/recall + sınıf kırılımı, kapı sonucu, `measure` metriği, süre,
@@ -272,8 +296,9 @@ artık kalıcı.
 ## 5. Sıra
 
 ```
-G1 ──┐
-G2   ├──► H1 ──► H2 ──► H3 ──► H4 ──► H5
+G1 ✅─┐
+G2   ├──► H1 ✅──► H2 ✅──► H3 ──► H4 ──► H5
+G3   ┘
 R1 ──┘                   ▲       ▲
                          │       │
 P1 ─► P2                 │      R3
@@ -281,9 +306,9 @@ P1 ─► P2                 │      R3
                         B1 ─► B2
 ```
 
-**Kritik yol:** `G1 → H1 → H2 → H3 → H4 → H5` — altı kalem.
+**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → `H3 → H4 → H5` — **üç kalem kaldı.**
 
-**Paralel yürüyebilenler:** G1 · G2 · H1 · R1 · P1 — beşi ayrı dosya ailelerine dokunur.
+**Paralel yürüyebilenler:** G2 · G3 · R1 · P1 — dördü ayrı dosya ailelerine dokunur.
 
 Sürüm 1'in kritik yolu 10 adımdı ve sonunda ölçülmüş bir "henüz değil" vardı. Bu altı adımın
 sonunda üretimde **129 düzeltme** var.
