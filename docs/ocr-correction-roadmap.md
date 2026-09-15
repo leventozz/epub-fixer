@@ -192,7 +192,7 @@ değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**
 | H1 | `CompositeOcrCorrectionPlanner` + birleştirme kuralı | ✅ `7ed1e03` | — | 7 birim test, üretim değişmedi |
 | H2 | `--ocr-engine hybrid` + composition root bağlantısı | ✅ `42699f4` | H1 | bayrak çalışıyor |
 | H3 | Hibriti ölç | ✅ `9c3224e` | H2, G1 | baseline'lar + kapı sonucu |
-| H4 | Lattice'in eklediği her mutation elle incelenir | 🔒 | H3, R1 | yanlış düzeltme sayısı |
+| H4 | Lattice'in eklediği her mutation elle incelenir | ⬜ | H3, R1 | yeni yanlış düzeltme sayısı |
 | H5 | Varsayılanı hibrit yap | 🔒 | H4 temiz | yeni golden'lar |
 
 **H1 — Composite.** ✅ `7ed1e03`. İki planner aynı `stream`/`oracleBuilder` üzerinde koşar;
@@ -253,13 +253,18 @@ H4'ün "lattice'in eklediği her mutation'ı elle incele" işine bu dördüncü 
 zaten Risk kaydı #1'in beklediği şey budur, eşik oynatılmadı (D77).
 
 **H4 — İnceleme.** Lattice'in eklediği ~9 mutation'ın **her biri** bağlamıyla elle incelenir.
-**DUR:** Bir tane bile yanlış düzeltme bulursan eşik oynatarak kapatma — DUR, bildir.
+**Ölçüt (D90):** legacy'ye göre **yeni** yanlış düzeltme sıfır olmalı. Legacy'nin kendi 3 hatası
+bu kalemin konusu değil — onlar X2'nin işi. Bugün bilinen tek yeni hata `garbage-0001`.
+**İnceleme mutation tuple'ı üzerinden YAPILMAZ:** sonuç metni **bağlamıyla** okunur. H3'ün dersi —
+`ohbet → sohbet` listede tertemiz görünüyordu, gerçekte çevresindeki `':,'` çöpü yerinde kalıp
+`':,sohbet'` üretiyordu.
+**DUR:** Yeni bir yanlış düzeltme bulursan eşik oynatarak kapatma — DUR, bildir.
 *Ön koşul:* R1 (inceleme raporu)
 
 **H5 — Anahtarı çevir.** Varsayılan motor `hybrid` olur. Golden SHA-256 **kasten değişir** ve
 yeni değeri **ölçülerek** yazılır. `OcrMutationBaselineTests`, `PerformanceBudgetTests`,
 `MorphologyCallTraceTests`, `measure` baseline'ı yeniden ölçülür.
-*Ön koşul:* H4'te yanlış düzeltme **sıfır**, süre bütçede, kapı yeşil, `ProtectedViolated == 0`
+*Ön koşul:* H4'te **yeni** yanlış düzeltme sıfır (D90), süre bütçede, kapı yeşil, `ProtectedViolated == 0`
 
 ### M3 — İnceleme ve görünürlük
 
@@ -368,14 +373,14 @@ yarım kalan etiketleme, insanın okuduğu 60 cümlenin çöpe gitmesidir.
 
 | # | Risk | Etki | Azaltma |
 |---|---|---|---|
-| 1 | **Hibrit iki motorun hatalarını toplar** — legacy'nin 3 yanlışı + lattice'in eklediği ne varsa | Yüksek | H4 elle inceleme, yanlış düzeltme sıfır kısıtı; X2 legacy'nin kendi hatalarını hedefler |
+| 1 | **Hibrit iki motorun hatalarını toplar** — legacy'nin 3 yanlışı + lattice'in eklediği ne varsa | Yüksek | H4 elle inceleme, **yeni** yanlış düzeltme sıfır kısıtı (D90); X2 legacy'nin kendi hatalarını hedefler. H3'te ölçüldü: hibrit tam olarak 1 yeni yanlış getirdi |
 | 2 | **Birleştirme sessizce mutation düşürür** ve recall kaybı ölçülmez | Yüksek | H1: atlanan her mutation `Diagnostics`'e yazılır; R3 raporda en üstte gösterir |
 | 3 | **Süre bütçesi patlar** — hibrit iki motorun maliyetini toplar (~28 + ~28 sn) | Orta | D61 zaten bunu öngörüyor (legacy + 35 sn); H3'te ölçülür, aşarsa DUR |
 | 4 | **Tek kitaba overfit** — bütün ölçüm `odun-kesmek` üzerinde | Yüksek | M5 kalem olarak açıldı ve M4'ün önüne kondu |
 | 5 | **İki motor birlikte çürür** — R4.3 kalıcı düştüğü için ikisi de yaşayacak | Orta | Legacy'ye yeni özellik eklenmez; X2 dışında yalnızca hata düzeltmesi alır |
 | 6 | **Kapı gevşetilerek yeşile boyanır** | Yüksek | D77 (yalnızca yukarı) + D80 (taban değişimi ölçülür, seçilmez) |
 | 7 | **Özel isimler "düzeltilir"** (*Auersberger*, *Rennweg*) | Orta | `ProperNameRisk` + `OriginalTokenIsValid` korunur; P1 bunları süpürülebilir yapar ama gevşetmez |
-| 8 | **Recall için precision feda edilir** | Yüksek | Yanlış düzeltme sayısını sıfırın üstüne çıkaran hiçbir değişiklik kabul edilmez |
+| 8 | **Recall için precision feda edilir** | Yüksek | Yanlış düzeltme sayısını **artıran** hiçbir değişiklik kabul edilmez (D90: ölçü, legacy'nin bugünkü sayısıdır — mutlak sıfır değil) |
 
 ---
 
@@ -395,7 +400,8 @@ Her kalemde geçerli kurallar:
 - Bağımlılıklar içeri doğru: Core'a framework/IO importu girmez.
 - Beklenen değerleri TAHMİN ETME. Önce koş, çıkan sayıyı oku, sonra yaz.
 - Kapıyı GEVŞETME, eşik İNDİRME (D77 / D80).
-- Yanlış düzeltme sayısını artıran hiçbir değişiklik kabul edilmez.
+- Yanlış düzeltme sayısını **artıran** hiçbir değişiklik kabul edilmez (D90: taban legacy'nin
+  bugünkü sayısıdır, mutlak sıfır değil).
 - İŞ BOYUTU: tek commit, en fazla bir full-book koşusu, tek dosya ailesi, tek çıktı.
   Bu bütçeyi aşacağını anlarsan DUR — işi büyütme, kalemin nasıl bölüneceğini bildir.
 - Kapsam yalnızca bu kalem. Fark ettiğin başka sorunları düzeltme, bitiş raporunda
