@@ -4,6 +4,11 @@ using EpubFixer.Adapters.Ocr;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Morphology;
 using EpubFixer.Core.Mutation.Models;
+using EpubFixer.Core.Ocr;
+using EpubFixer.Core.Quality;
+using EpubFixer.Core.Tokenization;
+using EpubFixer.Cli.Quality;
+using EpubFixer.Core.Epub;
 using EpubFixer.TrMorph;
 
 namespace EpubFixer.Tests;
@@ -105,6 +110,82 @@ public sealed class OcrMutationBaselineTests
                 File.Delete(output);
             }
         }
+    }
+
+    [Fact]
+    [Trait("Category", "Slow")]
+    public void FullBookFix_HybridEngineMutationProfileIsPinned()
+    {
+        // H3: the roadmap's own written prediction (docs/ocr-correction-roadmap.md section 3.1)
+        // is that the composite planner must apply exactly 129 mutations - 120 legacy + 9 lattice
+        // GAIN, with the one known conflict ('kol-1 ıı kta', main-3.xhtml logicalStart 152467)
+        // resolving to the primary (legacy). If this number is not 129, the bug is in the merge
+        // (CompositeOcrCorrectionPlanner), not in either engine - see decisions.md D82/D83.
+        var input = FindRepositoryFile(Path.Combine("test-data", "odun-kesmek", "input.epub"));
+        var baselinePath = FindRepositoryFile(Path.Combine("docs", "baselines", "odun-kesmek.fix-hybrid.json"));
+        var output = Path.Combine(Path.GetTempPath(), $"epubfixer-ocr-hybrid-{Guid.NewGuid():N}.epub");
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(
+                    new BatchMorphologyOracleBuilder(analyzer),
+                    new CompositeOcrCorrectionPlanner(new LegacyOcrCorrectionPlanner(), LatticeOcrPlannerFactory.Create()))
+                .Fix(input, output, applyOcrCorrections: true);
+
+            var mutation = Assert.IsType<OcrMutationResult>(result.OcrMutation);
+            Assert.Equal(OcrCorrectionEngine.Hybrid, mutation.Engine);
+
+            // DUR gate (H3): assert the literal acceptance criterion before touching the baseline
+            // file at all, so a wrong count never gets pinned as if it were the measured answer.
+            Assert.Equal(129, mutation.PlannedCount);
+            Assert.Equal(129, mutation.AppliedCount);
+
+            var actual = OcrMutationBaseline.From(mutation, "hybrid");
+            var actualJson = JsonSerializer.Serialize(actual, JsonOptions);
+            if (string.Equals(Environment.GetEnvironmentVariable("EPUBFIXER_UPDATE_BASELINES"), "1", StringComparison.Ordinal))
+            {
+                File.WriteAllText(baselinePath, actualJson + Environment.NewLine);
+            }
+
+            var expected = JsonSerializer.Deserialize<OcrMutationBaseline>(
+                File.ReadAllText(baselinePath),
+                JsonOptions) ?? throw new InvalidOperationException("Baseline JSON is empty.");
+
+            Assert.Equal(
+                JsonSerializer.Serialize(expected, JsonOptions),
+                actualJson);
+
+            // Book health (H3 output 4): measured in-process against this same fix run's output,
+            // so H3 does not pay for a second full hybrid fix pipeline just to get these 4 numbers
+            // (roadmap section 6 rule 2 - at most a handful of full-book runs per item). Mirrors
+            // MeasureCommand.MeasureEpub (src/EpubFixer.Cli/Quality/MeasureCommand.cs) exactly.
+            var bookHealth = MeasureBookHealth(output);
+            Console.WriteLine($"HybridBookHealth.TotalTokens={bookHealth.TotalTokens}");
+            Console.WriteLine($"HybridBookHealth.UnresolvableTokens={bookHealth.UnresolvableTokens}");
+            Console.WriteLine($"HybridBookHealth.SuspiciousTokens={bookHealth.SuspiciousTokens}");
+            Console.WriteLine(
+                "HybridBookHealth.UnresolvableRatePer1000="
+                + bookHealth.UnresolvableRate.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    private static BookHealth MeasureBookHealth(string epubPath)
+    {
+        var package = new EpubPackageReader().Read(epubPath);
+        var tokens = new WordTokenizer().Tokenize(package.LogicalText).Select(token => token.Text).ToArray();
+        using var analyzer = new FomaTurkishMorphologyAnalyzer();
+        var recognizer = new FrequencyMorphologyWordRecognizer(
+            tokens,
+            FrequencyMorphologyWordRecognizer.DefaultFrequencyListPath,
+            analyzer);
+        return new BookHealthMeter(recognizer).Measure(package.LogicalText);
     }
 
     private static string FindRepositoryFile(string relativePath)

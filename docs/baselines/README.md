@@ -58,3 +58,19 @@ gecersizdir ve yeni tanimla yeniden uretilmelidir.
 - Baseline'lari yeniden uretmek icin:
   `EPUBFIXER_UPDATE_BASELINES=1 dotnet test tests/EpubFixer.Tests --filter "FullyQualifiedName~OcrMutationBaselineTests"`
 
+## H3 hybrid engine baseline (surum 2, M2)
+
+- `odun-kesmek.fix-hybrid.json`: `fix --apply-ocr-corrections` hibrit (`CompositeOcrCorrectionPlanner`)
+  motorunun uyguladigi **129 mutation**'in imzasi (120 legacy + 9 lattice KAZANC, tek catisma
+  D83 geregi legacy'ye gitti - roadmap bolum 3.1'in tahminiyle birebir eslesir).
+  `OcrMutationBaselineTests.FullBookFix_HybridEngineMutationProfileIsPinned` bu dosyaya karsi
+  dogrular ve ayni kosunun cikti epub'u uzerinde kitap sagligini in-process olcer (Console.WriteLine
+  ile: `HybridBookHealth.*`) - ikinci bir tam-kitap `fix`+`measure` kosusuna gerek kalmadan.
+  Olculen kitap sagligi: totalTokens 46656, unresolvableTokens 2666, suspiciousTokens 166,
+  unresolvableRatePer1000 57.14 - legacy'den (57.30, `odun-kesmek.engine-diff.json`) biraz daha iyi,
+  cunku 9 lattice KAZANCI dogru duzeltmeler.
+  Süre (ayni oturumda, `PerformanceBudgetTests.FullBookHybridFixStaysWithinBudgetOfLegacy`):
+  legacy 25.62s, hybrid 44.57s - hem 120s sabit kapiyi hem legacy+35s (D61) yumusak kapiyi geciyor.
+  Benchmark (`--ocr-engine hybrid`) sonucu ve kalite kapisi FAIL/PASS detayi:
+  `docs/baselines/quality-gate.json` -> `current.ocrStageMeasurement.hybrid`.
+

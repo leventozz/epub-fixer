@@ -1,6 +1,7 @@
 using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Epub;
 using EpubFixer.Adapters.Lexicon;
+using EpubFixer.Adapters.Ocr;
 using EpubFixer.Cli.OcrReconstruction;
 using EpubFixer.Adapters.Ocr.Lattice;
 using EpubFixer.Core.Fix;
@@ -115,6 +116,57 @@ public sealed class PerformanceBudgetTests
         Assert.True(reconstructor.Statistics.MaxVisitedStates <= 2_500, $"Max visited states was {reconstructor.Statistics.MaxVisitedStates}.");
         Assert.Equal(563, reconstructor.Statistics.Regions);
         Assert.Equal(31, reconstructor.Statistics.Applied);
+    }
+
+    [Fact]
+    [Trait("Category", "Slow")]
+    public void FullBookHybridFixStaysWithinBudgetOfLegacy()
+    {
+        // H3 / D61: the hard gate (<=120s) is necessary but not sufficient - legacy's own
+        // duration must be measured in the *same* run so the soft gate (<=legacy+35s) compares
+        // apples to apples on this machine today, not against a stale number from another day.
+        var input = FindRepositoryFile(Path.Combine("test-data", "odun-kesmek", "input.epub"));
+        var legacyOutput = Path.Combine(Path.GetTempPath(), $"epubfixer-budget-legacy-{Guid.NewGuid():N}.epub");
+        var hybridOutput = Path.Combine(Path.GetTempPath(), $"epubfixer-budget-hybrid-{Guid.NewGuid():N}.epub");
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+
+            var legacyElapsed = System.Diagnostics.Stopwatch.StartNew();
+            _ = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer))
+                .Fix(input, legacyOutput, applyOcrCorrections: true);
+            legacyElapsed.Stop();
+
+            var hybridElapsed = System.Diagnostics.Stopwatch.StartNew();
+            _ = new EpubFixService(
+                    new BatchMorphologyOracleBuilder(analyzer),
+                    new CompositeOcrCorrectionPlanner(new LegacyOcrCorrectionPlanner(), LatticeOcrPlannerFactory.Create()))
+                .Fix(input, hybridOutput, applyOcrCorrections: true);
+            hybridElapsed.Stop();
+
+            Console.WriteLine($"LegacyElapsedSeconds={legacyElapsed.Elapsed.TotalSeconds:0.000}");
+            Console.WriteLine($"HybridElapsedSeconds={hybridElapsed.Elapsed.TotalSeconds:0.000}");
+
+            Assert.True(
+                hybridElapsed.Elapsed.TotalSeconds <= 120,
+                $"Hybrid fix took {hybridElapsed.Elapsed.TotalSeconds:0.00}s (hard gate: 120s, D61).");
+            Assert.True(
+                hybridElapsed.Elapsed.TotalSeconds <= legacyElapsed.Elapsed.TotalSeconds + 35,
+                $"Hybrid fix took {hybridElapsed.Elapsed.TotalSeconds:0.00}s, legacy (measured in the same run) "
+                + $"took {legacyElapsed.Elapsed.TotalSeconds:0.00}s (soft gate: legacy + 35s, D61).");
+        }
+        finally
+        {
+            if (File.Exists(legacyOutput))
+            {
+                File.Delete(legacyOutput);
+            }
+
+            if (File.Exists(hybridOutput))
+            {
+                File.Delete(hybridOutput);
+            }
+        }
     }
 
     private static CorruptedTextRegion Region(string text) => new(text, 0, text.Length, [text], "", "", []);
