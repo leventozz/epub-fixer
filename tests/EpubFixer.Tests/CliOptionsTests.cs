@@ -20,6 +20,8 @@ public sealed class CliOptionsTests
     [InlineData("legacy")]
     [InlineData("lattice")]
     [InlineData("LATTICE")]
+    [InlineData("hybrid")]
+    [InlineData("HYBRID")]
     public void TryParse_AcceptsOcrEngineOption(string value)
     {
         var parsed = CliOptions.TryParse(

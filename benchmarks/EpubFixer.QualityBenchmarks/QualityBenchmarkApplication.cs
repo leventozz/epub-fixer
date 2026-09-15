@@ -82,7 +82,7 @@ public sealed class QualityBenchmarkApplication
         try
         {
             var dataset = _load(parsed.DatasetDirectory!);
-            var planner = ResolvePlanner(parsed.OcrEngine!);
+            var planner = OcrPlannerFactory.Resolve(parsed.OcrEngine!);
             var result = _run(dataset, planner);
             QualityBenchmarkReportWriter.Write(output, dataset.Name, result);
             output.WriteLine();
@@ -102,17 +102,6 @@ public sealed class QualityBenchmarkApplication
         }
     }
 
-    /// <summary>
-    /// Resolves the CLI-selected engine name to the planner the runner should use.
-    /// "legacy" (the default) maps to null so <see cref="QualityBenchmarkRunner"/> falls back
-    /// to its own default (<c>LegacyOcrCorrectionPlanner</c>) exactly as it did before this
-    /// flag existed - the default composition is unchanged (plan section 7.1, item 2).
-    /// </summary>
-    private static IOcrCorrectionPlanner? ResolvePlanner(string ocrEngine) =>
-        string.Equals(ocrEngine, "lattice", StringComparison.OrdinalIgnoreCase)
-            ? LatticeOcrPlannerFactory.Create()
-            : null;
-
     private static void PrintUsage(TextWriter error)
     {
         error.WriteLine(
@@ -120,7 +109,7 @@ public sealed class QualityBenchmarkApplication
         error.WriteLine(
             "       dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- --propose <dataset-directory>");
         error.WriteLine(
-            "       dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- --ocr-engine legacy|lattice <dataset-directory>");
+            $"       dotnet run --project benchmarks/EpubFixer.QualityBenchmarks -- --ocr-engine {string.Join('|', OcrPlannerFactory.KnownEngineNames)} <dataset-directory>");
     }
 
     internal enum BenchmarkMode { Usage, Propose, Measure }
@@ -141,7 +130,7 @@ public sealed class QualityBenchmarkApplication
 
         if (args.Length == 3
             && string.Equals(args[0], "--ocr-engine", StringComparison.OrdinalIgnoreCase)
-            && IsKnownEngine(args[1])
+            && OcrPlannerFactory.IsKnownEngine(args[1])
             && !string.IsNullOrWhiteSpace(args[2]))
         {
             return new ParsedArguments(BenchmarkMode.Measure, args[2], args[1].ToLowerInvariant());
@@ -149,10 +138,6 @@ public sealed class QualityBenchmarkApplication
 
         return new ParsedArguments(BenchmarkMode.Usage, null, null);
     }
-
-    private static bool IsKnownEngine(string value) =>
-        string.Equals(value, "legacy", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(value, "lattice", StringComparison.OrdinalIgnoreCase);
 
     private static int RunPropose(string datasetDirectory, TextWriter output, TextWriter error)
     {

@@ -259,6 +259,7 @@ public sealed class QualityBenchmarkGateTests
     [InlineData(new[] { "--ocr-engine", "legacy", "dataset" }, "Measure", "dataset", "legacy")]
     [InlineData(new[] { "--ocr-engine", "lattice", "dataset" }, "Measure", "dataset", "lattice")]
     [InlineData(new[] { "--ocr-engine", "LATTICE", "dataset" }, "Measure", "dataset", "lattice")]
+    [InlineData(new[] { "--ocr-engine", "hybrid", "dataset" }, "Measure", "dataset", "hybrid")]
     [InlineData(new[] { "--propose", "dataset" }, "Propose", "dataset", null)]
     [InlineData(new string[0], "Usage", null, null)]
     [InlineData(new[] { "--ocr-engine", "unknown-engine", "dataset" }, "Usage", null, null)]
@@ -301,6 +302,33 @@ public sealed class QualityBenchmarkGateTests
 
         Assert.Equal(0, exitCode);
         Assert.NotNull(capturedPlanner);
+    }
+
+    [Fact]
+    public void Application_OcrEngineFlagHybrid_PassesCompositePlannerToRunner()
+    {
+        var dataset = new QualityBenchmarkDataset(
+            "synthetic",
+            "dataset",
+            "input.epub",
+            "ground-truth.json",
+            new GroundTruthDocument(1, []));
+        IOcrCorrectionPlanner? capturedPlanner = null;
+        var app = new QualityBenchmarkApplication(
+            _ => dataset,
+            (_, planner) =>
+            {
+                capturedPlanner = planner;
+                return CleanResult();
+            },
+            new QualityBenchmarkGateEvaluator());
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = app.Run(["--ocr-engine", "hybrid", "dataset"], output, error);
+
+        Assert.Equal(0, exitCode);
+        Assert.IsType<CompositeOcrCorrectionPlanner>(capturedPlanner);
     }
 
     [Fact]

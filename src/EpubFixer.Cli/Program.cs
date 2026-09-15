@@ -61,9 +61,7 @@ static int Run(string[] arguments)
             using var builder = new CachingMorphologyOracleBuilder(
                 new FomaMorphologyOracleBuilder(),
                 new MorphologyOracleCache(options.EpubPath));
-            IOcrCorrectionPlanner? ocrCorrectionPlanner = options.OcrEngine == "lattice"
-                ? LatticeOcrPlannerFactory.Create()
-                : null;
+            IOcrCorrectionPlanner? ocrCorrectionPlanner = OcrPlannerFactory.Resolve(options.OcrEngine);
             var result = new EpubFixService(builder, ocrCorrectionPlanner).Fix(
                 options.EpubPath,
                 options.OutputEpubPath!,
@@ -924,7 +922,7 @@ static void PrintUsage()
         + "[--ocr-correction-report <ocr-candidates.md>] "
         + "[--ocr-decision-report <ocr-decisions.md>] "
         + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
-    Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub> [--apply-ocr-corrections] [--ocr-mutation-report <report.md>] [--ocr-engine legacy|lattice]");
+    Console.Error.WriteLine($"       epubfixer fix <book.epub> -o <book.fixed.epub> [--apply-ocr-corrections] [--ocr-mutation-report <report.md>] [--ocr-engine {string.Join('|', OcrPlannerFactory.KnownEngineNames)}]");
 }
 
 internal sealed record CliOptions(
@@ -977,8 +975,7 @@ internal sealed record CliOptions(
                 { mutationReport = arguments[fixIndex + 1]; fixIndex += 2; continue; }
                 if (string.Equals(arguments[fixIndex], "--ocr-engine", StringComparison.OrdinalIgnoreCase)
                     && ocrEngine is null && fixIndex + 1 < arguments.Length
-                    && (string.Equals(arguments[fixIndex + 1], "legacy", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(arguments[fixIndex + 1], "lattice", StringComparison.OrdinalIgnoreCase)))
+                    && OcrPlannerFactory.IsKnownEngine(arguments[fixIndex + 1]))
                 { ocrEngine = arguments[fixIndex + 1].ToLowerInvariant(); fixIndex += 2; continue; }
                 return false;
             }
