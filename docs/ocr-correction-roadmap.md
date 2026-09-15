@@ -36,7 +36,7 @@ Sürüm 1'in beş fazı bitti ve **mimari olarak hedefe ulaştı**:
 - **Lattice motoru** — `ILexiconMatcher` → `WordLatticeBuilder` → `LatticeDecoder` → `CorrectionAcceptanceGate`
 - **Üretim hattına bağlandı** — `IOcrCorrectionPlanner` portu, `RegionMutationPlanner`, `--ocr-engine legacy|lattice`
 
-Suite: **542/542 yeşil** (~3 dk 36 sn; sürüm 2 başlarken 522'ydi, G1+H1+H2 20 test ekledi).
+Suite: **544/544 yeşil** (~5 dk 37 sn; sürüm 2 başlarken 522'ydi, G1+H1+H2+H3 22 test ekledi).
 
 ### 2.2 Ne ölçüldü — ve varsayımı nasıl yanlışladı
 
@@ -191,7 +191,7 @@ değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**
 |---|---|---|---|---|
 | H1 | `CompositeOcrCorrectionPlanner` + birleştirme kuralı | ✅ `7ed1e03` | — | 7 birim test, üretim değişmedi |
 | H2 | `--ocr-engine hybrid` + composition root bağlantısı | ✅ `42699f4` | H1 | bayrak çalışıyor |
-| H3 | Hibriti ölç | ⬜ | H2, G1 | baseline'lar + kapı sonucu |
+| H3 | Hibriti ölç | ✅ `9c3224e` | H2, G1 | baseline'lar + kapı sonucu |
 | H4 | Lattice'in eklediği her mutation elle incelenir | 🔒 | H3, R1 | yanlış düzeltme sayısı |
 | H5 | Varsayılanı hibrit yap | 🔒 | H4 temiz | yeni golden'lar |
 
@@ -216,12 +216,41 @@ arg doğrulama ve kullanım metni için aynı factory'yi çağırıyor; motor ad
 kaynakta. Varsayılan değişmedi (`OcrEngine ?? "legacy"`).
 *Dosyalar:* `src/EpubFixer.Adapters/Ocr/OcrPlannerFactory.cs`, `Program.cs`, `QualityBenchmarkApplication.cs`
 
-**H3 — Ölçüm.** Tek full-book koşusu. Ölçülecekler: mutation sayısı (**beklenen 129**),
-benchmark precision/recall + sınıf kırılımı, kapı sonucu, `measure` metriği, süre,
-`ProtectedViolated` / `ProtectedChanged` / `UnexpectedTextChanges` / `NonTextChanges`.
-**Süre kısıtı:** ≤ 120 sn **ve** legacy + 35 sn (D61).
-**DUR:** 129 çıkmazsa sebebi bul ve bildir — sayıyı açıklamadan ilerleme.
+**H3 — Ölçüm.** ✅ `9c3224e`. Mutation sayısı **129 çıktı** — tam olarak tahmin edilen 120 legacy +
+9 lattice KAZANÇ, tek çakışma (`main-3.xhtml`, `ıı`→`ı`, `logicalStart 152473`) D83 gereği
+legacy'ye gitti. Dokuz KAZANÇ'ın hepsi bağımsız olarak `odun-kesmek.engine-diff.json`'daki
+`gain.items` ile birebir eşleşiyor. **DUR tetiklenmedi** —
+`OcrMutationBaselineTests.FullBookFix_HybridEngineMutationProfileIsPinned` bu sayıyı pinler ve
+aynı koşunun çıktı epub'u üzerinde kitap sağlığını in-process ölçer (ikinci bir tam-kitap koşusuna
+gerek kalmadan): `totalTokens 46656, unresolvableTokens 2666, suspiciousTokens 166, oran
+57,14/1000` — legacy'nin `57,30`'undan biraz daha iyi (9 KAZANÇ doğru düzeltme olduğu için).
+Süre (`PerformanceBudgetTests.FullBookHybridFixStaysWithinBudgetOfLegacy`, legacy ve hybrid **aynı
+oturumda** ölçüldü — D61): legacy `25,62 sn`, hybrid `44,57 sn` — hem 120 sn sabit kapıyı hem
+legacy+35 sn yumuşak kapıyı geçiyor.
+
+Benchmark (`--ocr-engine hybrid test-data/odun-kesmek`) sonucu: precision **%98,52**, recall
+**%92,36**; `ProtectedViolated 0`, `ProtectedChanged 0`, `UnexpectedTextChanges 0`,
+`NonTextChanges 0`. **Kapı sonucu: FAIL** — precision, legacy'nin kendi ölçümü olan eşiğin
+(%98,85) altında kaldı; eşik D77 gereği **değiştirilmedi**. Sebep: `correctlyFixed` 259→266'ya
+çıkarken (9 KAZANÇ'ın çoğu doğru), `wronglyFixed` 3'ten **4'e** çıktı — yeni yanlış
+`odun-kesmek-garbage-0001` (`':,ohbet'` → `':,sohbet'`, doğrusu `'sohbet'`): lattice'in kazandığı
+`ohbet`→`sohbet` bölgesi, aynı kelimenin baştaki `':,'` çöp karakterli başka bir geçtiği yerde
+yalnızca kısmi düzeltiliyor. Diğer üç yanlış (`glyph-0030`, `mixed-0022`, `auto-0174`) legacy'den
+miras — hibritte yeni değiller. Recall (%92,36) ve `ClassRecall:Hyphenation` (%98,30) eşiklerin
+üzerinde; yalnızca precision düştü. Bu, Risk kaydı #1'in ("hibrit iki motorun hatalarını toplar")
+beklendiği gibi gerçekleşmesidir.
 *Çıktı:* `docs/baselines/odun-kesmek.fix-hybrid.json`, güncellenmiş `quality-gate.json`
+(`current.ocrStageMeasurement.hybrid`), güncellenmiş `docs/baselines/README.md`.
+
+*Gözlem (açık, H4'e girdi):* Benchmark kapı FAIL'i legacy'nin 3 bilinen yanlışının **dışında**
+dördüncü bir yanlış gösterdi: `odun-kesmek-garbage-0001` (`':,ohbet'` → `':,sohbet'`, doğrusu
+`'sohbet'`). Bu, `odun-kesmek.engine-diff.json`'daki 9 KAZANÇ öğesinden biri olan `ohbet`→`sohbet`
+ile **aynı motor kararının** kitaptaki başka bir geçtiği yerde (baştaki `':,'` çöp karakterleriyle)
+uygulanması — pinlenen mutation baseline'da (`odun-kesmek.fix-hybrid.json`) bu KAZANÇ tek bir
+`logicalStart`'ta (87365) görünüyor, ama ground truth'ta aynı hata kalıbının en az iki farklı
+geçtiği yer var ve biri farklı bir sınıfa (`GarbageInsertion`) düşüyor. Kalem bunu düzeltmez —
+H4'ün "lattice'in eklediği her mutation'ı elle incele" işine bu dördüncü vaka da dahil edilmeli;
+zaten Risk kaydı #1'in beklediği şey budur, eşik oynatılmadı (D77).
 
 **H4 — İnceleme.** Lattice'in eklediği ~9 mutation'ın **her biri** bağlamıyla elle incelenir.
 **DUR:** Bir tane bile yanlış düzeltme bulursan eşik oynatarak kapatma — DUR, bildir.
@@ -297,7 +326,7 @@ artık kalıcı.
 
 ```
 G1 ✅─┐
-G2   ├──► H1 ✅──► H2 ✅──► H3 ──► H4 ──► H5
+G2   ├──► H1 ✅──► H2 ✅──► H3 ✅──► H4 ──► H5
 G3   ┘
 R1 ──┘                   ▲       ▲
                          │       │
@@ -306,7 +335,7 @@ P1 ─► P2                 │      R3
                         B1 ─► B2
 ```
 
-**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → `H3 → H4 → H5` — **üç kalem kaldı.**
+**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → ~~H3~~ → `H4 → H5` — **iki kalem kaldı.**
 
 **Paralel yürüyebilenler:** G2 · G3 · R1 · P1 — dördü ayrı dosya ailelerine dokunur.
 
