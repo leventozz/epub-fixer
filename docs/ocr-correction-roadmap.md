@@ -192,8 +192,9 @@ değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**
 | H1 | `CompositeOcrCorrectionPlanner` + birleştirme kuralı | ✅ `7ed1e03` | — | 7 birim test, üretim değişmedi |
 | H2 | `--ocr-engine hybrid` + composition root bağlantısı | ✅ `42699f4` | H1 | bayrak çalışıyor |
 | H3 | Hibriti ölç | ✅ `9c3224e` | H2, G1 | baseline'lar + kapı sonucu |
-| H4 | Lattice'in eklediği her mutation elle incelenir | ⬜ | H3, R1 | yeni yanlış düzeltme sayısı |
-| H5 | Varsayılanı hibrit yap | 🔒 | H4 temiz | yeni golden'lar |
+| H4 | Lattice'in eklediği her mutation elle incelenir | ✅ (bu commit) | H3 | **1 yeni yanlış** |
+| H4b | Baştaki çöp karakterleri bölgeye kat | ⬜ | H4 | `garbage-0001` düzelir, kapı yeşile döner |
+| H5 | Varsayılanı hibrit yap | 🔒 | H4b temiz | yeni golden'lar |
 
 **H1 — Composite.** ✅ `7ed1e03`. İki planner aynı `stream`/`oracleBuilder` üzerinde koşar;
 ikincinin mutation'ı birincininkiyle `DocumentPath` + `[LogicalStart, LogicalStart+LogicalLength)`
@@ -253,12 +254,40 @@ H4'ün "lattice'in eklediği her mutation'ı elle incele" işine bu dördüncü 
 zaten Risk kaydı #1'in beklediği şey budur, eşik oynatılmadı (D77).
 
 **H4 — İnceleme.** Lattice'in eklediği ~9 mutation'ın **her biri** bağlamıyla elle incelenir.
-**Ölçüt (D90):** legacy'ye göre **yeni** yanlış düzeltme sıfır olmalı. Legacy'nin kendi 3 hatası
-bu kalemin konusu değil — onlar X2'nin işi. Bugün bilinen tek yeni hata `garbage-0001`.
-**İnceleme mutation tuple'ı üzerinden YAPILMAZ:** sonuç metni **bağlamıyla** okunur. H3'ün dersi —
-`ohbet → sohbet` listede tertemiz görünüyordu, gerçekte çevresindeki `':,'` çöpü yerinde kalıp
-`':,sohbet'` üretiyordu.
-**DUR:** Yeni bir yanlış düzeltme bulursan eşik oynatarak kapatma — DUR, bildir.
+**H4 — İnceleme.** ✅ Dokuz lattice mutation'ının her biri, hibrit çıktısı EPUB'ında kaynak
+metinle yan yana, cümle bağlamıyla okundu. **8 doğru, 1 yeni yanlış** — D90'ın ölçütü
+sağlanmadı, H5 bloke.
+
+Tek yeni yanlış `odun-kesmek-garbage-0001`: `':,ohbet'` → `':,sohbet'`, doğrusu `'sohbet'`.
+Diğer üç yanlış (`glyph-0030`, `mixed-0022`, `auto-0174`) legacy'den miras — X2'nin konusu.
+
+**Bulgu — çöpün yeri belirleyici.** Bağlam okuması tek bir örüntü gösterdi: **iç** çöp bölgeye
+giriyor ve yutuluyor, **baştaki** çöp girmiyor ve yerinde kalıyor.
+
+| Mutation | Çöpün yeri | Sonuç metni |
+|---|---|---|
+| `kü-^:ük` → `küçük` | iç | `Sapık ve küçük görücü` ✅ |
+| `bi-^:imde` → `biçimde` | iç | `yapamadığım biçimde` ✅ |
+| `Strind-berg` / `Gert-rude` / `Za-al'a` | — (tireleme) | ✅ |
+| `koli ukta` → `koltukta` | — (boşluk) | `berjer koltukta.` ✅ |
+| `ıı<ıda` → `yılda` | iç `<` **+ baş `.`** | `bu .yılda halledilmiş` ⚠️ |
+| `entz` → `Gentz` | **baş `< ;`** | `önce < ;Gentz Sokağı'na` ⚠️ |
+| `ohbet` → `sohbet` | **baş `:,`** | `gece :,sohbet ettim` ❌ |
+
+Son ikisi kapıdan **geçiyor** çünkü ground truth kayıtlarının (`garbage-0012`, `glyph-0018`)
+`original` alanı baştaki çöpü içermiyor; yalnızca `garbage-0001`'inki (`:,ohbet`) içeriyor.
+Yani üç vakanın üçü de aynı kusur, ama ölçüm yalnızca birini görüyor — **kapı bu sınıfı
+eksik sayıyor.** Okuyucu üçünü de görüyor.
+
+**H4b'nin hedefi budur:** baştaki çöp karakterleri bölgeye katmak. Tek bir davranış değişikliği
+üç vakayı birden düzeltir ve `garbage-0001` doğruya dönünce precision %98,52 → **%98,89** olur,
+eşik %98,85 — **kapı yeşile döner** (recall zaten %92,36 ile eşiğin üstünde).
+
+**H4b DUR:** Bu bir üretim kodu değişikliğidir (bölge dedektörü / pencere sınırı) ve kendi
+testlerini + tam kitap koşusunu gerektirir. Baştaki çöpü yutmak `OriginalTokenIsValid`'in
+davranışını da etkileyebilir — 563 bölgenin 418'ini kapatan kural budur. Yanlış düzeltme
+sayısını artıran hiçbir nokta kabul edilmez.
+
 *Ön koşul:* R1 (inceleme raporu)
 
 **H5 — Anahtarı çevir.** Varsayılan motor `hybrid` olur. Golden SHA-256 **kasten değişir** ve
@@ -331,7 +360,7 @@ artık kalıcı.
 
 ```
 G1 ✅─┐
-G2   ├──► H1 ✅──► H2 ✅──► H3 ✅──► H4 ──► H5
+G2   ├──► H1 ✅──► H2 ✅──► H3 ✅──► H4 ✅──► H4b ──► H5
 G3   ┘
 R1 ──┘                   ▲       ▲
                          │       │
@@ -340,7 +369,7 @@ P1 ─► P2                 │      R3
                         B1 ─► B2
 ```
 
-**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → ~~H3~~ → `H4 → H5` — **iki kalem kaldı.**
+**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → ~~H3~~ → ~~H4~~ → `H4b → H5` — **iki kalem kaldı.**
 
 **Paralel yürüyebilenler:** G2 · G3 · R1 · P1 — dördü ayrı dosya ailelerine dokunur.
 
