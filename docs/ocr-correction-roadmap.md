@@ -158,7 +158,7 @@ Kapı kırmızıyken hiçbir kalemin "başarılı" tanımı yoktur — bu yüzde
 |---|---|---|---|---|
 | G1 | Kapı profilini yeni ölçüm tabanına taşı (D80'i uygula) | ✅ `cd5b5ef` | — | legacy geçiyor, lattice geçmiyor |
 | G2 | `MissingSpace` / `SpuriousSpace` boşluğunu karara bağla | ⬜ | — | karar + gerekçe |
-| G3 | Profil bulunamazsa/bozuksa kapı gürültülü patlasın | ✅ `6eb5da0` | — | sessiz zayıflama kapandı |
+| G3 | Profil bulunamazsa/bozuksa kapı gürültülü patlasın | ✅ `18324dd` | — | sessiz zayıflama kapandı |
 
 **G1 — Kapı profili.** ✅ `cd5b5ef`. Eşikler 288 kayıtlık taban üzerinde yeniden kuruldu:
 precision `0.9885496183206107`, recall `0.8993055555555556`, `ClassRecall:Hyphenation`
@@ -177,7 +177,7 @@ seç: (a) havuz dışına çıkıp elle bul, (b) ertele ve ölçüm boşluğu ol
 yaz. **Önce (c)'yi sına:** kitapta bu sınıf gerçekten var mı?
 *Dosyalar:* `test-data/odun-kesmek/ground-truth.json`, `odun-kesmek.loss-taxonomy.json`
 
-**G3 — Sessiz zayıflama.** ✅ Kapatıldı. `LoadCurrent` artık `null` dönmüyor, **`InvalidDataException`
+**G3 — Sessiz zayıflama.** ✅ `18324dd`. Kapatıldı. `LoadCurrent` artık `null` dönmüyor, **`InvalidDataException`
 atıyor**; `QualityBenchmarkApplication` bu hatayı taşıyor ve `Run` **hiç iş yapmadan** stderr'e yazıp
 `exit 2` veriyor. Anlamsız bir PASS, cevapsızlıktan kötüdür.
 
@@ -208,7 +208,7 @@ ve koşu **PASS** raporlardı.
 | H4 | Lattice'in eklediği her mutation elle incelenir | ✅ `28e623e` | H3 | **1 yeni yanlış** |
 | H4b-1 | Çöp tutmanın bedelini modele koy + silme arc'ı | ✅ `7a52ba9` | H4 | **kapı YEŞİL** |
 | H4b-2 | ~~Ayrı ölçüm kalemi~~ | ⛔ | — | H4b-1 kendi ölçümünü taşıdı |
-| H5 | Varsayılanı hibrit yap | ✅ `68eefb7` | H4b-1 | **hibrit varsayılan, kapı hibride çekildi** |
+| H5 | Varsayılanı hibrit yap | ✅ `9407f3c` | H4b-1 | **hibrit varsayılan, kapı hibride çekildi** |
 
 **H1 — Composite.** ✅ `7ed1e03`. İki planner aynı `stream`/`oracleBuilder` üzerinde koşar;
 ikincinin mutation'ı birincininkiyle `DocumentPath` + `[LogicalStart, LogicalStart+LogicalLength)`
@@ -329,7 +329,7 @@ silme arc'ı iki vakada daha hedefi kafese soktu, decoder henüz seçmiyor. Bu i
 **H5 — Anahtarı çevir.** Varsayılan motor `hybrid` olur. Golden SHA-256 **kasten değişir** ve
 yeni değeri **ölçülerek** yazılır. `OcrMutationBaselineTests`, `PerformanceBudgetTests`,
 `MorphologyCallTraceTests`, `measure` baseline'ı yeniden ölçülür.
-**H5 — Anahtar çevrildi.** ✅ Beş ön koşulun beşi de ölçüldü ve sağlandı. Varsayılan motor artık
+**H5 — Anahtar çevrildi.** ✅ `9407f3c`. Beş ön koşulun beşi de ölçüldü ve sağlandı. Varsayılan motor artık
 **hibrit** — ama yalnızca composition root'larda (Cli + Benchmarks). `EpubFixService`'in kütüphane
 varsayılanı legacy **kaldı**: Core hibridi kuramaz, çünkü `LatticeOcrPlannerFactory` Adapters'ta
 (D27/D58). Mimari zorunluluk, tercih değil — **D92**.
