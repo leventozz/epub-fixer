@@ -192,8 +192,8 @@ değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**
 | H1 | `CompositeOcrCorrectionPlanner` + birleştirme kuralı | ✅ `7ed1e03` | — | 7 birim test, üretim değişmedi |
 | H2 | `--ocr-engine hybrid` + composition root bağlantısı | ✅ `42699f4` | H1 | bayrak çalışıyor |
 | H3 | Hibriti ölç | ✅ `9c3224e` | H2, G1 | baseline'lar + kapı sonucu |
-| H4 | Lattice'in eklediği her mutation elle incelenir | ✅ (bu commit) | H3 | **1 yeni yanlış** |
-| H4b-1 | Çöp tutmanın bedelini modele koy + silme arc'ı | ✅ (bu commit) | H4 | **kapı YEŞİL** |
+| H4 | Lattice'in eklediği her mutation elle incelenir | ✅ `28e623e` | H3 | **1 yeni yanlış** |
+| H4b-1 | Çöp tutmanın bedelini modele koy + silme arc'ı | ✅ `7a52ba9` | H4 | **kapı YEŞİL** |
 | H4b-2 | ~~Ayrı ölçüm kalemi~~ | ⛔ | — | H4b-1 kendi ölçümünü taşıdı |
 | H5 | Varsayılanı hibrit yap | ⬜ | H4b-1 ✅ | yeni golden'lar |
 
@@ -255,7 +255,7 @@ H4'ün "lattice'in eklediği her mutation'ı elle incele" işine bu dördüncü 
 zaten Risk kaydı #1'in beklediği şey budur, eşik oynatılmadı (D77).
 
 **H4 — İnceleme.** Lattice'in eklediği ~9 mutation'ın **her biri** bağlamıyla elle incelenir.
-**H4 — İnceleme.** ✅ Dokuz lattice mutation'ının her biri, hibrit çıktısı EPUB'ında kaynak
+**H4 — İnceleme.** ✅ `28e623e`. Dokuz lattice mutation'ının her biri, hibrit çıktısı EPUB'ında kaynak
 metinle yan yana, cümle bağlamıyla okundu. **8 doğru, 1 yeni yanlış** — D90'ın ölçütü
 sağlanmadı, H5 bloke.
 
@@ -280,7 +280,7 @@ Son ikisi kapıdan **geçiyor** çünkü ground truth kayıtlarının (`garbage-
 Yani üç vakanın üçü de aynı kusur, ama ölçüm yalnızca birini görüyor — **kapı bu sınıfı
 eksik sayıyor.** Okuyucu üçünü de görüyor.
 
-**H4b-1 — Çöp tutmanın bedeli.** ✅ İlk teşhis **yanlıştı**: dedektör baştaki çöpü zaten bölgeye
+**H4b-1 — Çöp tutmanın bedeli.** ✅ `7a52ba9`. İlk teşhis **yanlıştı**: dedektör baştaki çöpü zaten bölgeye
 katıyor (`IncludeGarbagePrefix`). Kusur kafesteydi ve ilk düzeltme denemesi de **ölü çıktı** —
 yalnız silme arc'ı eklemek hiçbir sayıyı değiştirmedi, çünkü `LatticeDecoder.Append` LM maliyetini
 yalnız `Word`/`Identity` arc'larına uyguluyor: çöpü **tutmak 0,00**, silmek 0,40 idi ve silme her
