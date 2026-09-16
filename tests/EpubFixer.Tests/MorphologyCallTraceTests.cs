@@ -1,3 +1,4 @@
+using EpubFixer.Adapters.Ocr;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -95,6 +96,39 @@ public sealed class MorphologyCallTraceTests
             Console.WriteLine($"GoldenLogicalTextSha256={hash}");
 
             Assert.Equal("37b72bc8508ceb6a06e9f8a5c7f41f65503e5bb99c9a436b82c37e960b2018be", hash);
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Slow")]
+    public void FullBookFix_HybridEngineProducesGoldenLogicalText()
+    {
+        // H5 / decision (a): the legacy golden above pins EpubFixService's own default, which stays
+        // LegacyOcrCorrectionPlanner because Core cannot construct the lattice half (D27/D58 - the
+        // matcher lives in Adapters). This second golden pins what the CLI actually ships after H5.
+        // Without it the flip would leave production output guarded by nothing.
+        var input = FindRepositoryFile(Path.Combine("test-data", "odun-kesmek", "input.epub"));
+        var output = Path.Combine(Path.GetTempPath(), $"epubfixer-golden-hybrid-{Guid.NewGuid():N}.epub");
+        try
+        {
+            using var counter = new CountingMorphologyAnalyzer(new FomaTurkishMorphologyAnalyzer());
+            _ = new EpubFixService(
+                    new BatchMorphologyOracleBuilder(counter),
+                    OcrPlannerFactory.Resolve("hybrid"))
+                .Fix(input, output, applyOcrCorrections: true);
+            var package = new EpubPackageReader().Read(output);
+            var logicalText = LogicalTextStreamBuilder.Build(package.SpineDocuments).Text;
+            var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(logicalText))).ToLowerInvariant();
+            Console.WriteLine($"HybridGoldenLogicalTextSha256={hash}");
+
+            Assert.Equal("9f5faea2ee2ab6b64a974cf3fde7f69a1a659217b28a1704e1deae771f6cdda2", hash);
         }
         finally
         {

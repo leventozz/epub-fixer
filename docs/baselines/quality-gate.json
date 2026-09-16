@@ -4,18 +4,19 @@
     "minimumRecall": 0.6
   },
   "current": {
-    "minimumPrecision": 0.9885496183206107,
-    "minimumRecall": 0.8993055555555556,
-    "measuredOn": "2026-09-15",
+    "minimumPrecision": 0.9888888888888889,
+    "minimumRecall": 0.9270833333333334,
+    "measuredOn": "2026-09-16",
     "measurementBase": {
       "knownErrors": 288,
       "schemaVersion": 3
     },
-    "note": "G1 (D80): kapı profili 288 kayıtlık (schemaVersion 3, R5.0d) tabana taşındı. Üç koruma uygulandı: (1) eşikler ölçülür, seçilmez - bu değerler legacy'nin bu tabandaki ölçülen precision/recall/ClassRecall:Hyphenation değerleri, asagi yuvarlanmadan (classBreakdown'daki 0.9659 yalnizca gösterim icin yuvarlanmisti - asil deger 170/176 = 0.9659090909090909, bkz. classRecallThresholds); (2) eski 160 kayitlik (schemaVersion 2) profil supersededProfiles[]'e tabaniyla arsivlendi; (3) D77 bu taban icinde aynen gecerli - esikler yalnizca yukari hareket eder. Sonuc: legacy artik kapidan geciyor (bkz. ocrStageMeasurement.legacy, QualityBenchmarkGateProfilePinTests ile kalici olarak dogrulanir). Lattice hala gecmiyor (ocrStageMeasurement.lattice, recall 58.33%) - bu Faz 5'in olcmek istedigi mesafenin ta kendisi, kapiyi indirmenin gerekcesi degil.",
+    "shippedEngine": "hybrid",
+    "note": "H5/D92: thresholds are the SHIPPED engine's measured values. The shipped default is now hybrid (legacy primary + lattice secondary, D81). Measured, not chosen, and not rounded down: precision 267/270, recall 267/288, ClassRecall:Hyphenation 173/176. D77 applies unchanged from here on - within this measurement base thresholds may only move up. Running --ocr-engine legacy now reports FAIL by design: the gate states that the shipped pipeline beats its fallback.",
     "classRecallThresholds": [
       {
         "errorClass": "Hyphenation",
-        "minimumRecall": 0.9659090909090909
+        "minimumRecall": 0.9829545454545454
       }
     ],
     "ocrStageMeasurement": {
@@ -33,12 +34,54 @@
         "protectedChanged": 0,
         "protectedViolated": 0,
         "classBreakdown": {
-          "Hyphenation": { "known": 176, "detected": 174, "correct": 170, "wrong": 1, "precision": 0.9942, "recall": 0.9659 },
-          "GlyphConfusion": { "known": 36, "detected": 33, "correct": 27, "wrong": 1, "precision": 0.9643, "recall": 0.75 },
-          "SpuriousSpace": { "known": 1, "detected": 1, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
-          "GarbageInsertion": { "known": 33, "detected": 33, "correct": 29, "wrong": 0, "precision": 1.0, "recall": 0.8788 },
-          "Fragmentation": { "known": 12, "detected": 12, "correct": 6, "wrong": 0, "precision": 1.0, "recall": 0.5 },
-          "Mixed": { "known": 30, "detected": 30, "correct": 27, "wrong": 1, "precision": 0.9643, "recall": 0.9 }
+          "Hyphenation": {
+            "known": 176,
+            "detected": 174,
+            "correct": 170,
+            "wrong": 1,
+            "precision": 0.9942,
+            "recall": 0.9659
+          },
+          "GlyphConfusion": {
+            "known": 36,
+            "detected": 33,
+            "correct": 27,
+            "wrong": 1,
+            "precision": 0.9643,
+            "recall": 0.75
+          },
+          "SpuriousSpace": {
+            "known": 1,
+            "detected": 1,
+            "correct": 0,
+            "wrong": 0,
+            "precision": null,
+            "recall": 0.0
+          },
+          "GarbageInsertion": {
+            "known": 33,
+            "detected": 33,
+            "correct": 29,
+            "wrong": 0,
+            "precision": 1.0,
+            "recall": 0.8788
+          },
+          "Fragmentation": {
+            "known": 12,
+            "detected": 12,
+            "correct": 6,
+            "wrong": 0,
+            "precision": 1.0,
+            "recall": 0.5
+          },
+          "Mixed": {
+            "known": 30,
+            "detected": 30,
+            "correct": 27,
+            "wrong": 1,
+            "precision": 0.9643,
+            "recall": 0.9
+          }
         },
         "note": "R5.0d re-measurement (was R4.0c's 12-record measurement: CorrectlyFixed=148, WronglyFixed=0, Deferred=12). Against the 288-record schemaVersion-3 ground truth, legacy now shows real wrong-corrections for the first time: odun-kesmek-glyph-0030 ('olın'->'olan', independently verified correct answer is 'John' - EvidenceOnly confidence, the lowest tier legacy has), odun-kesmek-mixed-0022 ('kol-1 ıı kta', legacy only fixes the inner 'ıı'->'ı' sub-span and leaves the surrounding hyphen/digit, so the occurrence reads 'kol-1 ı kta' - not 'koltukta'; this is the one D65 already flagged as legacy's own defect fixed correctly only by lattice's sibling occurrence), and odun-kesmek-auto-0174 ('zencileri-11in', hyphenation removes the dash but the OCR stage leaves the '11' digits untouched, producing 'zencileri11in'). G1 (D80, 2026-09-15): these measured values are now the gate's current threshold - the gate PASSES against this run."
       },
@@ -46,24 +89,66 @@
         "measuredOn": "2026-09-16",
         "engine": "hybrid",
         "ocrClassKnownErrorRecords": 112,
-        "correctlyFixed": 266,
-        "wronglyFixed": 4,
+        "correctlyFixed": 267,
+        "wronglyFixed": 3,
         "deferred": 18,
-        "precision": 0.9851851851851852,
-        "recall": 0.9236111111111112,
-        "ocrPlanned": 138,
-        "ocrApplied": 138,
+        "precision": 0.9888888888888889,
+        "recall": 0.9270833333333334,
+        "ocrPlanned": 139,
+        "ocrApplied": 139,
         "protectedChanged": 0,
         "protectedViolated": 0,
         "classBreakdown": {
-          "Hyphenation": { "known": 176, "detected": 174, "correct": 173, "wrong": 1, "precision": 0.9943, "recall": 0.983 },
-          "GlyphConfusion": { "known": 36, "detected": 33, "correct": 27, "wrong": 1, "precision": 0.9643, "recall": 0.75 },
-          "SpuriousSpace": { "known": 1, "detected": 1, "correct": 1, "wrong": 0, "precision": 1.0, "recall": 1.0 },
-          "GarbageInsertion": { "known": 33, "detected": 33, "correct": 30, "wrong": 1, "precision": 0.9677, "recall": 0.9091 },
-          "Fragmentation": { "known": 12, "detected": 12, "correct": 6, "wrong": 0, "precision": 1.0, "recall": 0.5 },
-          "Mixed": { "known": 30, "detected": 30, "correct": 29, "wrong": 1, "precision": 0.9667, "recall": 0.9667 }
+          "Hyphenation": {
+            "known": 176,
+            "detected": 174,
+            "correct": 173,
+            "wrong": 1,
+            "precision": 0.9943,
+            "recall": 0.9829545454545454
+          },
+          "GlyphConfusion": {
+            "known": 36,
+            "detected": 33,
+            "correct": 27,
+            "wrong": 1,
+            "precision": 0.9643,
+            "recall": 0.75
+          },
+          "SpuriousSpace": {
+            "known": 1,
+            "detected": 1,
+            "correct": 1,
+            "wrong": 0,
+            "precision": 1.0,
+            "recall": 1.0
+          },
+          "GarbageInsertion": {
+            "known": 33,
+            "detected": 33,
+            "correct": 31,
+            "wrong": 0,
+            "precision": 1.0,
+            "recall": 0.9393939393939394
+          },
+          "Fragmentation": {
+            "known": 12,
+            "detected": 12,
+            "correct": 6,
+            "wrong": 0,
+            "precision": 1.0,
+            "recall": 0.5
+          },
+          "Mixed": {
+            "known": 30,
+            "detected": 30,
+            "correct": 29,
+            "wrong": 1,
+            "precision": 0.9667,
+            "recall": 0.9666666666666667
+          }
         },
-        "note": "H3: hibrit motor icin ilk tam-kitap olcumu. Uc ayri kosu tek H3 oturumunda: (1) OcrMutationBaselineTests.FullBookFix_HybridEngineMutationProfileIsPinned (EpubFixService.Fix, docs/baselines/odun-kesmek.fix-hybrid.json) OCR mutation sayisini 129 verdi - 120 legacy + 9 lattice KAZANC, tek catisma (main-3.xhtml, 'ıı'->'ı') D83 geregi legacy'ye gitti; roadmap bolum 3.1'in D82/D83 tahminiyle birebir eslesiyor, DUR kosulu tetiklenmedi. (2) bu benchmark kosusu (QualityBenchmarkRunner, --ocr-engine hybrid test-data/odun-kesmek): kendi ocrPlanned/ocrApplied sayisi (138) farkli bir olcum hattidir - OCR asamasi burada hyphenation duzeltmeleri ZATEN uygulanmis bir stream uzerinde calisir; ayni sapma lattice icin de zaten var (pinned baseline plannedCount 10, bu dosyadaki lattice.ocrPlanned 19) - H3'un yeni bir bulgusu degil. (3) PerformanceBudgetTests.FullBookHybridFixStaysWithinBudgetOfLegacy: legacy 25.62s, hybrid 44.57s - hem 120s sabit kapiyi hem legacy+35s (D61) yumusak kapiyi ayni kosuda geciyor. Kapi SONUCU: FAIL - precision %98.85'ten %98.52'ye dustu (correctlyFixed 266, wronglyFixed 4, deferred 18). Dorduncu yanlis duzeltme yeni: odun-kesmek-garbage-0001 (':,ohbet' -> ':,sohbet', beklenen 'sohbet') - lattice'in kazandigi 'ohbet'->'sohbet' bolgesini yalnizca kismen duzeltmesinden kaynaklaniyor (baslangictaki ':,' garbage'i temizlemiyor). Diger uc yanlis (glyph-0030 'olın'->'olan', mixed-0022 'kol-1 ıı kta', auto-0174 'zencileri-11in') legacy'den miras - hibritte YENI degiller. Recall (%92.36) ve Hyphenation classRecallThreshold (%98.30) esiklerin uzerinde; yalnizca precision dustu. Esik DEGISTIRILMEDI (D77) - roadmap Risk kaydi #1'in tam olarak beklendigi gibi gerceklesmesi; dorduncu yanlisin H4'un elle inceleme kapsamina girmesi gerekiyor. ProtectedViolated 0, ProtectedChanged 0, UnexpectedTextChanges 0, NonTextChanges 0 (integrity temiz). Bkz. odun-kesmek.fix-hybrid.json ve roadmap H3 paragrafi.",
+        "note": "H5 re-measurement and the shipped configuration. H4b-1 (RetainedGarbage, D91) turned odun-kesmek-garbage-0001 from a wrong fix into a correct one: 266/4 -> 267/3. The three remaining wrong fixes (glyph-0030 'olin'->'olan' where the verified answer is 'John', mixed-0022, auto-0174) are all inherited from the legacy primary and are X2's subject - hybrid adds none of its own, which is D90's acceptance criterion. These are the values the current gate thresholds are taken from (D92).",
         "durationSeconds": {
           "legacy": 25.62,
           "hybrid": 44.572,
@@ -94,12 +179,54 @@
         "protectedChanged": 0,
         "protectedViolated": 0,
         "classBreakdown": {
-          "Hyphenation": { "known": 176, "detected": 174, "correct": 156, "wrong": 1, "precision": 0.9936, "recall": 0.8864 },
-          "GlyphConfusion": { "known": 36, "detected": 33, "correct": 6, "wrong": 0, "precision": 1.0, "recall": 0.1667 },
-          "SpuriousSpace": { "known": 1, "detected": 1, "correct": 1, "wrong": 0, "precision": 1.0, "recall": 1.0 },
-          "GarbageInsertion": { "known": 33, "detected": 33, "correct": 3, "wrong": 1, "precision": 0.75, "recall": 0.0909 },
-          "Fragmentation": { "known": 12, "detected": 12, "correct": 0, "wrong": 0, "precision": null, "recall": 0.0 },
-          "Mixed": { "known": 30, "detected": 30, "correct": 2, "wrong": 1, "precision": 0.6667, "recall": 0.0667 }
+          "Hyphenation": {
+            "known": 176,
+            "detected": 174,
+            "correct": 156,
+            "wrong": 1,
+            "precision": 0.9936,
+            "recall": 0.8864
+          },
+          "GlyphConfusion": {
+            "known": 36,
+            "detected": 33,
+            "correct": 6,
+            "wrong": 0,
+            "precision": 1.0,
+            "recall": 0.1667
+          },
+          "SpuriousSpace": {
+            "known": 1,
+            "detected": 1,
+            "correct": 1,
+            "wrong": 0,
+            "precision": 1.0,
+            "recall": 1.0
+          },
+          "GarbageInsertion": {
+            "known": 33,
+            "detected": 33,
+            "correct": 3,
+            "wrong": 1,
+            "precision": 0.75,
+            "recall": 0.0909
+          },
+          "Fragmentation": {
+            "known": 12,
+            "detected": 12,
+            "correct": 0,
+            "wrong": 0,
+            "precision": null,
+            "recall": 0.0
+          },
+          "Mixed": {
+            "known": 30,
+            "detected": 30,
+            "correct": 2,
+            "wrong": 1,
+            "precision": 0.6667,
+            "recall": 0.0667
+          }
         },
         "note": "R5.0d re-measurement (was R5.0a's 12-record measurement: CorrectlyFixed=149, WronglyFixed=1, Deferred=10, recall 93.12%, gate PASS). Against the 288-record ground truth the gate now FAILS just as sharply as it passed before: recall 58.33% < 92.5%, ClassRecall:Hyphenation 88.64% < 100% - precision stays just above the 98% floor (98.25%) but is now measured on 168 correct fixes instead of 1. This is the headline confirmation of D68/D69's premise: the old 12-record gate never actually exercised the lattice engine's recall gap (D64); it does now. The KAYIP-sourced ground truth (119 records where legacy fixes and lattice does not) explains almost all of the recall drop. G1 (D80, 2026-09-15): against the new 288-record threshold profile, lattice still fails on aggregate Recall and ClassRecall:Hyphenation - this is the expected, correct outcome (Faz 5's target distance), not a regression to fix by lowering the gate."
       }
@@ -122,6 +249,26 @@
           {
             "errorClass": "Hyphenation",
             "minimumRecall": 1.0
+          }
+        ]
+      }
+    },
+    {
+      "supersededOn": "2026-09-16",
+      "supersededBy": "H5/D92",
+      "base": {
+        "knownErrors": 288,
+        "schemaVersion": 3
+      },
+      "profile": {
+        "minimumPrecision": 0.9885496183206107,
+        "minimumRecall": 0.8993055555555556,
+        "measuredOn": "2026-09-15",
+        "note": "G1/D80 profile: thresholds were legacy's measured values because legacy was the shipped default. H5 flipped the default to hybrid, which measures strictly above legacy on both aggregate axes (precision 98.89% > 98.85%, recall 92.71% > 89.93%) and on ClassRecall:Hyphenation (98.30% > 96.59%). D77's ratchet therefore allows - and D92 requires - raising the thresholds to the shipped engine's measured values. Same measurement base (288 records, schemaVersion 3), so this is a ratchet inside the base, not a rebuild: legacy alone no longer clears this gate, which is the intended statement that the shipped pipeline beats its own fallback.",
+        "classRecallThresholds": [
+          {
+            "errorClass": "Hyphenation",
+            "minimumRecall": 0.9659090909090909
           }
         ]
       }

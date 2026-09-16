@@ -943,7 +943,7 @@ internal sealed record CliOptions(
 {
     public bool ApplyOcrCorrections { get; init; }
     public string? OcrMutationReportPath { get; init; }
-    public string OcrEngine { get; init; } = "legacy";
+    public string OcrEngine { get; init; } = "hybrid";
     public static bool TryParse(string[] arguments, out CliOptions options)
     {
         options = null!;
@@ -998,7 +998,7 @@ internal sealed record CliOptions(
             {
                 ApplyOcrCorrections = applyOcr,
                 OcrMutationReportPath = mutationReport,
-                OcrEngine = ocrEngine ?? "legacy"
+                OcrEngine = ocrEngine ?? "hybrid"
             };
             return true;
         }

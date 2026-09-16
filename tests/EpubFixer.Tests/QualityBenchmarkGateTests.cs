@@ -255,7 +255,7 @@ public sealed class QualityBenchmarkGateTests
     }
 
     [Theory]
-    [InlineData(new[] { "dataset" }, "Measure", "dataset", "legacy")]
+    [InlineData(new[] { "dataset" }, "Measure", "dataset", "hybrid")]
     [InlineData(new[] { "--ocr-engine", "legacy", "dataset" }, "Measure", "dataset", "legacy")]
     [InlineData(new[] { "--ocr-engine", "lattice", "dataset" }, "Measure", "dataset", "lattice")]
     [InlineData(new[] { "--ocr-engine", "LATTICE", "dataset" }, "Measure", "dataset", "lattice")]
@@ -332,7 +332,7 @@ public sealed class QualityBenchmarkGateTests
     }
 
     [Fact]
-    public void Application_OcrEngineFlagDefaultsToLegacy_PassesNullPlanner()
+    public void Application_OcrEngineFlagDefaultsToHybrid_PassesCompositePlanner()
     {
         var dataset = new QualityBenchmarkDataset(
             "synthetic",
@@ -340,7 +340,10 @@ public sealed class QualityBenchmarkGateTests
             "input.epub",
             "ground-truth.json",
             new GroundTruthDocument(1, []));
-        IOcrCorrectionPlanner? capturedPlanner = new LegacyOcrCorrectionPlanner();
+        // H5/D92: the benchmark's default follows the shipped engine. The gate thresholds are now
+        // hybrid's measured values, so a default run must exercise hybrid - otherwise the default
+        // run would report FAIL against thresholds it was never meant to be judged by.
+        IOcrCorrectionPlanner? capturedPlanner = null;
         var app = new QualityBenchmarkApplication(
             _ => dataset,
             (_, planner) =>
@@ -355,7 +358,7 @@ public sealed class QualityBenchmarkGateTests
         var exitCode = app.Run(["dataset"], output, error);
 
         Assert.Equal(0, exitCode);
-        Assert.Null(capturedPlanner);
+        Assert.IsType<CompositeOcrCorrectionPlanner>(capturedPlanner);
     }
 
     [Fact]

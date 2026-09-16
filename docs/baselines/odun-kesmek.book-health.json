@@ -1,6 +1,6 @@
 {
   "dataset": "odun-kesmek",
-  "measuredOn": "2026-09-12",
+  "measuredOn": "2026-09-16",
   "commit": "4594274",
   "definitionVersion": 2,
   "source": {
@@ -32,10 +32,10 @@
     ]
   },
   "output": {
-    "totalTokens": 46663,
-    "unresolvableTokens": 2674,
-    "suspiciousTokens": 169,
-    "unresolvableRate": 57.304502496624735,
+    "totalTokens": 46656,
+    "unresolvableTokens": 2666,
+    "suspiciousTokens": 165,
+    "unresolvableRate": 57.14163237311386,
     "worstExamples": [
       "Burg",
       "Auersberger",
@@ -58,5 +58,7 @@
       "Joana'ya",
       "Kilb"
     ]
-  }
+  },
+  "engine": "hybrid",
+  "note": "H5: the output node is now measured on the SHIPPED default, which is hybrid (legacy primary + lattice secondary, D81). Previous legacy-only output measured 57.30 unresolvable per 1000 with 169 suspicious tokens; hybrid measures 57.14 with 165. Lower is better, so H5 precondition 2 ('measure does not get worse than legacy') holds. The metric's recogniser is deliberately NOT wired to the engine's own vocabulary (D21), so this is an independent reading, not the engine grading itself."
 }

@@ -36,7 +36,7 @@ Sürüm 1'in beş fazı bitti ve **mimari olarak hedefe ulaştı**:
 - **Lattice motoru** — `ILexiconMatcher` → `WordLatticeBuilder` → `LatticeDecoder` → `CorrectionAcceptanceGate`
 - **Üretim hattına bağlandı** — `IOcrCorrectionPlanner` portu, `RegionMutationPlanner`, `--ocr-engine legacy|lattice`
 
-Suite: **548/548 yeşil** (~5 dk 21 sn; sürüm 2 başlarken 522'ydi, G1+H1+H2+H3+H4b-1 26 test ekledi).
+Suite: **549/549 yeşil** (~5 dk 28 sn; sürüm 2 başlarken 522'ydi).
 
 ### 2.2 Ne ölçüldü — ve varsayımı nasıl yanlışladı
 
@@ -195,7 +195,7 @@ değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**
 | H4 | Lattice'in eklediği her mutation elle incelenir | ✅ `28e623e` | H3 | **1 yeni yanlış** |
 | H4b-1 | Çöp tutmanın bedelini modele koy + silme arc'ı | ✅ `7a52ba9` | H4 | **kapı YEŞİL** |
 | H4b-2 | ~~Ayrı ölçüm kalemi~~ | ⛔ | — | H4b-1 kendi ölçümünü taşıdı |
-| H5 | Varsayılanı hibrit yap | ⬜ | H4b-1 ✅ | yeni golden'lar |
+| H5 | Varsayılanı hibrit yap | ✅ `68eefb7` | H4b-1 | **hibrit varsayılan, kapı hibride çekildi** |
 
 **H1 — Composite.** ✅ `7ed1e03`. İki planner aynı `stream`/`oracleBuilder` üzerinde koşar;
 ikincinin mutation'ı birincininkiyle `DocumentPath` + `[LogicalStart, LogicalStart+LogicalLength)`
@@ -316,7 +316,34 @@ silme arc'ı iki vakada daha hedefi kafese soktu, decoder henüz seçmiyor. Bu i
 **H5 — Anahtarı çevir.** Varsayılan motor `hybrid` olur. Golden SHA-256 **kasten değişir** ve
 yeni değeri **ölçülerek** yazılır. `OcrMutationBaselineTests`, `PerformanceBudgetTests`,
 `MorphologyCallTraceTests`, `measure` baseline'ı yeniden ölçülür.
-*Ön koşul:* H4'te **yeni** yanlış düzeltme sıfır (D90), süre bütçede, kapı yeşil, `ProtectedViolated == 0`
+**H5 — Anahtar çevrildi.** ✅ Beş ön koşulun beşi de ölçüldü ve sağlandı. Varsayılan motor artık
+**hibrit** — ama yalnızca composition root'larda (Cli + Benchmarks). `EpubFixService`'in kütüphane
+varsayılanı legacy **kaldı**: Core hibridi kuramaz, çünkü `LatticeOcrPlannerFactory` Adapters'ta
+(D27/D58). Mimari zorunluluk, tercih değil — **D92**.
+
+Bunun sonucu: kütüphane varsayılanını pinleyen golden SHA **değişmedi**. Üretim korumasız kalmasın
+diye hibrit için **ikinci golden** eklendi (`9f5faea2…`, ölçülerek yazıldı). İki yol da pinli.
+
+Kapı eşikleri hibridin ölçülen değerlerine **çekildi** (D92): precision `267/270`, recall `267/288`,
+`ClassRecall:Hyphenation` `173/176`. Eski profil `supersededProfiles` altında arşivlendi. Profil
+artık `shippedEngine` alanı taşıyor ve pin testi eşikleri o alanın gösterdiği motora karşı
+doğruluyor — kural değişmedi, işaret ettiği motor değişti.
+
+| Ön koşul | Ölçülen |
+|---|---|
+| 1 — yeni yanlış düzeltme sıfır (D90) | ✅ 3 yanlış, üçü de legacy'den miras (X2) |
+| 2 — `measure` kötüleşmiyor | ✅ **57,14** vs legacy 57,30; şüpheli token 165 vs 169 |
+| 3 — kapıdan geçiyor | ✅ PASS |
+| 4 — bütünlük sıfır | ✅ `ProtectedViolated/Changed`, `UnexpectedTextChanges`, `NonTextChanges` = 0 |
+| 5 — süre | ✅ 44,57 sn (sabit kapı 120, D61 alt bütçesi 60,62) |
+
+**Bedeli açıkça kayıtta:** varsayılan koşu 25,62 → 44,57 sn, yani **%74 yavaşladı**. Karşılığı 10 ek
+doğru düzeltme ve precision %98,85 → %98,89.
+
+*Kabul edilen yan etki:* `--ocr-engine legacy` artık kapıdan **FAIL** raporluyor. Kusur değil,
+kapının ifadesi: gönderilen hat kendi yedeğinden iyidir.
+
+
 
 ### M3 — İnceleme ve görünürlük
 
@@ -383,7 +410,7 @@ artık kalıcı.
 
 ```
 G1 ✅─┐
-G2   ├──► H1 ✅──► H2 ✅──► H3 ✅──► H4 ✅──► H4b-1 ✅──► H5
+G2   ├──► H1 ✅──► H2 ✅──► H3 ✅──► H4 ✅──► H4b-1 ✅──► H5 ✅  ← M2 TAMAM
 G3   ┘
 R1 ──┘                   ▲       ▲
                          │       │
@@ -392,7 +419,8 @@ P1 ─► P2                 │      R3
                         B1 ─► B2
 ```
 
-**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → ~~H3~~ → ~~H4~~ → ~~H4b-1~~ → `H5` — **tek kalem kaldı.**
+**Kritik yol: TAMAMLANDI.** ~~G1 → H1 → H2 → H3 → H4 → H4b-1 → H5~~ — M2 bitti, hibrit üretimde.
+Sıradaki iş kritik yolda değil: **G3** (kapının sessiz zayıflaması) → **B1** (ikinci kitap) → **P1–P3**.
 
 **Paralel yürüyebilenler:** G2 · G3 · R1 · P1 — dördü ayrı dosya ailelerine dokunur.
 

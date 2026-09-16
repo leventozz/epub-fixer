@@ -13,7 +13,8 @@ public sealed class CliOptionsTests
         Assert.Equal(CliCommand.Fix, options.Command);
         Assert.Equal("book.epub", options.EpubPath);
         Assert.Equal("book.fixed.epub", options.OutputEpubPath);
-        Assert.Equal("legacy", options.OcrEngine);
+        // H5: the shipped default is the hybrid pipeline (legacy primary + lattice secondary).
+        Assert.Equal("hybrid", options.OcrEngine);
     }
 
     [Theory]

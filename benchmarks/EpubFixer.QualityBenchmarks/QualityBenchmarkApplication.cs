@@ -125,7 +125,7 @@ public sealed class QualityBenchmarkApplication
 
         if (args.Length == 1 && !string.IsNullOrWhiteSpace(args[0]))
         {
-            return new ParsedArguments(BenchmarkMode.Measure, args[0], "legacy");
+            return new ParsedArguments(BenchmarkMode.Measure, args[0], "hybrid");
         }
 
         if (args.Length == 3
