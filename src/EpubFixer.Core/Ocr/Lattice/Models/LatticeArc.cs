@@ -4,7 +4,8 @@ public enum LatticeArcKind
 {
     Word,
     Identity,
-    Literal
+    Literal,
+    GarbageDeletion
 }
 
 public sealed record LatticeArc(int From, int To, string Word, double Cost, LatticeArcKind Kind);

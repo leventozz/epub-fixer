@@ -9,6 +9,8 @@ public sealed class WordLatticeBuilder(
     IReadOnlyCollection<int>? hardBoundaryOffsets = null) : IWordLatticeBuilder
 {
     private static readonly CultureInfo TurkishCulture = new("tr-TR");
+    private static readonly OcrEditCostModel Costs = new();
+    private static readonly HashSet<char> HardGarbage = ['^', ';', '<', '>', ':'];
     private readonly IReadOnlyCollection<int> hardBoundaryOffsets = hardBoundaryOffsets ?? Array.Empty<int>();
 
     public WordLattice Build(CorruptedTextRegion region, string fullText, LatticeOptions options)
@@ -122,12 +124,42 @@ public sealed class WordLatticeBuilder(
                 continue;
             }
 
-            AddArc(start, i, inToken ? LatticeArcKind.Identity : LatticeArcKind.Literal);
+            if (inToken)
+            {
+                AddArc(start, i, window[start..i], 0, LatticeArcKind.Identity);
+            }
+            else
+            {
+                AddNonTokenArcs(start, i);
+            }
+
             start = i;
             inToken = nextInToken;
         }
 
-        void AddArc(int from, int to, LatticeArcKind kind)
+        // A run between two tokens gets two arcs when it carries a hard garbage glyph: keep it
+        // (costing RetainedGarbage per glyph) or drop it (costing GarbageDeletion per glyph,
+        // emitting a single space so the neighbours stay separated). Both arcs count the SAME
+        // characters - charge fewer than you drop and keeping always wins, which is exactly the
+        // dead-arc trap H4b hit first time round. Two guards (D91):
+        //   - no hard garbage in the run -> both stay free and undeletable, so ordinary
+        //     punctuation is never taxed and never welds two sentences together;
+        //   - no whitespace in the run -> it sits inside a token, where the word arc already
+        //     solves it; a deletion arc there would only add a rival garbage-free-but-wrong path.
+        void AddNonTokenArcs(int from, int to)
+        {
+            var run = window[from..to];
+            var deletable = run.Any(HardGarbage.Contains) && run.Any(char.IsWhiteSpace);
+            var glyphs = deletable ? run.Count(value => !char.IsWhiteSpace(value)) : 0;
+
+            AddArc(from, to, run, glyphs * Costs.RetainedGarbage, LatticeArcKind.Literal);
+            if (deletable)
+            {
+                AddArc(from, to, " ", glyphs * Costs.GarbageDeletion, LatticeArcKind.GarbageDeletion);
+            }
+        }
+
+        void AddArc(int from, int to, string word, double cost, LatticeArcKind kind)
         {
             if (from == to)
             {
@@ -135,7 +167,7 @@ public sealed class WordLatticeBuilder(
             }
 
             budget.Visit();
-            arcs.Add(new LatticeArc(from, to, window[from..to], 0, kind));
+            arcs.Add(new LatticeArc(from, to, word, cost, kind));
         }
     }
 

@@ -1,14 +1,14 @@
 {
   "dataset": "odun-kesmek",
   "measuredOn": "2026-09-14",
-  "methodology": "Each loss case is re-run through the real production lattice pipeline (region detection -\u003E window -\u003E lattice -\u003E decoder -\u003E gate, on the same post-hyphenation text the production engine used) and attributed to the first stage at which it diverges from applying the correct replacement. See docs/phase-5-plan.md@adc202d section 7.2 for the reason codes and docs/baselines/odun-kesmek.loss-taxonomy.json\u0027s own \u0027notes\u0027 field per case for known approximations (composite multi-arc reconstructions are not exhaustively modeled in the TargetNotInLattice/MatcherMissedTarget split).",
+  "methodology": "Each loss case is re-run through the real production lattice pipeline (region detection -> window -> lattice -> decoder -> gate, on the same post-hyphenation text the production engine used) and attributed to the first stage at which it diverges from applying the correct replacement. See docs/phase-5-plan.md@adc202d section 7.2 for the reason codes and docs/baselines/odun-kesmek.loss-taxonomy.json's own 'notes' field per case for known approximations (composite multi-arc reconstructions are not exhaustively modeled in the TargetNotInLattice/MatcherMissedTarget split).",
   "totalLosses": 119,
   "unattributedCount": 0,
   "reasonHistogram": {
     "RegionNotDetected": 32,
-    "TargetNotInLattice": 27,
+    "DecoderRankedOther": 25,
+    "TargetNotInLattice": 25,
     "GateRejected:OriginalTokenIsValid": 24,
-    "DecoderRankedOther": 23,
     "MatcherMissedTarget": 10,
     "GateRejected:TooManyOrdinaryEdits": 2,
     "WindowSkippedTooLong": 1
@@ -27,8 +27,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 3707,
-      "original": "J3ar\u0131\u015F",
-      "expected": "Bar\u0131\u015F",
+      "original": "J3arış",
+      "expected": "Barış",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -38,13 +38,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 12159,
-      "original": "y1pranm\u0131\u015Ft1",
-      "expected": "y\u0131pranm\u0131\u015Ft\u0131",
+      "original": "y1pranmışt1",
+      "expected": "yıpranmıştı",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -54,7 +54,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -70,23 +70,23 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 31679,
       "original": "^iddetli",
-      "expected": "\u015Fiddetli",
+      "expected": "şiddetli",
       "decisionRuleLegacy": "DirectStructuralRepair",
-      "lossReason": "TargetNotInLattice",
+      "lossReason": "DecoderRankedOther",
       "gateReason": null,
       "validToken": null,
-      "targetInLattice": false,
+      "targetInLattice": true,
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": null,
-      "notes": "Unreachable cause: PositionUnreachable."
+      "decoderTopReplacement": "de idealbir",
+      "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -107,8 +107,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 32746,
-      "original": ";;a\u015F\u0131lacak",
-      "expected": "a\u015F\u0131lacak",
+      "original": ";;aşılacak",
+      "expected": "aşılacak",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "MatcherMissedTarget",
       "gateReason": null,
@@ -123,8 +123,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 33861,
-      "original": "Soka-f^\u0131\u0027nda",
-      "expected": "Soka\u011F\u0131\u0027nda",
+      "original": "Soka-f^ı'nda",
+      "expected": "Sokağı'nda",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -139,8 +139,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 38407,
-      "original": "\u0131\u0131",
-      "expected": "\u0131",
+      "original": "ıı",
+      "expected": "ı",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -150,13 +150,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 42986,
-      "original": "de\u011Fi-^ik",
-      "expected": "de\u011Fi\u015Fik",
+      "original": "deği-^ik",
+      "expected": "değişik",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -165,7 +165,7 @@
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "benim de\u011Filoldu\u011Fum",
+      "decoderTopReplacement": "benim değilolduğum",
       "notes": "Target ranked #2 of 3 decoded paths."
     },
     {
@@ -182,12 +182,12 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 50561,
-      "original": "angajma-\u0131\u0131a",
+      "original": "angajma-ııa",
       "expected": "angajmana",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "MatcherMissedTarget",
@@ -203,12 +203,12 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 51190,
-      "original": "\u0131 \u0131 ygun",
+      "original": "ı ı ygun",
       "expected": "uygun",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
-      "validToken": "\u0131",
+      "validToken": "ı",
       "targetInLattice": true,
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
@@ -230,13 +230,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 51440,
-      "original": "Viya-\u0131\u0131a\u0027da",
-      "expected": "Viyana\u0027da",
+      "original": "Viya-ııa'da",
+      "expected": "Viyana'da",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -245,14 +245,14 @@
       "arcLength": 11,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "\u00F6nce Viyana\u0027da, sonra",
+      "decoderTopReplacement": "önce Viyana'da, sonra",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 51570,
-      "original": "l\u0027l1",
-      "expected": "l\u0027li",
+      "original": "l'l1",
+      "expected": "l'li",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -262,29 +262,29 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 51890,
-      "original": "Jo-;\u0131na",
+      "original": "Jo-;ına",
       "expected": "Joana",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
-      "validToken": "\u0131na",
+      "validToken": "ına",
       "targetInLattice": true,
       "arcLength": 7,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "de Joana ba\u015Flang\u0131\u00E7tan",
+      "decoderTopReplacement": "de Joana başlangıçtan",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 52138,
-      "original": "l\u003Cilb\u0027de",
-      "expected": "Kilb\u0027de",
+      "original": "l<ilb'de",
+      "expected": "Kilb'de",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -293,14 +293,14 @@
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "\u015Eimdi Kilb\u0027de, ya\u015Fam\u0131n\u0131n",
+      "decoderTopReplacement": "Şimdi Kilb'de, yaşamının",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 54414,
-      "original": "Av\u0131\u0131st\u0131\u0131rya\u0027n\u0131n",
-      "expected": "Avusturya\u0027n\u0131n",
+      "original": "Avııstıırya'nın",
+      "expected": "Avusturya'nın",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -310,13 +310,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 54822,
-      "original": "\u0131\u0131tt\u0131",
-      "expected": "att\u0131",
+      "original": "ııttı",
+      "expected": "attı",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -326,7 +326,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -341,30 +341,30 @@
       "arcLength": 7,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "Kilb yolculukyar\u0131m\u0131",
+      "decoderTopReplacement": "Kilb yolculukyarımı",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 60006,
-      "original": "d\u00FC-^\u00FCnd\u00FCm",
-      "expected": "d\u00FC\u015F\u00FCnd\u00FCm",
+      "original": "dü-^ündüm",
+      "expected": "düşündüm",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
-      "validToken": "d\u00FC",
+      "validToken": "dü",
       "targetInLattice": true,
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "diye d\u00FC\u015F\u00FCnd\u00FCm berjer",
+      "decoderTopReplacement": "diye düşündüm berjer",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 60490,
       "original": "pe-^inden",
-      "expected": "pe\u015Finden",
+      "expected": "peşinden",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -373,13 +373,13 @@
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "kariyerpe\u015Finden ko\u015Ftu",
+      "decoderTopReplacement": "kariyerpeşinden koştu",
       "notes": "Target ranked #2 of 3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 63783,
-      "original": "ya-\u0131\u0131i",
+      "original": "ya-ııi",
       "expected": "yani",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
@@ -411,7 +411,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 65103,
-      "original": "\u003C\u0131ya",
+      "original": "<ıya",
       "expected": "ya",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
@@ -437,13 +437,13 @@
       "arcLength": 4,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "bildi\u011Fim kadar ile",
+      "decoderTopReplacement": "bildiğim kadar ile",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 65980,
-      "original": ";r\u0131natsal",
+      "original": ";rınatsal",
       "expected": "sanatsal",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
@@ -459,8 +459,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 68505,
-      "original": "bul-\u0131\u0131\u0131\u003C\u0131lar\u0131n\u0131",
-      "expected": "bulduklar\u0131n\u0131",
+      "original": "bul-ııı<ılarını",
+      "expected": "bulduklarını",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -475,7 +475,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 68958,
-      "original": "elleri-\u0131\u0131",
+      "original": "elleri-ıı",
       "expected": "ellerin",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "DecoderRankedOther",
@@ -485,14 +485,14 @@
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "gittim ellerini y\u0131kamak",
+      "decoderTopReplacement": "gittim ellerini yıkamak",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 69032,
-      "original": "\u0131\u0131a\u0027n\u0131n",
-      "expected": "ma\u0027n\u0131n",
+      "original": "ııa'nın",
+      "expected": "ma'nın",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "MatcherMissedTarget",
       "gateReason": null,
@@ -507,8 +507,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 69426,
-      "original": "\u0131\u0131and\u0131\u011F\u0131n\u0131",
-      "expected": "inand\u0131\u011F\u0131n\u0131",
+      "original": "ııandığını",
+      "expected": "inandığını",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -517,14 +517,14 @@
       "arcLength": 10,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "alaca\u011F\u0131na inand\u0131\u011F\u0131n\u0131 s\u00F6yledi",
+      "decoderTopReplacement": "alacağına inandığını söyledi",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 69485,
-      "original": "gu-1.\u0131",
-      "expected": "gula\u015F\u0131",
+      "original": "gu-1.ı",
+      "expected": "gulaşı",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -539,8 +539,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 69617,
-      "original": "\u0131\u0131",
-      "expected": "\u0131",
+      "original": "ıı",
+      "expected": "ı",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "MatcherMissedTarget",
       "gateReason": null,
@@ -555,8 +555,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 69942,
-      "original": "\u0131\u0131",
-      "expected": "\u0131",
+      "original": "ıı",
+      "expected": "ı",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "MatcherMissedTarget",
       "gateReason": null,
@@ -571,8 +571,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 70135,
-      "original": "y;\u0131va\u015F",
-      "expected": "yava\u015F",
+      "original": "y;ıvaş",
+      "expected": "yavaş",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -581,14 +581,14 @@
       "arcLength": 6,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "\u00E7ok yava\u015F yemek",
+      "decoderTopReplacement": "çok yavaş yemek",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 70189,
-      "original": "\u0131\u0131\u0131\u00FCmk\u00FCn",
-      "expected": "m\u00FCmk\u00FCn",
+      "original": "ıııümkün",
+      "expected": "mümkün",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -598,13 +598,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 70380,
-      "original": "\u0131\u0131",
-      "expected": "\u0131",
+      "original": "ıı",
+      "expected": "ı",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "MatcherMissedTarget",
       "gateReason": null,
@@ -619,7 +619,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 70508,
-      "original": "cena-1\u0027",
+      "original": "cena-1'",
       "expected": "cenaze",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
@@ -645,14 +645,14 @@
       "arcLength": 5,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "tamamen unu olmu\u015Ftu",
+      "decoderTopReplacement": "tamamen unu olmuştu",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 73240,
-      "original": "\u0131;\u0131kla\u015F\u0131yorlar",
-      "expected": "u\u011Fra\u015F\u0131yorlar",
+      "original": "ı;ıklaşıyorlar",
+      "expected": "uğraşıyorlar",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -667,8 +667,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 74067,
-      "original": "alk\u0131\u015Fla-\u0131\u0131;\u0131n",
-      "expected": "alk\u0131\u015Flan\u0131n",
+      "original": "alkışla-ıı;ın",
+      "expected": "alkışlanın",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -694,7 +694,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -715,8 +715,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 78051,
-      "original": "\u00F6nce1",
-      "expected": "\u00F6nce",
+      "original": "önce1",
+      "expected": "önce",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -726,13 +726,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 78099,
-      "original": "d\u00FC\u015F\u00FCnd\u00FCm1",
-      "expected": "d\u00FC\u015F\u00FCnd\u00FCm",
+      "original": "düşündüm1",
+      "expected": "düşündüm",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -742,13 +742,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 78182,
-      "original": "de\u011Fil1",
-      "expected": "de\u011Fil",
+      "original": "değil1",
+      "expected": "değil",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -758,13 +758,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 78642,
-      "original": "y;\u0131lanlar",
-      "expected": "y\u0131lanlar",
+      "original": "y;ılanlar",
+      "expected": "yılanlar",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -773,14 +773,14 @@
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "anlatt\u0131lar, yalanlar yayd\u0131lar",
+      "decoderTopReplacement": "anlattılar, yalanlar yaydılar",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 79423,
-      "original": "So-k;\u0131\u011F\u0131\u0027na",
-      "expected": "Soka\u011F\u0131\u0027na",
+      "original": "So-k;ığı'na",
+      "expected": "Sokağı'na",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -789,14 +789,14 @@
       "arcLength": 11,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "Gentz Soka\u011F\u0131\u0027na gittim",
+      "decoderTopReplacement": "Gentz Sokağı'na gittim",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 79488,
-      "original": "So-k;\u0131\u011F\u0131\u0027na",
-      "expected": "Soka\u011F\u0131\u0027na",
+      "original": "So-k;ığı'na",
+      "expected": "Sokağı'na",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -805,14 +805,14 @@
       "arcLength": 11,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "Gentz Soka\u011F\u0131\u0027na yap\u0131lacak",
+      "decoderTopReplacement": "Gentz Sokağı'na yapılacak",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 79730,
-      "original": "A\u0131\u0131ersbergerler\u0027e",
-      "expected": "Auersbergerler\u0027e",
+      "original": "Aııersbergerler'e",
+      "expected": "Auersbergerler'e",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -822,7 +822,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -859,8 +859,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 82602,
-      "original": "v \u0131 saklam\u0131yorum",
-      "expected": "saklam\u0131yorum",
+      "original": "v ı saklamıyorum",
+      "expected": "saklamıyorum",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -870,13 +870,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 83184,
-      "original": "k\u015Fam",
-      "expected": "ak\u015Fam",
+      "original": "kşam",
+      "expected": "akşam",
       "decisionRuleLegacy": "EvidenceOnlyDominantLexicon",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -885,14 +885,14 @@
       "arcLength": 4,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "edip , ak\u015Fam yeme\u011Fini",
+      "decoderTopReplacement": "edip , akşam yemeğini",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 83313,
-      "original": "r;\u0131hat\u0131ma",
-      "expected": "rahat\u0131ma",
+      "original": "r;ıhatıma",
+      "expected": "rahatıma",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -901,14 +901,14 @@
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "yay\u0131l\u0131p rahat\u0131ma bak\u0131yorum",
+      "decoderTopReplacement": "yayılıp rahatıma bakıyorum",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 83820,
-      "original": "\u0131yn\u0131",
-      "expected": "ayn\u0131",
+      "original": "ıynı",
+      "expected": "aynı",
       "decisionRuleLegacy": "EvidenceOnlyDominantLexicon",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -918,13 +918,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 84137,
-      "original": "et-\u0131\u0131\u0131i\u015F",
-      "expected": "etmi\u015F",
+      "original": "et-ıııiş",
+      "expected": "etmiş",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -939,8 +939,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 84393,
-      "original": "g\u00F6-1\u0027",
-      "expected": "g\u00F6zle",
+      "original": "gö-1'",
+      "expected": "gözle",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -955,7 +955,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 84459,
-      "original": "l;\u0131mamen",
+      "original": "l;ımamen",
       "expected": "tamamen",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
@@ -965,13 +965,13 @@
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "i\u00E7inde tamamen karanl\u0131kta",
+      "decoderTopReplacement": "içinde tamamen karanlıkta",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 91605,
-      "original": "\u0131\u0131e",
+      "original": "ııe",
       "expected": "ne",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
@@ -982,29 +982,29 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 91909,
-      "original": "d\u00FC-^\u00FCnd\u00FCm",
-      "expected": "d\u00FC\u015F\u00FCnd\u00FCm",
+      "original": "dü-^ündüm",
+      "expected": "düşündüm",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
-      "validToken": "d\u00FC",
+      "validToken": "dü",
       "targetInLattice": true,
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "diye d\u00FC\u015F\u00FCnd\u00FCm, benim",
+      "decoderTopReplacement": "diye düşündüm, benim",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 96317,
-      "original": "\u0131\u0131ersberger\u0027in",
-      "expected": "Auersberger\u0027in",
+      "original": "ııersberger'in",
+      "expected": "Auersberger'in",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -1014,13 +1014,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 96381,
-      "original": "\u0131\u0131",
-      "expected": "\u0131",
+      "original": "ıı",
+      "expected": "ı",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "MatcherMissedTarget",
       "gateReason": null,
@@ -1035,7 +1035,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 96789,
-      "original": "sa-\u0131\u0131iyelik",
+      "original": "sa-ııiyelik",
       "expected": "saniyelik",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
@@ -1051,8 +1051,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 97775,
-      "original": "l \u0131 de\u011Fil",
-      "expected": "de\u011Fil",
+      "original": "l ı değil",
+      "expected": "değil",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -1062,12 +1062,12 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 98489,
-      "original": "otu-\u0131;\u0131rak",
+      "original": "otu-ı;ırak",
       "expected": "oturarak",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
@@ -1077,14 +1077,14 @@
       "arcLength": 10,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "koltukta oturarak, Auersberger\u0027in",
+      "decoderTopReplacement": "koltukta oturarak, Auersberger'in",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 101029,
-      "original": "g\u00FCru-1\u0131unun",
-      "expected": "g\u00FCruhunu",
+      "original": "güru-1ıunun",
+      "expected": "güruhunu",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1099,8 +1099,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 102290,
-      "original": "i\u011Fren\u00E7-1 ikleri",
-      "expected": "i\u011Fren\u00E7likleri",
+      "original": "iğrenç-1 ikleri",
+      "expected": "iğrençlikleri",
       "decisionRuleLegacy": "AdjacentCompositeRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1109,14 +1109,14 @@
       "arcLength": 15,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "eni\u011Fren\u00E7 ileri (kendime",
+      "decoderTopReplacement": "eniğrenç ileri (kendime",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 102739,
-      "original": "c;\u00F6ylemek",
-      "expected": "s\u00F6ylemek",
+      "original": "c;öylemek",
+      "expected": "söylemek",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -1125,14 +1125,14 @@
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "a\u00E7\u0131k\u00E7a s\u00F6ylemek gerekirse",
+      "decoderTopReplacement": "açıkça söylemek gerekirse",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 112101,
-      "original": "anla-^\u0131l\u0131yordu",
-      "expected": "anla\u015F\u0131l\u0131yordu",
+      "original": "anla-^ılıyordu",
+      "expected": "anlaşılıyordu",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1147,8 +1147,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 116152,
-      "original": "Jo-\u003Cma\u0027n\u0131n",
-      "expected": "Joana\u0027n\u0131n",
+      "original": "Jo-<ma'nın",
+      "expected": "Joana'nın",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:TooManyOrdinaryEdits",
       "gateReason": "TooManyOrdinaryEdits",
@@ -1157,13 +1157,13 @@
       "arcLength": 10,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "do\u011Frusu Joana\u0027n\u0131n g\u00F6r\u00FCn\u00FCrde",
+      "decoderTopReplacement": "doğrusu Joana'nın görünürde",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 119546,
-      "original": "\u003Eizlik",
+      "original": ">izlik",
       "expected": "izlik",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "MatcherMissedTarget",
@@ -1179,7 +1179,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 123925,
-      "original": ";\u0131reket",
+      "original": ";ıreket",
       "expected": "hareket",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "WindowSkippedTooLong",
@@ -1195,7 +1195,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 124044,
-      "original": "gel-\u0131\u0131\u0131eye",
+      "original": "gel-ıııeye",
       "expected": "gelinceye",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
@@ -1205,14 +1205,14 @@
       "arcLength": 10,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "ki\u015Filer gelinceye ba\u015Flam\u0131\u015Fm\u0131\u015F",
+      "decoderTopReplacement": "kişiler gelinceye başlamışmış",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 124245,
-      "original": "\u003C\u0131l",
-      "expected": "y\u0131l",
+      "original": "<ıl",
+      "expected": "yıl",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1227,7 +1227,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 124503,
-      "original": "ol\u0131n",
+      "original": "olın",
       "expected": "olan",
       "decisionRuleLegacy": "EvidenceOnlyDominantLexicon",
       "lossReason": "RegionNotDetected",
@@ -1238,7 +1238,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -1254,13 +1254,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 124748,
-      "original": "et-\u0131\u0131\u0131i\u015F",
-      "expected": "etmi\u015F",
+      "original": "et-ıııiş",
+      "expected": "etmiş",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1275,7 +1275,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 128601,
-      "original": ";\u003C\u0027Y",
+      "original": ";<'Y",
       "expected": "Y",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
@@ -1286,7 +1286,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -1307,8 +1307,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 129370,
-      "original": "l\u003Cilb\u0027de",
-      "expected": "Kilb\u0027de",
+      "original": "l<ilb'de",
+      "expected": "Kilb'de",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -1317,14 +1317,14 @@
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "zaman Kilb\u0027de halledemeyece\u011Fini",
+      "decoderTopReplacement": "zaman Kilb'de halledemeyeceğini",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 129690,
-      "original": "zaman-1.\u0131r",
-      "expected": "zamand\u0131r",
+      "original": "zaman-1.ır",
+      "expected": "zamandır",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -1333,14 +1333,14 @@
       "arcLength": 10,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "bir zamand\u0131r kendi",
+      "decoderTopReplacement": "bir zamandır kendi",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 130520,
-      "original": "Ala-\u0131\u0131\u0131\u0027nda",
-      "expected": "Alan\u0131\u0027nda",
+      "original": "Ala-ııı'nda",
+      "expected": "Alanı'nda",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:TooManyOrdinaryEdits",
       "gateReason": "TooManyOrdinaryEdits",
@@ -1349,14 +1349,14 @@
       "arcLength": 11,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "Sebastian Alan\u0131\u0027nda sanat",
+      "decoderTopReplacement": "Sebastian Alanı'nda sanat",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 133783,
-      "original": "oluvermi\u015F-1",
-      "expected": "oluvermi\u015F",
+      "original": "oluvermiş-1",
+      "expected": "oluvermiş",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1365,13 +1365,13 @@
       "arcLength": 11,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "konu\u011Fubuvermi\u015Fti en. O",
+      "decoderTopReplacement": "konuğubuvermişti en. O",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 134109,
-      "original": "Se-l\u0131;\u0131stian",
+      "original": "Se-lı;ıstian",
       "expected": "Sebastian",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
@@ -1387,7 +1387,7 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 139165,
-      "original": "res-s;\u0131m",
+      "original": "res-s;ım",
       "expected": "ressam",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
@@ -1414,13 +1414,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 139487,
-      "original": "ula\u015F-1",
-      "expected": "ula\u015F",
+      "original": "ulaş-1",
+      "expected": "ulaş",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1429,14 +1429,14 @@
       "arcLength": 6,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "geli\u015Fimea\u015F\u0131r\u0131. Ama",
+      "decoderTopReplacement": "gelişimeaşırı. Ama",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 142797,
-      "original": "c;oka\u011F\u0131\u0027nda",
-      "expected": "Soka\u011F\u0131\u0027nda",
+      "original": "c;okağı'nda",
+      "expected": "Sokağı'nda",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -1445,14 +1445,14 @@
       "arcLength": 11,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "Gentz Soka\u011F\u0131\u0027nda ne",
+      "decoderTopReplacement": "Gentz Sokağı'nda ne",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 144617,
       "original": "ak-^am",
-      "expected": "ak\u015Fam",
+      "expected": "akşam",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -1461,7 +1461,7 @@
       "arcLength": 6,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "sanatsal ak\u015Fam yeme\u011Fi",
+      "decoderTopReplacement": "sanatsal akşam yemeği",
       "notes": null
     },
     {
@@ -1478,7 +1478,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
@@ -1493,30 +1493,30 @@
       "arcLength": 15,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "Yap\u0131aristokrat-^;idi soyundan",
+      "decoderTopReplacement": "Yapıaristokrat-^;idi soyundan",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 149280,
       "original": "^erefsiz",
-      "expected": "\u015Ferefsiz",
+      "expected": "şerefsiz",
       "decisionRuleLegacy": "DirectStructuralRepair",
-      "lossReason": "TargetNotInLattice",
+      "lossReason": "DecoderRankedOther",
       "gateReason": null,
       "validToken": null,
-      "targetInLattice": false,
+      "targetInLattice": true,
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": null,
-      "notes": "Unreachable cause: PositionUnreachable."
+      "decoderTopReplacement": "ve gereksiz bir",
+      "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 152087,
-      "original": "\u0131 \u0131 b\u0131rakmadan",
-      "expected": "b\u0131rakmadan",
+      "original": "ı ı bırakmadan",
+      "expected": "bırakmadan",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -1526,12 +1526,12 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 152734,
-      "original": "\u0131tuz",
+      "original": "ıtuz",
       "expected": "otuz",
       "decisionRuleLegacy": "EvidenceOnlyDominantLexicon",
       "lossReason": "DecoderRankedOther",
@@ -1541,14 +1541,14 @@
       "arcLength": 4,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "etraflar\u0131nda otuz y\u0131l",
+      "decoderTopReplacement": "etraflarında otuz yıl",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 157253,
-      "original": "ya-^amlar\u0131n\u0131",
-      "expected": "ya\u015Famlar\u0131n\u0131",
+      "original": "ya-^amlarını",
+      "expected": "yaşamlarını",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1557,14 +1557,14 @@
       "arcLength": 12,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "sosyeteadamlar\u0131n\u0131 parmaklar\u0131n\u0131",
+      "decoderTopReplacement": "sosyeteadamlarını parmaklarını",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 161177,
-      "original": "y\u00F6ne-1",
-      "expected": "y\u00F6ne",
+      "original": "yöne-1",
+      "expected": "yöne",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1573,14 +1573,14 @@
       "arcLength": 6,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "amay\u00F6nelik Salzburglu",
+      "decoderTopReplacement": "amayönelik Salzburglu",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 170475,
       "original": ";iiyledikleri",
-      "expected": "s\u00F6yledikleri",
+      "expected": "söyledikleri",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1595,8 +1595,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 170532,
-      "original": "olduklar\u0131-\u0131\u0131\u0131",
-      "expected": "olduklar\u0131n\u0131",
+      "original": "oldukları-ııı",
+      "expected": "olduklarını",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1605,45 +1605,45 @@
       "arcLength": 13,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "felsefiolduklar\u0131n\u0131hi\u00E7",
+      "decoderTopReplacement": "felsefiolduklarınıhiç",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 171107,
-      "original": "\u00E7o\u011Fu-\u0131\u0131u",
-      "expected": "\u00E7o\u011Funu",
+      "original": "çoğu-ııu",
+      "expected": "çoğunu",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
-      "validToken": "\u00E7o\u011Fu",
+      "validToken": "çoğu",
       "targetInLattice": true,
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "yazarlar\u0131n \u00E7o\u011Funu onlarda",
+      "decoderTopReplacement": "yazarların çoğunu onlarda",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 171170,
-      "original": "tan\u0131d\u0131-\u0131^\u0131m",
-      "expected": "tan\u0131d\u0131\u011F\u0131m",
+      "original": "tanıdı-ı^ım",
+      "expected": "tanıdığım",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
-      "validToken": "tan\u0131d\u0131",
+      "validToken": "tanıdı",
       "targetInLattice": true,
       "arcLength": 11,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "Zaal\u0027da tan\u0131d\u0131\u011F\u0131m do\u011Frudur",
+      "decoderTopReplacement": "Zaal'da tanıdığım doğrudur",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 176819,
-      "original": "t\u003Eanatsal",
+      "original": "t>anatsal",
       "expected": "sanatsal",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
@@ -1653,14 +1653,14 @@
       "arcLength": 9,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "i\u00E7in sanatsal ak\u015Fam",
+      "decoderTopReplacement": "için sanatsal akşam",
       "notes": null
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 179717,
-      "original": "ta-\u0131\u0131\u0131mlanan",
-      "expected": "tan\u0131mlanan",
+      "original": "ta-ııımlanan",
+      "expected": "tanımlanan",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1669,14 +1669,14 @@
       "arcLength": 12,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "olarak-\u0131\u0131\u0131mlanan oyuncunun",
+      "decoderTopReplacement": "olarak-ııımlanan oyuncunun",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 180157,
-      "original": ";er\u00E7ekten",
-      "expected": "ger\u00E7ekten",
+      "original": ";erçekten",
+      "expected": "gerçekten",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1691,8 +1691,8 @@
     {
       "documentPath": "main-3.xhtml",
       "logicalStart": 180466,
-      "original": "-.;eslendi\u011Fini",
-      "expected": "eslendi\u011Fini",
+      "original": "-.;eslendiğini",
+      "expected": "eslendiğini",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -1702,13 +1702,13 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 189015,
-      "original": "d\u00FC-^\u00FCn\u00FClemeyece\u011Fini",
-      "expected": "d\u00FC\u015F\u00FCn\u00FClemeyece\u011Fini",
+      "original": "dü-^ünülemeyeceğini",
+      "expected": "düşünülemeyeceğini",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "DecoderRankedOther",
       "gateReason": null,
@@ -1717,14 +1717,14 @@
       "arcLength": 19,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "fogo\u015Fu-^\u00FCn\u00FClemeyece\u011Fini s\u00F6yledi",
+      "decoderTopReplacement": "fogoşu-^ünülemeyeceğini söyledi",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 202783,
-      "original": "\u003C1rt\u0131k",
-      "expected": "art\u0131k",
+      "original": "<1rtık",
+      "expected": "artık",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1739,8 +1739,8 @@
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 207575,
-      "original": "Tiyatro-^a\u0131\u0027nun",
-      "expected": "Tiyatrosu\u0027nun",
+      "original": "Tiyatro-^aı'nun",
+      "expected": "Tiyatrosu'nun",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1755,8 +1755,8 @@
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 207639,
-      "original": "Tiyatro-^;u\u0027na",
-      "expected": "Tiyatrosu\u0027na",
+      "original": "Tiyatro-^;u'na",
+      "expected": "Tiyatrosu'na",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "TargetNotInLattice",
       "gateReason": null,
@@ -1771,8 +1771,8 @@
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 207774,
-      "original": "la\u011Fan\u00FCst\u00FC",
-      "expected": "ola\u011Fan\u00FCst\u00FC",
+      "original": "lağanüstü",
+      "expected": "olağanüstü",
       "decisionRuleLegacy": "EvidenceOnlyDominantLexicon",
       "lossReason": "RegionNotDetected",
       "gateReason": null,
@@ -1782,12 +1782,12 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 207963,
-      "original": "ola-r\u003C\u0131k",
+      "original": "ola-r<ık",
       "expected": "olarak",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
@@ -1797,14 +1797,14 @@
       "arcLength": 8,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "s\u00FCrekli olarak y\u00FCr\u00FCtt\u00FCkleri",
+      "decoderTopReplacement": "sürekli olarak yürüttükleri",
       "notes": null
     },
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 208774,
-      "original": "ba-^ar\u0131s\u0131z",
-      "expected": "ba\u015Far\u0131s\u0131z",
+      "original": "ba-^arısız",
+      "expected": "başarısız",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "GateRejected:OriginalTokenIsValid",
       "gateReason": "OriginalTokenIsValid",
@@ -1813,7 +1813,7 @@
       "arcLength": 10,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "bu ba\u015Far\u0131s\u0131z Yaban",
+      "decoderTopReplacement": "bu başarısız Yaban",
       "notes": null
     },
     {
@@ -1829,7 +1829,7 @@
       "arcLength": 14,
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
-      "decoderTopReplacement": "g\u00F6mlekteki zenciler-johnson",
+      "decoderTopReplacement": "gömlekteki zenciler-johnson",
       "notes": "Target reachable in the full lattice but not within the top-3 decoded paths."
     },
     {
@@ -1851,7 +1851,7 @@
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 282064,
-      "original": "y\u0131\u0131tucusu",
+      "original": "yııtucusu",
       "expected": "yutucusu",
       "decisionRuleLegacy": "DirectStructuralRepair",
       "lossReason": "RegionNotDetected",
@@ -1862,12 +1862,12 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 306859,
-      "original": "\u0131nus\u0131\u0131nuz",
+      "original": "ınusıınuz",
       "expected": "musunuz",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
@@ -1878,12 +1878,12 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-4.xhtml",
       "logicalStart": 310713,
-      "original": "b\u0131\u0131",
+      "original": "bıı",
       "expected": "bu",
       "decisionRuleLegacy": "StructuralLexiconRepair",
       "lossReason": "RegionNotDetected",
@@ -1894,7 +1894,7 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     },
     {
       "documentPath": "main-4.xhtml",
@@ -1926,25 +1926,25 @@
       "matcherFoundTargetForSpan": null,
       "targetInVocabulary": null,
       "decoderTopReplacement": null,
-      "notes": "No detected region contains [logicalStart, logicalStart\u002Boriginal.Length)."
+      "notes": "No detected region contains [logicalStart, logicalStart+original.Length)."
     }
   ],
   "rawVersusProduction": {
     "status": "explained",
     "measuredOn": "2026-09-14",
     "documentPath": "main-3.xhtml",
-    "fragment": "kol-1 \u0131\u0131 kta",
-    "window": "berjer kol-1 \u0131\u0131 kta, yirmi",
-    "question": "D66: ayn\u0131 \u0027kol-1 \u0131\u0131 kta\u0027 par\u00E7as\u0131 ham ko\u015Fuda Leave/TooManyOrdinaryEdits, \u00FCretim ko\u015Fusunda Apply/Accepted al\u0131yor. MaxArcLength (D65) do\u011Fru cevab\u0131n (koltukta) \u00FCretilememesini a\u00E7\u0131kl\u0131yor; bu d\u00FC\u011F\u00FCm kap\u0131n\u0131n neden KABUL etti\u011Fini a\u00E7\u0131kl\u0131yor.",
-    "mechanism": "Pencere metni ve aday kelime-ark k\u00FCmesi (koli, a\u00E7\u0131kta, nokta - \u00FC\u00E7\u00FC de ayn\u0131 edit maliyetiyle) iki ko\u015Fuda birebir ayn\u0131: fark matcher/vocabulary aday k\u00FCmesinden, edit-maliyet tablosundan ya da kap\u0131n\u0131n kendi mant\u0131\u011F\u0131ndan gelmiyor. Fark, decoder\u0027\u0131n ayn\u0131 pencereyi HANG\u0130 ark dizilimine b\u00F6ld\u00FC\u011F\u00FCnde: ham ko\u015Fu \u0027kol\u0027 \u002B \u0027-\u0027 \u002B \u0027a\u00E7\u0131kta\u0027 dizilimini (2 ordinary edit -\u003E TooManyOrdinaryEdits) en ucuz buluyor, \u00FCretim ko\u015Fusu \u0027koli\u0027 \u002B \u0027 \u0027 \u002B \u0027nokta\u0027 dizilimini (1 ordinary edit -\u003E Accepted) en ucuz buluyor. Bu ayr\u0131m dil modelinin \u0027berjer\u0027-\u003E\u0027kol\u0027 bigram olas\u0131l\u0131\u011F\u0131ndan geliyor: ham hazne bu bigram\u0131 iyi destekliyor (logProb=-5.4337) \u00E7\u00FCnk\u00FC kitaptaki AYNI tekrarlayan \u0027berjer kol[-...]tukta\u0027 OCR bozuklu\u011Funun d\u00FCzeltilmemi\u015F di\u011Fer \u00F6rnekleri h\u00E2l\u00E2 ham g\u00F6vdede duruyor; \u00FCretim ko\u015Fusunda bu \u00F6rneklerin \u00E7o\u011Fu OCR a\u015Famas\u0131ndan \u00D6NCE \u00E7al\u0131\u015Fan tirelemeler taraf\u0131ndan zaten \u0027berjer koltukta\u0027ya d\u00FCzeltilmi\u015F oldu\u011Fundan bigram neredeyse hi\u00E7 kan\u0131tlanmam\u0131\u015F h\u00E2le geliyor (logProb=-11.6939, ayn\u0131 pencerede \u0027a\u00E7\u0131kta\u0027n\u0131n \u0027kol\u0027dan sonraki olas\u0131l\u0131\u011F\u0131yla ayn\u0131 seviyeye d\u00FC\u015F\u00FCyor). Kan\u0131t: hazne \u0027kol\u0027 BookCount\u0027u 2 (ham) -\u003E 1 (\u00FCretim), \u0027koltukta\u0027 BookCount\u0027u 220 (ham) -\u003E 221 (\u00FCretim) - tam olarak bir tekrarlanan kusur \u00F6rne\u011Finin \u0027kol\u0027dan \u0027koltukta\u0027ya ta\u015F\u0131nd\u0131\u011F\u0131n\u0131 g\u00F6steriyor. Yol boyunca kullan\u0131lan di\u011Fer \u00FC\u00E7 bigram (\u0027kol\u0027-\u003E\u0027a\u00E7\u0131kta\u0027, \u0027berjer\u0027-\u003E\u0027koli\u0027, \u0027koli\u0027-\u003E\u0027nokta\u0027) iki ko\u015Fu aras\u0131nda pratikte de\u011Fi\u015Fmiyor (fark \u003C 0.001).",
-    "conclusion": "\u0130kinci ko\u015Ful (D65\u0027in tek ba\u015F\u0131na a\u00E7\u0131klamad\u0131\u011F\u0131 \u0027kap\u0131 neden kabul etti\u0027 sorusu) kap\u0131n\u0131n bir gev\u015Femesi DE\u011E\u0130L: kap\u0131 her iki ko\u015Fuda da AYNI e\u015Fi\u011Fi (MaxOrdinarySubstitutions=1) ayn\u0131 bi\u00E7imde uyguluyor. De\u011Fi\u015Fen \u015Fey decoder\u0027a giden dil modelinin, OCR a\u015Famas\u0131ndan \u00F6nce \u00E7al\u0131\u015Fan tirelemelerin kitab\u0131 bir b\u00FCt\u00FCn olarak de\u011Fi\u015Ftirmesinden dolay\u0131 farkl\u0131 bir korpus \u00FCzerinde e\u011Fitilmi\u015F olmas\u0131 - bu da decoder\u0027\u0131n ayn\u0131 bozuk pencere i\u00E7in farkl\u0131 bir en-ucuz-yol se\u00E7mesine yol a\u00E7\u0131yor.",
+    "fragment": "kol-1 ıı kta",
+    "window": "berjer kol-1 ıı kta, yirmi",
+    "question": "D66: aynı 'kol-1 ıı kta' parçası ham koşuda Leave/TooManyOrdinaryEdits, üretim koşusunda Apply/Accepted alıyor. MaxArcLength (D65) doğru cevabın (koltukta) üretilememesini açıklıyor; bu düğüm kapının neden KABUL ettiğini açıklıyor.",
+    "mechanism": "Pencere metni ve aday kelime-ark kümesi (koli, açıkta, nokta - üçü de aynı edit maliyetiyle) iki koşuda birebir aynı: fark matcher/vocabulary aday kümesinden, edit-maliyet tablosundan ya da kapının kendi mantığından gelmiyor. Fark, decoder'ın aynı pencereyi HANGİ ark dizilimine böldüğünde: ham koşu 'kol' + '-' + 'açıkta' dizilimini (2 ordinary edit -> TooManyOrdinaryEdits) en ucuz buluyor, üretim koşusu 'koli' + ' ' + 'nokta' dizilimini (1 ordinary edit -> Accepted) en ucuz buluyor. Bu ayrım dil modelinin 'berjer'->'kol' bigram olasılığından geliyor: ham hazne bu bigramı iyi destekliyor (logProb=-5.4337) çünkü kitaptaki AYNI tekrarlayan 'berjer kol[-...]tukta' OCR bozukluğunun düzeltilmemiş diğer örnekleri hâlâ ham gövdede duruyor; üretim koşusunda bu örneklerin çoğu OCR aşamasından ÖNCE çalışan tirelemeler tarafından zaten 'berjer koltukta'ya düzeltilmiş olduğundan bigram neredeyse hiç kanıtlanmamış hâle geliyor (logProb=-11.6939, aynı pencerede 'açıkta'nın 'kol'dan sonraki olasılığıyla aynı seviyeye düşüyor). Kanıt: hazne 'kol' BookCount'u 2 (ham) -> 1 (üretim), 'koltukta' BookCount'u 220 (ham) -> 221 (üretim) - tam olarak bir tekrarlanan kusur örneğinin 'kol'dan 'koltukta'ya taşındığını gösteriyor. Yol boyunca kullanılan diğer üç bigram ('kol'->'açıkta', 'berjer'->'koli', 'koli'->'nokta') iki koşu arasında pratikte değişmiyor (fark < 0.001).",
+    "conclusion": "İkinci koşul (D65'in tek başına açıklamadığı 'kapı neden kabul etti' sorusu) kapının bir gevşemesi DEĞİL: kapı her iki koşuda da AYNI eşiği (MaxOrdinarySubstitutions=1) aynı biçimde uyguluyor. Değişen şey decoder'a giden dil modelinin, OCR aşamasından önce çalışan tirelemelerin kitabı bir bütün olarak değiştirmesinden dolayı farklı bir korpus üzerinde eğitilmiş olması - bu da decoder'ın aynı bozuk pencere için farklı bir en-ucuz-yol seçmesine yol açıyor.",
     "maxArcLengthGrowthBlockedByD75": false,
-    "note": "D75\u0027in bloke ko\u015Fulu (\u0027R5.0c a\u00E7\u0131klanamad\u0131ysa\u0027) burada ger\u00E7ekle\u015Fmedi: mekanizma tek ve do\u011Frulanm\u0131\u015F. Ama bulgu R5.4b i\u00E7in bir uyar\u0131 ta\u015F\u0131yor: kap\u0131n\u0131n kabul/red karar\u0131 decoder\u0027\u0131n MaxOrdinarySubstitutions e\u015Fi\u011Fi etraf\u0131ndaki dar bir maliyet yar\u0131\u015F\u0131na ba\u011Fl\u0131, ve bu yar\u0131\u015F hyphenation\u0027\u0131n korpusu de\u011Fi\u015Ftirmesiyle KAYABILIYOR. MaxArcLength b\u00FCy\u00FCt\u00FCl\u00FCp \u0027koltukta\u0027 tek/\u00E7oklu ark olarak kafese girebilir h\u00E2le gelse bile, hangi yolun Top-1 olaca\u011F\u0131 yine dil modelinin o ko\u015Fudaki korpusuna ba\u011Fl\u0131 olacakt\u0131r - R5.4b\u0027nin s\u00FCp\u00FCrmesi bunu ayr\u0131 bir boyut olarak ele almal\u0131d\u0131r (yaln\u0131zca e\u015Fik de\u011Fil, hazne/LM\u0027in hangi metinden kuruldu\u011Fu).",
+    "note": "D75'in bloke koşulu ('R5.0c açıklanamadıysa') burada gerçekleşmedi: mekanizma tek ve doğrulanmış. Ama bulgu R5.4b için bir uyarı taşıyor: kapının kabul/red kararı decoder'ın MaxOrdinarySubstitutions eşiği etrafındaki dar bir maliyet yarışına bağlı, ve bu yarış hyphenation'ın korpusu değiştirmesiyle KAYABILIYOR. MaxArcLength büyütülüp 'koltukta' tek/çoklu ark olarak kafese girebilir hâle gelse bile, hangi yolun Top-1 olacağı yine dil modelinin o koşudaki korpusuna bağlı olacaktır - R5.4b'nin süpürmesi bunu ayrı bir boyut olarak ele almalıdır (yalnızca eşik değil, hazne/LM'in hangi metinden kurulduğu).",
     "evidence": {
       "rawRun": {
         "verdict": "Leave",
         "reason": "TooManyOrdinaryEdits",
-        "top1Path": "berjer kol-a\u00E7\u0131kta, yirmi",
+        "top1Path": "berjer kol-açıkta, yirmi",
         "top1Cost": 17.7043,
         "ordinaryEdits": 2
       },
@@ -1968,14 +1968,14 @@
         {
           "from": 11,
           "to": 19,
-          "sourceSpan": "1 \u0131\u0131 kta",
-          "word": "a\u00E7\u0131kta",
+          "sourceSpan": "1 ıı kta",
+          "word": "açıkta",
           "cost": 2.6
         },
         {
           "from": 13,
           "to": 19,
-          "sourceSpan": "\u0131\u0131 kta",
+          "sourceSpan": "ıı kta",
           "word": "nokta",
           "cost": 1.55
         }
@@ -1985,7 +1985,7 @@
           "raw": -5.4337,
           "production": -11.6939
         },
-        "a\u00E7\u0131kta_after_kol": {
+        "açıkta_after_kol": {
           "raw": -11.6935,
           "production": -11.6939
         },

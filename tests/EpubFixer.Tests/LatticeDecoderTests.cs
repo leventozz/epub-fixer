@@ -35,6 +35,24 @@ public sealed class LatticeDecoderTests
     }
 
     [Fact]
+    public void Decode_DropsLeadingGarbageRatherThanCarryingItAlong()
+    {
+        // H4b's decisive test. Before RetainedGarbage existed the literal arc was free, so the
+        // deletion arc lost by exactly its own cost and could never be chosen - the lattice
+        // offered ":,sohbet" and nothing else. Both paths use the SAME word arc, so the winner
+        // is decided purely by what the garbage run costs.
+        var lattice = Built("gece :,ohbet",
+            new LatticeArc(0, 4, "gece", 0, LatticeArcKind.Identity),
+            new LatticeArc(4, 7, " :,", 0.50, LatticeArcKind.Literal),
+            new LatticeArc(4, 7, " ", 0.40, LatticeArcKind.GarbageDeletion),
+            new LatticeArc(7, 12, "sohbet", 1.0, LatticeArcKind.Word));
+        var model = new FixedLanguageModel(("gece", null, -0.1), ("sohbet", "gece", -0.1));
+        var decoder = new LatticeDecoder(model, new LatticeOptions(Lambda: 0.5));
+
+        Assert.Equal("gece sohbet", decoder.Decode(lattice, 1)[0].Text);
+    }
+
+    [Fact]
     public void Decode_ContextChangesWinner()
     {
         var lattice = Built("x",

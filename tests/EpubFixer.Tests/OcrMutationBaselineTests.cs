@@ -137,8 +137,12 @@ public sealed class OcrMutationBaselineTests
 
             // DUR gate (H3): assert the literal acceptance criterion before touching the baseline
             // file at all, so a wrong count never gets pinned as if it were the measured answer.
-            Assert.Equal(129, mutation.PlannedCount);
-            Assert.Equal(129, mutation.AppliedCount);
+            // H4b-1 moved this from 129 to 130 deliberately: charging RetainedGarbage for a kept
+            // hard-garbage glyph let the lattice drop ':,' instead of carrying it, which turns
+            // garbage-0001 from a wrong fix into a correct one and adds one more accepted region.
+            // Measured, not predicted.
+            Assert.Equal(130, mutation.PlannedCount);
+            Assert.Equal(130, mutation.AppliedCount);
 
             var actual = OcrMutationBaseline.From(mutation, "hybrid");
             var actualJson = JsonSerializer.Serialize(actual, JsonOptions);

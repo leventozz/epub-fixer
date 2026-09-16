@@ -115,7 +115,9 @@ public sealed class PerformanceBudgetTests
         Assert.True(watch.Elapsed.TotalSeconds <= 30, $"Lattice pass took {watch.Elapsed.TotalSeconds:0.00}s.");
         Assert.True(reconstructor.Statistics.MaxVisitedStates <= 2_500, $"Max visited states was {reconstructor.Statistics.MaxVisitedStates}.");
         Assert.Equal(563, reconstructor.Statistics.Regions);
-        Assert.Equal(31, reconstructor.Statistics.Applied);
+        // H4b-1: 31 -> 32. The garbage-deletion arc makes one more region acceptable; the region
+        // count is unchanged, so this is a decision change, not a detection change. Measured.
+        Assert.Equal(32, reconstructor.Statistics.Applied);
     }
 
     [Fact]

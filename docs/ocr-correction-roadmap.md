@@ -36,7 +36,7 @@ Sürüm 1'in beş fazı bitti ve **mimari olarak hedefe ulaştı**:
 - **Lattice motoru** — `ILexiconMatcher` → `WordLatticeBuilder` → `LatticeDecoder` → `CorrectionAcceptanceGate`
 - **Üretim hattına bağlandı** — `IOcrCorrectionPlanner` portu, `RegionMutationPlanner`, `--ocr-engine legacy|lattice`
 
-Suite: **544/544 yeşil** (~5 dk 37 sn; sürüm 2 başlarken 522'ydi, G1+H1+H2+H3 22 test ekledi).
+Suite: **548/548 yeşil** (~5 dk 21 sn; sürüm 2 başlarken 522'ydi, G1+H1+H2+H3+H4b-1 26 test ekledi).
 
 ### 2.2 Ne ölçüldü — ve varsayımı nasıl yanlışladı
 
@@ -193,8 +193,9 @@ değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**
 | H2 | `--ocr-engine hybrid` + composition root bağlantısı | ✅ `42699f4` | H1 | bayrak çalışıyor |
 | H3 | Hibriti ölç | ✅ `9c3224e` | H2, G1 | baseline'lar + kapı sonucu |
 | H4 | Lattice'in eklediği her mutation elle incelenir | ✅ (bu commit) | H3 | **1 yeni yanlış** |
-| H4b | Baştaki çöp karakterleri bölgeye kat | ⬜ | H4 | `garbage-0001` düzelir, kapı yeşile döner |
-| H5 | Varsayılanı hibrit yap | 🔒 | H4b temiz | yeni golden'lar |
+| H4b-1 | Çöp tutmanın bedelini modele koy + silme arc'ı | ✅ (bu commit) | H4 | **kapı YEŞİL** |
+| H4b-2 | ~~Ayrı ölçüm kalemi~~ | ⛔ | — | H4b-1 kendi ölçümünü taşıdı |
+| H5 | Varsayılanı hibrit yap | ⬜ | H4b-1 ✅ | yeni golden'lar |
 
 **H1 — Composite.** ✅ `7ed1e03`. İki planner aynı `stream`/`oracleBuilder` üzerinde koşar;
 ikincinin mutation'ı birincininkiyle `DocumentPath` + `[LogicalStart, LogicalStart+LogicalLength)`
@@ -279,14 +280,36 @@ Son ikisi kapıdan **geçiyor** çünkü ground truth kayıtlarının (`garbage-
 Yani üç vakanın üçü de aynı kusur, ama ölçüm yalnızca birini görüyor — **kapı bu sınıfı
 eksik sayıyor.** Okuyucu üçünü de görüyor.
 
-**H4b'nin hedefi budur:** baştaki çöp karakterleri bölgeye katmak. Tek bir davranış değişikliği
-üç vakayı birden düzeltir ve `garbage-0001` doğruya dönünce precision %98,52 → **%98,89** olur,
-eşik %98,85 — **kapı yeşile döner** (recall zaten %92,36 ile eşiğin üstünde).
+**H4b-1 — Çöp tutmanın bedeli.** ✅ İlk teşhis **yanlıştı**: dedektör baştaki çöpü zaten bölgeye
+katıyor (`IncludeGarbagePrefix`). Kusur kafesteydi ve ilk düzeltme denemesi de **ölü çıktı** —
+yalnız silme arc'ı eklemek hiçbir sayıyı değiştirmedi, çünkü `LatticeDecoder.Append` LM maliyetini
+yalnız `Word`/`Identity` arc'larına uyguluyor: çöpü **tutmak 0,00**, silmek 0,40 idi ve silme her
+zaman kendi maliyeti kadar kaybediyordu.
 
-**H4b DUR:** Bu bir üretim kodu değişikliğidir (bölge dedektörü / pencere sınırı) ve kendi
-testlerini + tam kitap koşusunu gerektirir. Baştaki çöpü yutmak `OriginalTokenIsValid`'in
-davranışını da etkileyebilir — 563 bölgenin 418'ini kapatan kural budur. Yanlış düzeltme
-sayısını artıran hiçbir nokta kabul edilmez.
+Kök neden: **çöp tutmak bedavaydı.** `OcrEditCostModel`'e `RetainedGarbage = 0.25` eklendi
+(seçildi, kalibre edilmedi — D34) ve token-arası sert çöp koşusu iki arc alıyor: tutmak 0,25×glif,
+silmek 0,20×glif. İkisi **aynı karakterleri** sayar — aksi hâlde `:,` için 0,25 < 0,40 olur ve
+tutma yine kazanırdı. Ayrıntı ve iki koruma: **D91**.
+
+Ölçüldü (tek tam kitap koşusu):
+
+| | H4 sonrası | H4b-1 sonrası |
+|---|---|---|
+| Doğru düzeltilen | 266 | **267** |
+| Yanlış düzeltilen | 4 | **3** — üçü de legacy'nin, **yeni sıfır** (D90 ✅) |
+| Precision | %98,52 ❌ | **%98,89** |
+| Recall | %92,36 | **%92,71** |
+| **Kapı** | **FAIL** | **PASS** |
+| Hibrit mutation | 129 | 130 |
+| Lattice Apply | 31 | 32 |
+| Lattice pass süresi | 28,31 sn | 28,76 sn (bütçe 30) |
+
+Bölge sayısı 563'te sabit ve `MaxVisitedStates` 1713'te sabit — bu bir **karar** değişikliği,
+tespit değişikliği değil. Dört pinlenmiş baseline kasten değişti ve **ölçülerek** yeniden yazıldı.
+
+*Yan bulgu:* kayıp taksonomisinde `TargetNotInLattice` 27 → 25, `DecoderRankedOther` 23 → 25 —
+silme arc'ı iki vakada daha hedefi kafese soktu, decoder henüz seçmiyor. Bu iki vaka artık
+**ulaşılabilir** ve P-bloğunun (skor ekseni) hedef kütlesine giriyor.
 
 *Ön koşul:* R1 (inceleme raporu)
 
@@ -360,7 +383,7 @@ artık kalıcı.
 
 ```
 G1 ✅─┐
-G2   ├──► H1 ✅──► H2 ✅──► H3 ✅──► H4 ✅──► H4b ──► H5
+G2   ├──► H1 ✅──► H2 ✅──► H3 ✅──► H4 ✅──► H4b-1 ✅──► H5
 G3   ┘
 R1 ──┘                   ▲       ▲
                          │       │
@@ -369,7 +392,7 @@ P1 ─► P2                 │      R3
                         B1 ─► B2
 ```
 
-**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → ~~H3~~ → ~~H4~~ → `H4b → H5` — **iki kalem kaldı.**
+**Kritik yol:** ~~G1~~ → ~~H1~~ → ~~H2~~ → ~~H3~~ → ~~H4~~ → ~~H4b-1~~ → `H5` — **tek kalem kaldı.**
 
 **Paralel yürüyebilenler:** G2 · G3 · R1 · P1 — dördü ayrı dosya ailelerine dokunur.
 

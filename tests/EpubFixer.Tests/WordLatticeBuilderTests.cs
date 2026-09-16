@@ -54,6 +54,52 @@ public sealed class WordLatticeBuilderTests
     }
 
     [Fact]
+    public void Build_HardGarbageRunCostsToKeepAndIsCheaperToDrop()
+    {
+        var builder = new WordLatticeBuilder(new FakeMatcher(("ohbet", "sohbet", 1.0)));
+
+        var lattice = builder.Build(Region("gece :,ohbet", "gece :,ohbet"), "gece :,ohbet", new LatticeOptions());
+
+        // The run " :," spans [4,7) and carries two non-space characters. Keeping them is no longer
+        // free (RetainedGarbage 0.25 each) and dropping them is cheaper (GarbageDeletion 0.20 each).
+        // Both arcs count the SAME characters - otherwise keeping would still win (D91).
+        Assert.Contains(lattice.Arcs, arc => arc is
+        {
+            From: 4, To: 7, Word: " :,", Cost: 0.50, Kind: LatticeArcKind.Literal
+        });
+        Assert.Contains(lattice.Arcs, arc => arc is
+        {
+            From: 4, To: 7, Word: " ", Cost: 0.40, Kind: LatticeArcKind.GarbageDeletion
+        });
+    }
+
+    [Fact]
+    public void Build_OrdinaryPunctuationStaysFreeAndUndeletable()
+    {
+        var builder = new WordLatticeBuilder(new FakeMatcher());
+
+        var lattice = builder.Build(Region("yoktu. Gerçekten", "yoktu. Gerçekten"), "yoktu. Gerçekten", new LatticeOptions());
+
+        // No hard garbage glyph in the run: charging it would tax ordinary prose, and deleting it
+        // would weld two sentences together. D91.
+        Assert.Contains(lattice.Arcs, arc => arc is { Word: ". ", Cost: 0, Kind: LatticeArcKind.Literal });
+        Assert.DoesNotContain(lattice.Arcs, arc => arc.Kind == LatticeArcKind.GarbageDeletion);
+    }
+
+    [Fact]
+    public void Build_TokenInternalGarbageRunIsUntouched()
+    {
+        var builder = new WordLatticeBuilder(new FakeMatcher(("kü-^:ük", "küçük", 0.75)));
+
+        var lattice = builder.Build(Region("kü-^:ük", "kü-^:ük"), "kü-^:ük", new LatticeOptions());
+
+        // The run "-^:" carries hard garbage but no whitespace: it sits inside a token and the word
+        // arc already solves it. Charging or deleting it would only add a rival "küük" path.
+        Assert.Contains(lattice.Arcs, arc => arc is { Word: "-^:", Cost: 0, Kind: LatticeArcKind.Literal });
+        Assert.DoesNotContain(lattice.Arcs, arc => arc.Kind == LatticeArcKind.GarbageDeletion);
+    }
+
+    [Fact]
     public void Build_BudgetExceededIsReported()
     {
         var builder = new WordLatticeBuilder(new FakeMatcher(("koli", "koli", 0)));
