@@ -394,7 +394,7 @@ P1–P3 **koşulsuzdur** ve hemen yapılabilir: eşiklerin dağınık olması D4
 
 | # | Kalem | Durum | Çıktı |
 |---|---|---|---|
-| B1-a | Rapor adı girdiden türetilsin (kitap adı sabit yazılmasın) | ✅ (bu commit) | baseline'lar kaynağını doğru söylüyor |
+| B1-a | Rapor adı girdiden türetilsin (kitap adı sabit yazılmasın) | ✅ `db256f0` | baseline'lar kaynağını doğru söylüyor |
 | B1-b | İkinci kitabı ölçüm tabanına ekle | ⛔ **BLOKE** | ikinci OCR'lı Türkçe EPUB gerekiyor — elde yok |
 | B2 | Baseline'ları kitap başına ayır | 🔒 (B1) | kitap-bağımsız kapı |
 
@@ -402,7 +402,7 @@ P1–P3 **koşulsuzdur** ve hemen yapılabilir: eşiklerin dağınık olması D4
 kaydetti ama kalem açmadı. Öğrenilmiş her eşik, her maliyet tablosu ve kapının her sayısı bu
 kitaba overfit olabilir — ve bunu söyleyecek ölçüm yok.
 
-**B1-a ✅ — rapor adı artık girdiden türetiliyor.** Bulgu: `debug-lattice`'in özet JSON'u ve
+**B1-a ✅ `db256f0` — rapor adı artık girdiden türetiliyor.** Bulgu: `debug-lattice`'in özet JSON'u ve
 `debug-vocabulary`'nin iki raporu, hangi kitapta koşulursa koşulsun çıktıya `"odun-kesmek"`
 dizgesini **sabit** yazıyordu. İkinci kitap eklenseydi, onun baseline'ı kendi kaynağı hakkında
 yalan söyleyecekti — ve bu projedeki her karar baseline'lara atıf yapıyor. `DatasetName.From`
