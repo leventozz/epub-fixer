@@ -36,7 +36,7 @@ Sürüm 1'in beş fazı bitti ve **mimari olarak hedefe ulaştı**:
 - **Lattice motoru** — `ILexiconMatcher` → `WordLatticeBuilder` → `LatticeDecoder` → `CorrectionAcceptanceGate`
 - **Üretim hattına bağlandı** — `IOcrCorrectionPlanner` portu, `RegionMutationPlanner`, `--ocr-engine legacy|lattice`
 
-Suite: **555/555 yeşil** (~5 dk 31 sn; sürüm 2 başlarken 522'ydi).
+Suite: **561/561 yeşil** (~5 dk 33 sn; sürüm 2 başlarken 522'ydi).
 
 ### 2.2 Ne ölçüldü — ve varsayımı nasıl yanlışladı
 
@@ -394,12 +394,25 @@ P1–P3 **koşulsuzdur** ve hemen yapılabilir: eşiklerin dağınık olması D4
 
 | # | Kalem | Durum | Çıktı |
 |---|---|---|---|
-| B1 | İkinci kitabı ölçüm tabanına ekle | ⬜ | ikinci `ground-truth.json` |
+| B1-a | Rapor adı girdiden türetilsin (kitap adı sabit yazılmasın) | ✅ (bu commit) | baseline'lar kaynağını doğru söylüyor |
+| B1-b | İkinci kitabı ölçüm tabanına ekle | ⛔ **BLOKE** | ikinci OCR'lı Türkçe EPUB gerekiyor — elde yok |
 | B2 | Baseline'ları kitap başına ayır | 🔒 (B1) | kitap-bağımsız kapı |
 
 **Bugünkü bütün ölçüm tek kitaba (`odun-kesmek`) dayanıyor.** Sürüm 1 bunu açık borç olarak
 kaydetti ama kalem açmadı. Öğrenilmiş her eşik, her maliyet tablosu ve kapının her sayısı bu
 kitaba overfit olabilir — ve bunu söyleyecek ölçüm yok.
+
+**B1-a ✅ — rapor adı artık girdiden türetiliyor.** Bulgu: `debug-lattice`'in özet JSON'u ve
+`debug-vocabulary`'nin iki raporu, hangi kitapta koşulursa koşulsun çıktıya `"odun-kesmek"`
+dizgesini **sabit** yazıyordu. İkinci kitap eklenseydi, onun baseline'ı kendi kaynağı hakkında
+yalan söyleyecekti — ve bu projedeki her karar baseline'lara atıf yapıyor. `DatasetName.From`
+adı girdiden türetiyor: dataset dizini yapısında (`<ad>/input.epub`) dizin adı, diğer her
+dosyada kendi kök adı. `odun-kesmek` için çıktı **birebir aynı** kaldı.
+
+**B1-b ⛔ BLOKE — ikinci kitap elde yok.** `test-data/` altında tek dataset var; kökteki üç EPUB
+aynı kitabın farklı hâlleri. Kalem, **OCR'lı ikinci bir Türkçe EPUB** sağlanmadan başlayamaz.
+Sağlandığında işin şekli belli: `test-data/<ad>/input.epub` + D70/D71 kurallarıyla elle
+doğrulanmış ground truth, ≤25 kayıtlık partiler hâlinde (D79).
 
 **Bu blok M2'den sonra, M4'ten önce gelmelidir:** hibrit hattı ikinci kitapta doğrulanmadan
 eşik kalibrasyonuna girmek, tek kitaba iki kat daha fazla overfit etmektir.

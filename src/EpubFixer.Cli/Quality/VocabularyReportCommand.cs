@@ -52,8 +52,8 @@ public sealed class VocabularyReportCommand
             stopwatch.Stop();
 
             var commit = ResolveGitCommit(inputPath);
-            var vocabularyReport = VocabularyReport.Create("odun-kesmek", knowledge, stopwatch.Elapsed.TotalSeconds, commit);
-            var languageReport = LanguageModelReport.Create("odun-kesmek", knowledge, stopwatch.Elapsed.TotalSeconds);
+            var vocabularyReport = VocabularyReport.Create(DatasetName.From(inputPath), knowledge, stopwatch.Elapsed.TotalSeconds, commit);
+            var languageReport = LanguageModelReport.Create(DatasetName.From(inputPath), knowledge, stopwatch.Elapsed.TotalSeconds);
             WriteHuman(output, vocabularyReport, languageReport);
 
             if (jsonPath is not null)

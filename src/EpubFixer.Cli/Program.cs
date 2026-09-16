@@ -409,7 +409,7 @@ static int RunDebugLattice(string[] arguments)
 
         var summary = new
         {
-            dataset = "odun-kesmek",
+            dataset = DatasetName.From(arguments[1]),
             measuredOn = DateTime.UtcNow.ToString("yyyy-MM-dd"),
             options = new
             {
