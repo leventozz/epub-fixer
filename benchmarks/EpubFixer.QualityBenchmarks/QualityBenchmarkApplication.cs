@@ -28,7 +28,12 @@ public sealed class QualityBenchmarkApplication
             new QualityBenchmarkGateEvaluator(dependencies.Options),
             dependencies.Description)
     {
+        _gateProfileFailure = dependencies.Failure;
     }
+
+    /// <summary>Test seam for G3: an application whose gate profile could not be loaded.</summary>
+    internal static QualityBenchmarkApplication WithUnusableGateProfile(string failure) =>
+        new(new DefaultDependencies(null, "unusable", failure));
 
     internal QualityBenchmarkApplication(
         Func<string, QualityBenchmarkDataset> load,
@@ -58,6 +63,8 @@ public sealed class QualityBenchmarkApplication
         _gateProfileDescription = gateProfileDescription;
     }
 
+    private readonly string? _gateProfileFailure;
+
     public int Run(
         string[] args,
         TextWriter output,
@@ -77,6 +84,14 @@ public sealed class QualityBenchmarkApplication
         if (parsed.Mode == BenchmarkMode.Propose)
         {
             return RunPropose(parsed.DatasetDirectory!, output, error);
+        }
+
+        // G3: refuse before doing any work. Running with a fallback profile would produce a PASS
+        // that means nothing, and a meaningless PASS is worse than no answer.
+        if (_gateProfileFailure is not null)
+        {
+            error.WriteLine($"Error: {_gateProfileFailure}");
+            return 2;
         }
 
         try
@@ -174,18 +189,33 @@ public sealed class QualityBenchmarkApplication
 
     private static DefaultDependencies CreateDefaultDependencies()
     {
+        // G3: the failure is carried, not thrown, so Run reports it the same clean way every other
+        // failure is reported (message on stderr, exit code 2) instead of a constructor stack trace.
         var path = QualityBenchmarkGateProfileLoader.FindProfilePath();
         if (path is null)
         {
-            return new DefaultDependencies(null, "defaults (profile not found)");
+            return new DefaultDependencies(
+                null,
+                "unusable",
+                "Quality gate profile 'docs/baselines/quality-gate.json' was not found from the current "
+                + "directory or the binary's location. Refusing to run: without it the gate would fall "
+                + "back to weaker defaults and report PASS against thresholds nobody chose (G3).");
         }
 
-        return new DefaultDependencies(
-            QualityBenchmarkGateProfileLoader.LoadCurrent(path),
-            $"current from {path}");
+        try
+        {
+            return new DefaultDependencies(
+                QualityBenchmarkGateProfileLoader.LoadCurrent(path),
+                $"current from {path}",
+                null);
+        }
+        catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException)
+        {
+            return new DefaultDependencies(null, "unusable", exception.Message);
+        }
     }
 
-    private sealed record DefaultDependencies(QualityBenchmarkGateOptions? Options, string Description);
+    private sealed record DefaultDependencies(QualityBenchmarkGateOptions? Options, string Description, string? Failure);
 }
 
 internal static class QualityBenchmarkGateProfileLoader
@@ -202,20 +232,52 @@ internal static class QualityBenchmarkGateProfileLoader
         return options;
     }
 
-    public static QualityBenchmarkGateOptions? LoadCurrent(string path)
+    /// <summary>
+    /// Reads the active profile. G3: every failure below used to return <see langword="null"/>, and
+    /// the evaluator then fell back to its own defaults - precision 98%, recall 60%, no class
+    /// floors. A single typo in the profile silently dropped the recall bar and the run still
+    /// reported PASS. A gate that quietly weakens itself is not a gate, so these now throw.
+    /// The two aggregate thresholds must be declared EXPLICITLY: the options record carries
+    /// defaults for them, so an absent property is indistinguishable from a deliberate value.
+    /// </summary>
+    public static QualityBenchmarkGateOptions LoadCurrent(string path)
     {
         if (!File.Exists(path))
         {
-            return null;
+            throw new InvalidDataException($"Quality gate profile '{path}' was not found.");
         }
 
-        using var document = JsonDocument.Parse(File.ReadAllText(path));
-        if (!document.RootElement.TryGetProperty("current", out var current))
+        JsonDocument document;
+        try
         {
-            return null;
+            document = JsonDocument.Parse(File.ReadAllText(path));
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException($"Quality gate profile '{path}' is not valid JSON: {exception.Message}", exception);
         }
 
-        return current.Deserialize<QualityBenchmarkGateOptions>(Options);
+        using (document)
+        {
+            if (!document.RootElement.TryGetProperty("current", out var current))
+            {
+                throw new InvalidDataException($"Quality gate profile '{path}' has no 'current' node.");
+            }
+
+            foreach (var required in new[] { "minimumPrecision", "minimumRecall" })
+            {
+                if (!current.TryGetProperty(required, out _))
+                {
+                    throw new InvalidDataException(
+                        $"Quality gate profile '{path}' is missing 'current.{required}'. Both aggregate "
+                        + "thresholds must be declared explicitly - an absent one would silently take the "
+                        + "evaluator's own weaker default and hide a regression (G3).");
+                }
+            }
+
+            return current.Deserialize<QualityBenchmarkGateOptions>(Options)
+                ?? throw new InvalidDataException($"Quality gate profile '{path}' has an unreadable 'current' node.");
+        }
     }
 
     public static string? FindProfilePath()

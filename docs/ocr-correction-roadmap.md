@@ -36,7 +36,7 @@ Sürüm 1'in beş fazı bitti ve **mimari olarak hedefe ulaştı**:
 - **Lattice motoru** — `ILexiconMatcher` → `WordLatticeBuilder` → `LatticeDecoder` → `CorrectionAcceptanceGate`
 - **Üretim hattına bağlandı** — `IOcrCorrectionPlanner` portu, `RegionMutationPlanner`, `--ocr-engine legacy|lattice`
 
-Suite: **549/549 yeşil** (~5 dk 28 sn; sürüm 2 başlarken 522'ydi).
+Suite: **555/555 yeşil** (~5 dk 31 sn; sürüm 2 başlarken 522'ydi).
 
 ### 2.2 Ne ölçüldü — ve varsayımı nasıl yanlışladı
 
@@ -158,7 +158,7 @@ Kapı kırmızıyken hiçbir kalemin "başarılı" tanımı yoktur — bu yüzde
 |---|---|---|---|---|
 | G1 | Kapı profilini yeni ölçüm tabanına taşı (D80'i uygula) | ✅ `cd5b5ef` | — | legacy geçiyor, lattice geçmiyor |
 | G2 | `MissingSpace` / `SpuriousSpace` boşluğunu karara bağla | ⬜ | — | karar + gerekçe |
-| G3 | Profil bulunamazsa/bozuksa kapı gürültülü patlasın | ⬜ | — | sessiz zayıflama kapandı |
+| G3 | Profil bulunamazsa/bozuksa kapı gürültülü patlasın | ✅ `6eb5da0` | — | sessiz zayıflama kapandı |
 
 **G1 — Kapı profili.** ✅ `cd5b5ef`. Eşikler 288 kayıtlık taban üzerinde yeniden kuruldu:
 precision `0.9885496183206107`, recall `0.8993055555555556`, `ClassRecall:Hyphenation`
@@ -177,13 +177,26 @@ seç: (a) havuz dışına çıkıp elle bul, (b) ertele ve ölçüm boşluğu ol
 yaz. **Önce (c)'yi sına:** kitapta bu sınıf gerçekten var mı?
 *Dosyalar:* `test-data/odun-kesmek/ground-truth.json`, `odun-kesmek.loss-taxonomy.json`
 
-**G3 — Sessiz zayıflama.** G1 sırasında bulundu. `QualityBenchmarkGateProfileLoader.LoadCurrent`
-dosya yoksa **veya** `current` düğümü yoksa `null` döner; `QualityBenchmarkGateEvaluator` ise
-`options ?? new QualityBenchmarkGateOptions()` ile varsayılana düşer — **precision %98, recall
-%60, sınıf eşiği yok.** Yani profili bozan bir düzenleme kapıyı %89,93'ten %60'a indirir ve
-**koşu yeşil görünür.** Kapının tek işi regresyonu yakalamak; sessizce zayıflayan kapı, kapı
-değildir. Profil bulunamadığında/okunamadığında koşu **hata vermelidir**.
-*Dosyalar:* `QualityBenchmarkApplication.cs` (loader), `QualityBenchmarkGateEvaluator.cs`
+**G3 — Sessiz zayıflama.** ✅ Kapatıldı. `LoadCurrent` artık `null` dönmüyor, **`InvalidDataException`
+atıyor**; `QualityBenchmarkApplication` bu hatayı taşıyor ve `Run` **hiç iş yapmadan** stderr'e yazıp
+`exit 2` veriyor. Anlamsız bir PASS, cevapsızlıktan kötüdür.
+
+Dört sessiz zayıflama yolu kapatıldı — en sinsisi dördüncüsü:
+
+| Durum | Eskiden | Şimdi |
+|---|---|---|
+| Profil dosyası yok | varsayılanlar, PASS | `exit 2` |
+| `current` düğümü yok | varsayılanlar, PASS | `exit 2` |
+| Bozuk JSON | **`JsonException` ile çökme** (catch listesinde değildi) | `exit 2`, temiz mesaj |
+| `minimumPrecision` **yazım hatası** | sessizce %98/%60, **PASS** | `exit 2` |
+
+Dördüncüsü gerçek dünyada en olası hata: `QualityBenchmarkGateOptions` positional record ve iki
+eşik için varsayılan taşıyor, yani **eksik bir alan ile kasıtlı bir değer ayırt edilemiyordu.**
+Artık ikisi de **açıkça** bildirilmek zorunda.
+
+Uçtan uca doğrulandı: profile `minimumPrecision` → `minimumPrecission` yazım hatası enjekte edildi;
+koşu `exit 2` ve alanı adıyla söyleyen bir hata verdi. Eskiden recall barı %92,71'den %60'a düşer
+ve koşu **PASS** raporlardı.
 
 ### M2 — Hibrit hattı (fazın kalbi)
 

@@ -174,6 +174,65 @@ public sealed class QualityBenchmarkGateTests
         Assert.True(gate.Passed);
     }
 
+    // G3: a gate that quietly weakens itself is not a gate. Before G3 every case below returned
+    // null options, and the evaluator fell back to its own defaults - precision 98%, recall 60%,
+    // no class floors. A typo in the profile therefore dropped the recall bar from 92.71% to 60%
+    // and the run still reported PASS. Each of these must now be a loud failure instead.
+
+    [Theory]
+    [InlineData("""{ "target": { "minimumPrecision": 0.98 } }""", "current")]
+    [InlineData("""{ "current": { "minimumRecall": 0.6 } }""", "minimumPrecision")]
+    [InlineData("""{ "current": { "minimumPrecision": 0.98 } }""", "minimumRecall")]
+    [InlineData("""{ "current": { "minimumPrecission": 0.98, "minimumRecall": 0.6 } }""", "minimumPrecision")]
+    public void LoadCurrent_IncompleteProfile_Throws(string json, string expectedInMessage)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"quality-gate-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, json);
+        try
+        {
+            var exception = Assert.Throws<InvalidDataException>(
+                () => QualityBenchmarkGateProfileLoader.LoadCurrent(path));
+
+            Assert.Contains(expectedInMessage, exception.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void LoadCurrent_MalformedJson_ThrowsInsteadOfCrashing()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"quality-gate-{Guid.NewGuid():N}.json");
+        File.WriteAllText(path, "{ \"current\": { ");
+        try
+        {
+            // A JsonException would escape the application's catch list and crash the run with a
+            // stack trace; callers must get the same clean error every other failure produces.
+            Assert.Throws<InvalidDataException>(() => QualityBenchmarkGateProfileLoader.LoadCurrent(path));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Run_UnusableGateProfile_FailsLoudlyInsteadOfUsingWeakDefaults()
+    {
+        var app = QualityBenchmarkApplication.WithUnusableGateProfile(
+            "quality-gate.json was not found next to the repository.");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = app.Run(["dataset"], output, error);
+
+        Assert.Equal(2, exitCode);
+        Assert.Contains("quality-gate.json", error.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Quality gate: PASS", output.ToString(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void GateOptions_ClassRecallThresholds_LoadedFromProfileFile()
     {
