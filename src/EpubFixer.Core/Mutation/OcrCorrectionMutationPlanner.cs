@@ -52,16 +52,8 @@ public sealed class OcrCorrectionMutationPlanner
                 failures.Add(new(OcrMutationFailureReason.UnsupportedSourceGeometry, "Source geometry is not a valid logical range."));
                 continue;
             }
-            var spans = new List<OcrMutationSourceSpan>();
-            for (var index = logicalStart; index < logicalEnd; index++)
-            {
-                var location = stream.GetSourceLocationAt(index);
-                var expected = stream.Text[index].ToString();
-                if (spans.Count > 0 && spans[^1].DocumentPath == location.DocumentPath && spans[^1].TextNodeIndex == location.TextNodeIndex && spans[^1].Start + spans[^1].Length == location.Start)
-                    spans[^1] = spans[^1] with { Length = spans[^1].Length + 1, ExpectedText = spans[^1].ExpectedText + expected };
-                else spans.Add(new(location.DocumentPath, location.TextNodeIndex, location.Start, 1, expected));
-            }
-            mutations.Add(new(decision.SourceOccurrence.Source.Candidate.Document, logicalStart, logicalEnd - logicalStart, stream.Text[logicalStart..logicalEnd], proposal.ProposedText, decision, spans));
+            var spans = RegionMutationGeometry.BuildSourceSpans(stream, logicalStart, logicalEnd);
+            mutations.Add(new(decision.SourceOccurrence.Source.Candidate.Document, logicalStart, logicalEnd - logicalStart, stream.Text[logicalStart..logicalEnd], proposal.ProposedText, BuildProvenance(decision), spans));
         }
 
         var normalized = new List<OcrCorrectionMutation>();
@@ -83,6 +75,13 @@ public sealed class OcrCorrectionMutationPlanner
 
     private static (int Start, int Length) LexicalRange(OcrWordCandidate source, string prefix, string suffix) =>
         (source.LogicalStart + prefix.Length, source.Text.Length - prefix.Length - suffix.Length);
+
+    private static OcrMutationProvenance BuildProvenance(OcrCorrectionDecision decision) =>
+        new(
+            OcrCorrectionEngine.Legacy,
+            decision.DecisionReasons.FirstOrDefault().ToString(),
+            decision.SourceOccurrence.Source.Confidence,
+            decision.SelectedProposal?.Proposal.ConsumesMultipleOccurrences == true);
 
     private static bool SameGeometry(OcrCorrectionMutation first, OcrCorrectionMutation second) =>
         string.Equals(first.DocumentPath, second.DocumentPath, StringComparison.Ordinal)

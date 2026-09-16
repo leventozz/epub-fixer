@@ -1,4 +1,5 @@
 using System.Text;
+using AngleSharp.Html.Parser;
 
 namespace EpubFixer.Core.Epub.Models;
 
@@ -21,6 +22,24 @@ public sealed class LogicalTextStream
     public string Text { get; }
 
     public int CharacterCount => Text.Length;
+
+    public static LogicalTextStream FromPlainText(string text, string documentPath = "plain.txt")
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(documentPath);
+
+        var parser = new HtmlParser();
+        var document = parser.ParseDocument("<html><body><p></p></body></html>");
+        var paragraph = document.QuerySelector("p")!;
+        var node = document.CreateTextNode(text);
+        paragraph.AppendChild(node);
+        var source = new TextSourceLocation(documentPath, 0, node, 0, text.Length);
+        var segment = new TextSegment(text, 0, source);
+        return new LogicalTextStream(
+            Array.AsReadOnly(new[] { segment }),
+            Array.AsReadOnly(Array.Empty<TextBoundary>()),
+            text);
+    }
 
     public TextSegment GetSegmentAt(int logicalCharacterIndex)
     {

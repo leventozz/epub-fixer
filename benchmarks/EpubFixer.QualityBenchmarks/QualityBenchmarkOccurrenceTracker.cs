@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using EpubFixer.Core.Epub.Models;
+using EpubFixer.Core.Mutation.Models;
 using EpubFixer.QualityBenchmarks.Models;
 
 namespace EpubFixer.QualityBenchmarks;
@@ -32,7 +33,7 @@ internal sealed class QualityBenchmarkOccurrenceTracker
 
     public IRange Range { get; }
 
-    private IReadOnlyList<TrackedSourceSpan> Spans { get; }
+    private IReadOnlyList<TrackedSourceSpan> Spans { get; set; }
 
     public static IReadOnlyList<QualityBenchmarkOccurrenceTracker> CreateKnown(
         IReadOnlyList<KnownErrorOccurrence> occurrences,
@@ -66,6 +67,16 @@ internal sealed class QualityBenchmarkOccurrenceTracker
     {
         var text = string.Concat(Spans.Select(ReadCurrentSpan));
 
+        if (Spans.All(span => span.IsExact))
+        {
+            // Every span was resynced against exact OCR mutation geometry (Resync):
+            // Start/Length bound the current text precisely, with no fuzzy boundary
+            // left over from MapOffset's heuristic walk. Snapping a prefix match to
+            // Expected here would mask a genuine over-correction (Expected "üç", engine
+            // writes "üçü" - "üçü".StartsWith("üç") would otherwise read as correct).
+            return text;
+        }
+
         if (Expected is not null && text.StartsWith(Expected, StringComparison.Ordinal))
         {
             return Expected;
@@ -82,6 +93,20 @@ internal sealed class QualityBenchmarkOccurrenceTracker
     public void Detach()
     {
         Range.Detach();
+    }
+
+    public void Resync(
+        IReadOnlyDictionary<IText, string> beforeOcrText,
+        IReadOnlyDictionary<(string DocumentPath, int TextNodeIndex), IText> mutationNodesByLocation,
+        IReadOnlyList<OcrCorrectionMutation> mutations)
+    {
+        ArgumentNullException.ThrowIfNull(beforeOcrText);
+        ArgumentNullException.ThrowIfNull(mutationNodesByLocation);
+        ArgumentNullException.ThrowIfNull(mutations);
+
+        Spans = Spans
+            .Select(span => ResyncSpan(span, beforeOcrText, mutationNodesByLocation, mutations))
+            .ToArray();
     }
 
     private static QualityBenchmarkOccurrenceTracker Create(
@@ -119,6 +144,8 @@ internal sealed class QualityBenchmarkOccurrenceTracker
         var trackedSpans = spans
             .Zip(segments)
             .Select(item => new TrackedSourceSpan(
+                item.First.DocumentPath,
+                item.First.TextNodeIndex,
                 item.First.Start - item.Second.Source.Start,
                 item.First.Length,
                 item.Second.Source.SourceNode,
@@ -136,7 +163,11 @@ internal sealed class QualityBenchmarkOccurrenceTracker
 
     private static string ReadCurrentSpan(TrackedSourceSpan span)
     {
-        var data = span.SourceNode.Data;
+        return ResolveSpan(span, span.SourceNode.Data).Text;
+    }
+
+    private static (int Start, string Text) ResolveSpan(TrackedSourceSpan span, string data)
+    {
         var start = MapOffset(span.OriginalText, data, span.Start);
         var sourceText = span.OriginalText.Substring(
             span.Start,
@@ -146,23 +177,23 @@ internal sealed class QualityBenchmarkOccurrenceTracker
         if (correctedText is not null
             && StartsWithAt(data, start, correctedText))
         {
-            return correctedText;
+            return (start, correctedText);
         }
 
         if (StartsWithAt(data, start, sourceText))
         {
-            return sourceText;
+            return (start, sourceText);
         }
 
         var end = MapOffset(span.OriginalText, data, span.Start + span.Length);
         if (end < start)
         {
-            return string.Empty;
+            return (start, string.Empty);
         }
 
         start = Math.Clamp(start, 0, data.Length);
         end = Math.Clamp(end, start, data.Length);
-        return data[start..end];
+        return (start, data[start..end]);
     }
 
     private static string? RemoveSingleHyphen(string text)
@@ -217,9 +248,120 @@ internal sealed class QualityBenchmarkOccurrenceTracker
         return afterIndex;
     }
 
+    private static TrackedSourceSpan ResyncSpan(
+        TrackedSourceSpan tracked,
+        IReadOnlyDictionary<IText, string> beforeOcrText,
+        IReadOnlyDictionary<(string DocumentPath, int TextNodeIndex), IText> mutationNodesByLocation,
+        IReadOnlyList<OcrCorrectionMutation> mutations)
+    {
+        // tracked.Start/OriginalText were captured before the hyphenation stages ran.
+        // Resolve against the node's text as it stood right before the OCR stage first -
+        // that reuses the existing hyphen-tolerant MapOffset/RemoveSingleHyphen matching
+        // (unchanged) to land on the actual post-hyphenation start and length. Only from
+        // that resolved position can the OCR mutation's exact geometry be applied - the
+        // node's post-hyphenation text is the same coordinate space the OCR mutation spans
+        // (built from that stage's LogicalTextStream) use.
+        var beforeText = beforeOcrText.TryGetValue(tracked.SourceNode, out var value)
+            ? value
+            : tracked.OriginalText;
+        var resolved = ResolveSpan(tracked, beforeText);
+        var resolvedStart = resolved.Start;
+        var resolvedLength = resolved.Text.Length;
+        var resolvedEnd = resolvedStart + resolvedLength;
+
+        var startDelta = 0;
+        var lengthDelta = 0;
+        var touched = false;
+
+        foreach (var mutation in mutations)
+        {
+            for (var index = 0; index < mutation.SourceSpans.Count; index++)
+            {
+                var source = mutation.SourceSpans[index];
+
+                // A mutation's TextNodeIndex is positional in the LogicalTextStream
+                // it was planned against (built after hyphenation ran, which can
+                // remove/merge text nodes). The tracker's TextNodeIndex is positional
+                // in the pristine, pre-hyphenation stream. The same index number can
+                // therefore refer to two different physical nodes - resolve the
+                // mutation span to its actual node object and compare by reference.
+                if (!mutationNodesByLocation.TryGetValue(
+                        (source.DocumentPath, source.TextNodeIndex),
+                        out var sourceNode)
+                    || !ReferenceEquals(sourceNode, tracked.SourceNode))
+                {
+                    continue;
+                }
+
+                var replacementLength = index == 0 ? mutation.ReplacementText.Length : 0;
+                var netLength = replacementLength - source.Length;
+                var sourceEnd = source.Start + source.Length;
+
+                if (source.Start < resolvedEnd && resolvedStart < sourceEnd)
+                {
+                    // The mutation falls inside the tracked span: that record genuinely
+                    // changed. Its length changes accordingly so the read below is
+                    // exact, not a stale pre-OCR length that could read past (or short
+                    // of) the actual replacement and be silently "saved" by
+                    // ReadObservedText's StartsWith guard - which would just as easily
+                    // mask a genuine over-correction.
+                    //
+                    // Exact only while the mutation lies within the tracked span (the
+                    // common case: the engine rewrote this occurrence). When a mutation
+                    // instead SUBSUMES the span - it rewrote a wider run of text that
+                    // merely contains this occurrence - no length arithmetic can say
+                    // which part of the replacement belongs to the span, so the read
+                    // falls back to taking that many characters from resolvedStart.
+                    // That is a best effort, not an exact read; it still surfaces the
+                    // change rather than hiding it, which is what the gate needs.
+                    touched = true;
+                    lengthDelta += netLength;
+                    continue;
+                }
+
+                if (sourceEnd <= resolvedStart)
+                {
+                    touched = true;
+                    startDelta += netLength;
+                }
+            }
+        }
+
+        if (!touched)
+        {
+            // No OCR mutation touched this node at or before the tracked span: the
+            // node's current data is identical to its pre-OCR data here, so the
+            // existing (untouched) MapOffset/RemoveSingleHyphen read keeps working.
+            // Falling back to net delta == 0 here would be wrong: two preceding
+            // mutations in the same node can cancel out to a net delta of zero while
+            // still desyncing MapOffset's single-character-lookahead walk (D64) -
+            // once any mutation touches this node, the exact path below is always at
+            // least as good as the heuristic.
+            return tracked;
+        }
+
+        return tracked with
+        {
+            Start = resolvedStart + startDelta,
+            Length = Math.Max(0, resolvedLength + lengthDelta),
+            OriginalText = tracked.SourceNode.Data,
+            IsExact = true
+        };
+    }
+
     private sealed record TrackedSourceSpan(
+        string DocumentPath,
+        int TextNodeIndex,
         int Start,
         int Length,
         IText SourceNode,
-        string OriginalText);
+        string OriginalText)
+    {
+        /// <summary>
+        /// True once <see cref="ResyncSpan"/> has realigned this span against exact OCR
+        /// mutation geometry - Start/Length then bound the current text precisely, with
+        /// none of the fuzzy trailing boundary MapOffset's heuristic can leave behind.
+        /// </summary>
+        public bool IsExact { get; init; }
+    }
 }

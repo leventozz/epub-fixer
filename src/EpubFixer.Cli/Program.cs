@@ -18,6 +18,14 @@ using EpubFixer.Core.Ocr;
 using EpubFixer.Core.Ocr.Models;
 using EpubFixer.Core.Mutation.Models;
 using EpubFixer.TrMorph;
+using EpubFixer.Adapters.Lexicon;
+using EpubFixer.Adapters.Ocr;
+using EpubFixer.Cli.Morphology;
+using EpubFixer.Adapters.Ocr.Lattice;
+using EpubFixer.Cli.OcrReconstruction;
+using EpubFixer.Cli.Quality;
+using EpubFixer.Core.Ocr.Lattice;
+using EpubFixer.Core.Ocr.Lattice.Models;
 
 return Run(args);
 
@@ -25,6 +33,18 @@ static int Run(string[] arguments)
 {
     if (arguments.Length > 0 && string.Equals(arguments[0], "debug-ocr-region", StringComparison.OrdinalIgnoreCase))
         return RunDebugOcrRegion(arguments);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "debug-ocr-reconstruction", StringComparison.OrdinalIgnoreCase))
+        return RunDebugOcrReconstruction(arguments);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "debug-lattice", StringComparison.OrdinalIgnoreCase))
+        return RunDebugLattice(arguments);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "measure", StringComparison.OrdinalIgnoreCase))
+        return new MeasureCommand().Run(arguments, Console.Out, Console.Error);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "debug-vocabulary", StringComparison.OrdinalIgnoreCase))
+        return new VocabularyReportCommand().Run(arguments, Console.Out, Console.Error);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "reader-preview", StringComparison.OrdinalIgnoreCase))
+        return FullBookReaderPreview.Run(arguments);
+    if (arguments.Length > 0 && string.Equals(arguments[0], "inspect-reader-preview-prewarm", StringComparison.OrdinalIgnoreCase))
+        return FullBookReaderPreview.InspectPrewarm(arguments);
 
     if (!CliOptions.TryParse(arguments, out var options))
     {
@@ -38,8 +58,11 @@ static int Run(string[] arguments)
 
         if (options.Command == CliCommand.Fix)
         {
-            using var analyzer = new FomaTurkishMorphologyAnalyzer();
-            var result = new EpubFixService(analyzer).Fix(
+            using var builder = new CachingMorphologyOracleBuilder(
+                new FomaMorphologyOracleBuilder(),
+                new MorphologyOracleCache(options.EpubPath));
+            IOcrCorrectionPlanner? ocrCorrectionPlanner = OcrPlannerFactory.Resolve(options.OcrEngine);
+            var result = new EpubFixService(builder, ocrCorrectionPlanner).Fix(
                 options.EpubPath,
                 options.OutputEpubPath!,
                 options.ApplyOcrCorrections);
@@ -57,8 +80,10 @@ static int Run(string[] arguments)
     OcrCorrectionDecisionAnalysisReport? decisionReport = null;
     if (options.OcrCorrectionReportPath is not null || options.OcrDecisionReportPath is not null)
     {
-        using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
-        correctionReport = new OcrAnalysisService().AnalyzeCorrections(options.EpubPath, ocrAnalyzer);
+        using var ocrBuilder = new CachingMorphologyOracleBuilder(
+            new FomaMorphologyOracleBuilder(),
+            new MorphologyOracleCache(options.EpubPath));
+        correctionReport = new OcrAnalysisService().AnalyzeCorrections(options.EpubPath, ocrBuilder);
         if (options.OcrCorrectionReportPath is not null)
         {
             File.WriteAllText(options.OcrCorrectionReportPath, OcrCorrectionAnalysisReporting.SerializeMarkdown(correctionReport), new UTF8Encoding(false));
@@ -77,8 +102,10 @@ static int Run(string[] arguments)
         if (correctionReport is not null) ocrReport = correctionReport.SourceAnalysis;
         else
         {
-            using var ocrAnalyzer = new FomaTurkishMorphologyAnalyzer();
-            ocrReport = new OcrAnalysisService().Analyze(options.EpubPath, ocrAnalyzer);
+            using var ocrBuilder = new CachingMorphologyOracleBuilder(
+                new FomaMorphologyOracleBuilder(),
+                new MorphologyOracleCache(options.EpubPath));
+            ocrReport = new OcrAnalysisService().Analyze(options.EpubPath, ocrBuilder);
         }
         File.WriteAllText(options.OcrReportPath, OcrAnalysisReporting.SerializeMarkdown(ocrReport), new UTF8Encoding(false));
         Console.WriteLine($"OCR report written to: {options.OcrReportPath}");
@@ -175,9 +202,13 @@ static int Run(string[] arguments)
                 var protectedOccurrences = GroundTruthProtectedOccurrenceLoader.Load(
                     options.GroundTruthPath!);
                 using var analyzer = new FomaTurkishMorphologyAnalyzer();
+                var oracleBuilder = new BatchMorphologyOracleBuilder(analyzer);
+                var hyphenationAnalyzer = new HyphenationMorphologyAnalyzer();
+                var oracle = oracleBuilder.Build(
+                    hyphenationAnalyzer.EnumerateMorphologyQueries(afterCrossParagraphPipeline.Evidence));
                 var morphology = new HyphenationMorphologyAnalyzer().Analyze(
                     afterCrossParagraphPipeline.Evidence,
-                    analyzer);
+                    oracle);
                 File.WriteAllText(
                     options.TrMorphReportPath,
                     TrMorphReport.Serialize(
@@ -234,15 +265,36 @@ static int RunDebugOcrRegion(string[] arguments)
     {
         var text = File.ReadAllText(input, new UTF8Encoding(false, true));
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
-        var regions = new OcrRegionDetector().Detect(text, analyzer);
+        var oracleBuilder = new BatchMorphologyOracleBuilder(analyzer);
+        var detector = new OcrRegionDetector();
+        var regions = detector.Detect(text, oracleBuilder.Build(detector.EnumerateMorphologyQueries(text)));
+        var targets = new[] { "ya\n\ndn", "ı,ırarını", "ı ıç", "kendi-ıni", "dikkat-:;i zlikle", "1 ı iç", ":,ohbet", "koli ukta", "(le", "ı ızellikle", "ı ılduğu", "Ce-lıimde", "( 1 iye", "--:<lbaha", "Anacadde-si'ni", "Schwarzen-herg", "ge-^:cn", "Simmerin-ger", "yü-ıiimeye" };
+        var clean = new[] { "de yıllarca,", "düşünüyorum,", "eve,", "başladığında,", "dolaştım,", "denilebilir, o en", "o zamanlar.", "ve içtim,", "anlatılmaz,", "yoktu,", "oldum,", "ettim,", "Jeannie", "Billroth", "Auersberger", "Rennweg", "Schwarzenberg", "Wahring", "Simmeringer", "Joana'ya" };
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(outputPath))!);
         File.WriteAllText(outputPath, text, new UTF8Encoding(false));
         var builder = new StringBuilder("# OCR Region Debug\n\n## RAW TEXT\n\n");
         builder.AppendLine(text).AppendLine("\n## DETECTED CORRUPTED REGIONS\n");
+        var targetOccurrences = targets.SelectMany(target => Occurrences(text, target).Select(start => (Target: target, Start: start, End: start + target.Length))).ToArray();
+        var targetRows = targetOccurrences.Select(item => (item, Region: regions.FirstOrDefault(r => r.Start <= item.Start && r.EndExclusive >= item.End))).ToArray();
+        builder.AppendLine($"Previous detected region count: 77\nNew detected region count: {regions.Count}\nTarget occurrence count: {targetRows.Length}\nTarget detected count: {targetRows.Count(x => x.Region is not null)}\nTarget missed count: {targetRows.Count(x => x.Region is null)}\nBoundary-correct target count: {targetRows.Count(x => x.Region is not null && x.Region.Start == x.item.Start && x.Region.EndExclusive == x.item.End)}\n");
+        builder.AppendLine("## TARGET REGION AUDIT\n");
+        foreach (var row in targetRows)
+        {
+            var r = row.Region;
+            builder.AppendLine($"- Target: `{row.item.Target.Replace("\r", "\\r").Replace("\n", "\\n")}` | Detected: {r is not null} | Raw region: `{r?.RawText.Replace("\r", "\\r").Replace("\n", "\\n") ?? ""}` | Start: {r?.Start.ToString() ?? "-"} | EndExclusive: {r?.EndExclusive.ToString() ?? "-"} | Reasons: {(r is null ? "-" : string.Join(", ", r.DetectionReasons))} | Boundary-correct: {r is not null && r.Start == row.item.Start && r.EndExclusive == row.item.End}");
+        }
+        builder.AppendLine("\n## CLEAN TEXT FALSE-POSITIVE AUDIT\n");
+        var cleanRows = clean.SelectMany(target => Occurrences(text, target).Select(start => (Target: target, Start: start, End: start + target.Length))).ToArray();
+        foreach (var row in cleanRows)
+        {
+            var overlap = regions.FirstOrDefault(r => r.Start < row.End && r.EndExclusive > row.Start);
+            builder.AppendLine($"- `{row.Target}` [{row.Start},{row.End}): Region: {overlap is not null} | Raw: `{overlap?.RawText ?? ""}` | Reasons: {(overlap is null ? "-" : string.Join(", ", overlap.DetectionReasons))}");
+        }
+        builder.AppendLine($"\nClean false-positive count: {cleanRows.Count(row => regions.Any(r => r.Start < row.End && r.EndExclusive > row.Start))}\n");
         foreach (var (r, index) in regions.Select((r, i) => (r, i + 1)))
             builder.AppendLine($"### #{index}\n- Raw: `{r.RawText.Replace("\r", "\\r").Replace("\n", "\\n")}`\n- Start: {r.Start}\n- EndExclusive: {r.EndExclusive}\n- Fragments: {string.Join(" | ", r.LogicalFragments)}\n- Reasons: {string.Join(", ", r.DetectionReasons)}\n- Context: `{r.ContextBefore}⟦{r.RawText}⟧{r.ContextAfter}`\n");
-        builder.AppendLine("## RECONSTRUCTION CANDIDATES\n\nDeferred in detection milestone.\n\n## DECISIONS\n\nDeferred in detection milestone.\n\n## RECONSTRUCTED TEXT\n\nRaw text copied unchanged.\n");
+        builder.AppendLine("## RECONSTRUCTION CANDIDATES\n\nDeferred.\n\n## DECISIONS\n\nDeferred.\n\n## RECONSTRUCTED TEXT\n\nRaw.\n");
         File.WriteAllText(reportPath, builder.ToString(), new UTF8Encoding(false));
         Console.WriteLine("=== DETECTED CORRUPTED REGIONS ===");
         Console.WriteLine($"Detected regions: {regions.Count}");
@@ -253,6 +305,165 @@ static int RunDebugOcrRegion(string[] arguments)
     }
     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DecoderFallbackException)
     { Console.Error.WriteLine($"Error: {ex.Message}"); return 2; }
+}
+
+static int RunDebugOcrReconstruction(string[] arguments)
+{
+    if (arguments.Length < 2) { PrintUsage(); return 1; }
+    string? expected = null;
+    string? report = null;
+    string? diagnosticReport = null;
+    var fast = false;
+    string? targetIds = null;
+    for (var i = 2; i < arguments.Length; i++)
+    {
+        if (string.Equals(arguments[i], "--fast", StringComparison.OrdinalIgnoreCase)) { fast = true; continue; }
+        if (i + 1 >= arguments.Length) { PrintUsage(); return 1; }
+        if (string.Equals(arguments[i], "--expected", StringComparison.OrdinalIgnoreCase)) expected = arguments[++i];
+        else if (string.Equals(arguments[i], "--report", StringComparison.OrdinalIgnoreCase)) report = arguments[++i];
+        else if (string.Equals(arguments[i], "--diagnostic-report", StringComparison.OrdinalIgnoreCase)) diagnosticReport = arguments[++i];
+        else if (string.Equals(arguments[i], "--targets", StringComparison.OrdinalIgnoreCase)) targetIds = arguments[++i];
+        else { PrintUsage(); return 1; }
+    }
+    try
+    {
+        using var analyzer = new FomaTurkishMorphologyAnalyzer();
+        return new OcrReconstructionComparison().Run(arguments[1], expected, report, analyzer, diagnosticReport, fast, targetIds);
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException or TurkishMorphologyException)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 2;
+    }
+}
+
+static int RunDebugLattice(string[] arguments)
+{
+    if (arguments.Length < 2) { PrintUsage(); return 1; }
+    string? jsonPath = null;
+    string? reportPath = null;
+    for (var i = 2; i < arguments.Length; i++)
+    {
+        if (i + 1 >= arguments.Length) { PrintUsage(); return 1; }
+        if (string.Equals(arguments[i], "--json", StringComparison.OrdinalIgnoreCase)) jsonPath = arguments[++i];
+        else if (string.Equals(arguments[i], "--report", StringComparison.OrdinalIgnoreCase)) reportPath = arguments[++i];
+        else { PrintUsage(); return 1; }
+    }
+
+    try
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var package = new EpubPackageReader().Read(arguments[1]);
+        using var analyzer = new FomaTurkishMorphologyAnalyzer();
+        var frequency = FileTurkishFrequencyListSource.Load();
+        var knowledge = new BookKnowledgeBuilder(frequency).Build(package.LogicalText, new BatchMorphologyOracleBuilder(analyzer));
+        var options = new LatticeOptions();
+        var matcher = new SymSpellLexiconMatcher(knowledge.Vocabulary);
+        var reconstructor = new LatticeRegionReconstructor(
+            package.LogicalText.Text,
+            new WordLatticeBuilder(matcher, LogicalTextStreamBoundaries.HardOffsets(package.LogicalText)),
+            new LatticeDecoder(knowledge.LanguageModel, options),
+            new CorrectionAcceptanceGate(knowledge.Vocabulary, options),
+            options);
+        var decisions = knowledge.Regions.Select(region => (Region: region, Result: reconstructor.Evaluate(region))).ToArray();
+        watch.Stop();
+
+        if (reportPath is not null)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(reportPath))!);
+            var reasonHistogram = decisions
+                .SelectMany(item => item.Result.Reasons)
+                .GroupBy(reason => reason, StringComparer.Ordinal)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.Ordinal)
+                .ToArray();
+            var report = new StringBuilder("# Lattice OCR Report\n\n")
+                .AppendLine("## Summary")
+                .AppendLine()
+                .AppendLine($"- Apply: {reconstructor.Statistics.Applied}")
+                .AppendLine($"- Review: {reconstructor.Statistics.Reviewed}")
+                .AppendLine($"- Leave: {reconstructor.Statistics.Left}")
+                .AppendLine($"- Max visited states per region: {reconstructor.Statistics.MaxVisitedStates}")
+                .AppendLine()
+                .AppendLine("## Reason Histogram")
+                .AppendLine()
+                .AppendLine("| Reason | Count |")
+                .AppendLine("| --- | ---: |");
+            foreach (var group in reasonHistogram)
+            {
+                report.AppendLine($"| {group.Key} | {group.Count()} |");
+            }
+
+            report
+                .AppendLine()
+                .AppendLine("## Decisions")
+                .AppendLine()
+                .AppendLine("| Region | Verdict | Replacement | Reasons |")
+                .AppendLine("| --- | --- | --- | --- |");
+            foreach (var item in decisions)
+            {
+                report.AppendLine($"| `{item.Region.RawText.Replace("|", "\\|")}` | {item.Result.Verdict} | `{item.Result.Replacement}` | {string.Join("; ", item.Result.Reasons)} |");
+            }
+            File.WriteAllText(reportPath, report.ToString(), new UTF8Encoding(false));
+        }
+
+        var summary = new
+        {
+            dataset = "odun-kesmek",
+            measuredOn = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+            options = new
+            {
+                lambda = options.Lambda,
+                maxPathCost = options.MaxPathCost,
+                minMargin = options.MinMargin,
+                maxOrdinarySubstitutions = options.MaxOrdinarySubstitutions,
+                maxWindowLength = options.MaxWindowLength,
+                maxArcLength = options.MaxArcLength,
+                contextTokens = options.ContextTokens,
+                budgetCap = options.BudgetCap,
+                maxMatchesPerSpan = options.MaxMatchesPerSpan,
+                maxQueriesPerSpan = options.MaxQueriesPerSpan
+            },
+            regions = reconstructor.Statistics.Regions,
+            built = reconstructor.Statistics.Built,
+            skippedTooLong = reconstructor.Statistics.SkippedTooLong,
+            budgetExceeded = reconstructor.Statistics.BudgetExceeded,
+            applied = reconstructor.Statistics.Applied,
+            reviewed = reconstructor.Statistics.Reviewed,
+            left = reconstructor.Statistics.Left,
+            totalSeconds = watch.Elapsed.TotalSeconds,
+            averageArcsPerRegion = reconstructor.Statistics.Built == 0 ? 0 : reconstructor.Statistics.TotalArcs / (double)reconstructor.Statistics.Built,
+            maxVisitedStates = reconstructor.Statistics.MaxVisitedStates,
+            reasonHistogram = decisions
+                .SelectMany(item => item.Result.Reasons)
+                .GroupBy(reason => reason, StringComparer.Ordinal)
+                .OrderByDescending(group => group.Count())
+                .ThenBy(group => group.Key, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal)
+        };
+
+        if (jsonPath is not null)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(jsonPath))!);
+            File.WriteAllText(jsonPath, System.Text.Json.JsonSerializer.Serialize(summary, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }), new UTF8Encoding(false));
+        }
+
+        Console.WriteLine($"Lattice regions: {reconstructor.Statistics.Regions}");
+        Console.WriteLine($"Built: {reconstructor.Statistics.Built}; skipped: {reconstructor.Statistics.SkippedTooLong}; exceeded: {reconstructor.Statistics.BudgetExceeded}");
+        Console.WriteLine($"Applied: {reconstructor.Statistics.Applied}; reviewed: {reconstructor.Statistics.Reviewed}; left: {reconstructor.Statistics.Left}");
+        if (jsonPath is not null) Console.WriteLine($"Lattice baseline written to: {Path.GetFullPath(jsonPath)}");
+        return 0;
+    }
+    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException or TurkishMorphologyException)
+    {
+        Console.Error.WriteLine($"Error: {ex.Message}");
+        return 2;
+    }
+}
+
+static IEnumerable<int> Occurrences(string text, string value)
+{
+    for (var start = 0; (start = text.IndexOf(value, start, StringComparison.Ordinal)) >= 0; start += Math.Max(1, value.Length)) yield return start;
 }
 
 static void ValidateOutputPaths(CliOptions options)
@@ -372,7 +583,7 @@ static void WriteOcrMutationReport(string path, OcrMutationResult result)
     var index = 1;
     foreach (var mutation in result.AppliedMutations)
     {
-        builder.AppendLine($"| {index++} | {mutation.DocumentPath} | {mutation.OriginalSourceText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.ReplacementText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.DecisionRule} | {mutation.Confidence} | {mutation.SourceSpans.Count} | true | |");
+        builder.AppendLine($"| {index++} | {mutation.DocumentPath} | {mutation.OriginalSourceText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.ReplacementText.Replace("|", "\\|", StringComparison.Ordinal)} | {mutation.DecisionRule} | {mutation.Confidence?.ToString() ?? "—"} | {mutation.SourceSpans.Count} | true | |");
     }
     builder.AppendLine();
     builder.AppendLine("## Mutation Risk Audit");
@@ -696,6 +907,10 @@ static bool PathsReferToSameFile(string firstPath, string secondPath)
 static void PrintUsage()
 {
     Console.Error.WriteLine("       epubfixer debug-ocr-region <input.txt> [--report <report.md>] [--output <output.txt>]");
+    Console.Error.WriteLine("       epubfixer debug-ocr-reconstruction <input.txt> [--fast] [--targets <ids>] [--expected <expected.json>] [--report <report.md>] [--diagnostic-report <report.md>]");
+    Console.Error.WriteLine("       epubfixer debug-lattice <book.epub> [--json <out.lattice.json>] [--report <out.md>]");
+    MeasureCommand.PrintUsage(Console.Error);
+    VocabularyReportCommand.PrintUsage(Console.Error);
     Console.Error.WriteLine(
         "Usage: epubfixer analyze <book.epub> "
         + "[--apply-inline] "
@@ -707,7 +922,7 @@ static void PrintUsage()
         + "[--ocr-correction-report <ocr-candidates.md>] "
         + "[--ocr-decision-report <ocr-decisions.md>] "
         + "[--trmorph-report <trmorph.md> --ground-truth <ground-truth.json>]");
-    Console.Error.WriteLine("       epubfixer fix <book.epub> -o <book.fixed.epub> [--apply-ocr-corrections] [--ocr-mutation-report <report.md>]");
+    Console.Error.WriteLine($"       epubfixer fix <book.epub> -o <book.fixed.epub> [--apply-ocr-corrections] [--ocr-mutation-report <report.md>] [--ocr-engine {string.Join('|', OcrPlannerFactory.KnownEngineNames)}]");
 }
 
 internal sealed record CliOptions(
@@ -728,6 +943,7 @@ internal sealed record CliOptions(
 {
     public bool ApplyOcrCorrections { get; init; }
     public string? OcrMutationReportPath { get; init; }
+    public string OcrEngine { get; init; } = "hybrid";
     public static bool TryParse(string[] arguments, out CliOptions options)
     {
         options = null!;
@@ -748,6 +964,7 @@ internal sealed record CliOptions(
 
             var applyOcr = false;
             string? mutationReport = null;
+            string? ocrEngine = null;
             var fixIndex = 4;
             while (fixIndex < arguments.Length)
             {
@@ -756,6 +973,10 @@ internal sealed record CliOptions(
                 if (string.Equals(arguments[fixIndex], "--ocr-mutation-report", StringComparison.OrdinalIgnoreCase)
                     && mutationReport is null && fixIndex + 1 < arguments.Length && !string.IsNullOrWhiteSpace(arguments[fixIndex + 1]))
                 { mutationReport = arguments[fixIndex + 1]; fixIndex += 2; continue; }
+                if (string.Equals(arguments[fixIndex], "--ocr-engine", StringComparison.OrdinalIgnoreCase)
+                    && ocrEngine is null && fixIndex + 1 < arguments.Length
+                    && OcrPlannerFactory.IsKnownEngine(arguments[fixIndex + 1]))
+                { ocrEngine = arguments[fixIndex + 1].ToLowerInvariant(); fixIndex += 2; continue; }
                 return false;
             }
             if (mutationReport is not null && !applyOcr) return false;
@@ -774,7 +995,11 @@ internal sealed record CliOptions(
                 null,
                 false,
                 false)
-            { ApplyOcrCorrections = applyOcr, OcrMutationReportPath = mutationReport };
+            {
+                ApplyOcrCorrections = applyOcr,
+                OcrMutationReportPath = mutationReport,
+                OcrEngine = ocrEngine ?? "hybrid"
+            };
             return true;
         }
 

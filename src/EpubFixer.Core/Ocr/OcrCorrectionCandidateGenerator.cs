@@ -23,23 +23,43 @@ public sealed class OcrCorrectionCandidateGenerator
         OcrAnalysisReport sourceAnalysis,
         LogicalTextStream stream,
         BookLexicon lexicon,
-        ITurkishMorphologyAnalyzer analyzer)
+        IMorphologyOracle oracle)
     {
         ArgumentNullException.ThrowIfNull(sourceAnalysis);
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(lexicon);
-        ArgumentNullException.ThrowIfNull(analyzer);
+        ArgumentNullException.ThrowIfNull(oracle);
 
         var sources = sourceAnalysis.Candidates.OrderBy(item => item.Candidate.LogicalStart).ToArray();
         var occurrences = new OcrCorrectionOccurrence[sources.Length];
         for (var index = 0; index < sources.Length; index++)
         {
             var next = index + 1 < sources.Length ? sources[index + 1] : null;
-            occurrences[index] = GenerateOccurrence(sources[index], next, stream, lexicon, analyzer);
+            occurrences[index] = GenerateOccurrence(sources[index], next, stream, lexicon, oracle);
         }
 
-        var targets = CreateTargetExamples(sourceAnalysis, occurrences, stream, lexicon, analyzer);
+        var targets = CreateTargetExamples(sourceAnalysis, occurrences, stream, lexicon, oracle);
         return new OcrCorrectionAnalysisReport(sourceAnalysis, occurrences, targets);
+    }
+
+    public IEnumerable<string> EnumerateMorphologyQueries(
+        OcrAnalysisReport sourceAnalysis,
+        LogicalTextStream stream,
+        BookLexicon lexicon)
+    {
+        ArgumentNullException.ThrowIfNull(sourceAnalysis);
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(lexicon);
+
+        var sources = sourceAnalysis.Candidates.OrderBy(item => item.Candidate.LogicalStart).ToArray();
+        for (var index = 0; index < sources.Length; index++)
+        {
+            var next = index + 1 < sources.Length ? sources[index + 1] : null;
+            foreach (var query in EnumerateOccurrenceMorphologyQueries(sources[index], next, stream, lexicon))
+            {
+                yield return query;
+            }
+        }
     }
 
     private static OcrCorrectionOccurrence GenerateOccurrence(
@@ -47,7 +67,7 @@ public sealed class OcrCorrectionCandidateGenerator
         OcrWordEvidence? next,
         LogicalTextStream stream,
         BookLexicon lexicon,
-        ITurkishMorphologyAnalyzer analyzer)
+        IMorphologyOracle oracle)
     {
         var workingSource = ExpandWorkingSource(source.Candidate, stream);
         var parts = SplitLexicalParts(workingSource.Text);
@@ -84,10 +104,10 @@ public sealed class OcrCorrectionCandidateGenerator
         if (next is not null && CanComposeAdjacent(source, next, workingSource, stream, structural))
         {
             var nextParts = SplitLexicalParts(next.Candidate.Text);
-            foreach (var seed in seeds.Where(item => item.Depth > 0 && !analyzer.IsValidWord(item.Text)))
+            foreach (var seed in seeds.Where(item => item.Depth > 0 && !oracle.IsValid(item.Text)))
             {
                 var composite = seed.Text + nextParts.Core;
-                if (!analyzer.IsValidWord(composite)) continue;
+                if (!oracle.IsValid(composite)) continue;
                 Add(generated, composite,
                     seed.Reasons.Append(OcrCorrectionGenerationReason.AdjacentFragmentComposition),
                     seed.Cost + 1, seed.Depth, [source.Candidate, next.Candidate]);
@@ -97,7 +117,7 @@ public sealed class OcrCorrectionCandidateGenerator
         var hasComposite = generated.Keys.Any(key => key.SourceSpanCount > 1);
         var enriched = generated
             .Where(pair => pair.Key.Text.EnumerateRunes().Any(Rune.IsLetter))
-            .Select(pair => Enrich(pair.Key.Text, pair.Value, source, parts.Core, lexicon, analyzer,
+            .Select(pair => Enrich(pair.Key.Text, pair.Value, source, parts.Core, lexicon, oracle,
                 hasComposite && pair.Key.SourceSpanCount == 1))
             .ToArray();
 
@@ -140,7 +160,7 @@ public sealed class OcrCorrectionCandidateGenerator
         OcrWordEvidence source,
         string sourceCore,
         BookLexicon lexicon,
-        ITurkishMorphologyAnalyzer analyzer,
+        IMorphologyOracle oracle,
         bool partial)
     {
         var comparisonSource = string.Concat(draft.ConsumedSources.Select((item, index) =>
@@ -152,7 +172,7 @@ public sealed class OcrCorrectionCandidateGenerator
             draft.Reasons.OrderBy(reason => reason).ToArray(),
             BoundedDistance(comparisonSource, text, int.MaxValue),
             draft.Cost,
-            analyzer.IsValidWord(text),
+            oracle.IsValid(text),
             lexicon.GetCount(text),
             0,
             draft.ConsumedSources,
@@ -326,7 +346,7 @@ public sealed class OcrCorrectionCandidateGenerator
         IReadOnlyList<OcrCorrectionOccurrence> occurrences,
         LogicalTextStream stream,
         BookLexicon lexicon,
-        ITurkishMorphologyAnalyzer analyzer)
+        IMorphologyOracle oracle)
     {
         var allEvidence = sourceAnalysis.Candidates.Concat(sourceAnalysis.RareInBookSuppressedOccurrences)
             .OrderBy(item => item.Candidate.LogicalStart).ToArray();
@@ -352,7 +372,7 @@ public sealed class OcrCorrectionCandidateGenerator
                 .ThenBy(item => item.WorkingSource.LogicalStart)
                 .FirstOrDefault();
             if (occurrence is null && evidence.Length > 0)
-                occurrence = GenerateOccurrence(evidence[0], null, stream, lexicon, analyzer);
+                occurrence = GenerateOccurrence(evidence[0], null, stream, lexicon, oracle);
             var contextSource = CreateCandidate(stream, start, query.Length);
             results.Add(new OcrTargetRegressionExample(
                 query,
@@ -441,6 +461,43 @@ public sealed class OcrCorrectionCandidateGenerator
             previous = current;
         }
         return previous[^1];
+    }
+
+    private static IEnumerable<string> EnumerateOccurrenceMorphologyQueries(
+        OcrWordEvidence source,
+        OcrWordEvidence? next,
+        LogicalTextStream stream,
+        BookLexicon lexicon)
+    {
+        var workingSource = ExpandWorkingSource(source.Candidate, stream);
+        var parts = SplitLexicalParts(workingSource.Text);
+        var spanExpanded = workingSource.LogicalStart != source.Candidate.LogicalStart
+            || workingSource.Text.Length != source.Candidate.Text.Length;
+        var structural = spanExpanded || HasStructuralEvidence(source);
+        var seeds = StructuralSeeds(parts.Core, source, structural).ToArray();
+
+        foreach (var seed in seeds)
+        {
+            if (seed.Depth > 0)
+            {
+                yield return seed.Text;
+            }
+        }
+
+        foreach (var entry in lexicon.Entries)
+        {
+            yield return entry.Key;
+        }
+
+        if (next is not null && CanComposeAdjacent(source, next, workingSource, stream, structural))
+        {
+            var nextParts = SplitLexicalParts(next.Candidate.Text);
+            foreach (var seed in seeds.Where(item => item.Depth > 0))
+            {
+                yield return seed.Text;
+                yield return seed.Text + nextParts.Core;
+            }
+        }
     }
 
     private sealed class Draft(int cost, int structuralDepth, IReadOnlyList<OcrWordCandidate> consumedSources)

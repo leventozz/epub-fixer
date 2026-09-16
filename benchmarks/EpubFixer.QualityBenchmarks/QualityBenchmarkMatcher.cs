@@ -8,7 +8,8 @@ public sealed class QualityBenchmarkMatcher
 {
     public QualityBenchmarkResult Match(
         IReadOnlyList<KnownErrorOccurrence> knownErrors,
-        IReadOnlyList<HyphenationCandidate> candidates)
+        IReadOnlyList<HyphenationCandidate> candidates,
+        IReadOnlyList<OcrDetectionSource>? ocrDetections = null)
     {
         ArgumentNullException.ThrowIfNull(knownErrors);
         ArgumentNullException.ThrowIfNull(candidates);
@@ -20,13 +21,16 @@ public sealed class QualityBenchmarkMatcher
         {
             var candidateIndex = FindMatch(knownError, candidates, consumedCandidates);
 
-            if (candidateIndex < 0)
+            if (candidateIndex < 0 && !IsCoveredByOcrDetection(knownError, ocrDetections ?? []))
             {
                 missedOccurrences.Add(knownError);
                 continue;
             }
 
-            consumedCandidates[candidateIndex] = true;
+            if (candidateIndex >= 0)
+            {
+                consumedCandidates[candidateIndex] = true;
+            }
         }
 
         var knownErrorCount = knownErrors.Count;
@@ -42,6 +46,38 @@ public sealed class QualityBenchmarkMatcher
             missedCount,
             detectionRecall,
             Array.AsReadOnly(missedOccurrences.ToArray()));
+    }
+
+    private static bool IsCoveredByOcrDetection(
+        KnownErrorOccurrence knownError,
+        IReadOnlyList<OcrDetectionSource> detections)
+    {
+        var range = GetSourceRange(knownError);
+        return range is not null
+            && detections.Any(detection =>
+                string.Equals(detection.DocumentPath, range.Value.DocumentPath, StringComparison.Ordinal)
+                && detection.TextNodeIndex == range.Value.TextNodeIndex
+                &&
+                detection.Start <= range.Value.Start
+                && detection.EndExclusive >= range.Value.EndExclusive);
+    }
+
+    internal static (string DocumentPath, int TextNodeIndex, int Start, int EndExclusive)? GetSourceRange(KnownErrorOccurrence knownError)
+    {
+        if (knownError.SourceSpans.Count == 0)
+        {
+            return null;
+        }
+
+        var first = knownError.SourceSpans[0];
+        if (knownError.SourceSpans.Any(span =>
+            !string.Equals(span.DocumentPath, first.DocumentPath, StringComparison.Ordinal)
+            || span.TextNodeIndex != first.TextNodeIndex))
+        {
+            return null;
+        }
+
+        return (first.DocumentPath, first.TextNodeIndex, first.Start, knownError.SourceSpans[^1].Start + knownError.SourceSpans[^1].Length);
     }
 
     private static int FindMatch(

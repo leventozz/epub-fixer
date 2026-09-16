@@ -1,7 +1,12 @@
 using System.Security.Cryptography;
+using EpubFixer.Core.Epub;
+using EpubFixer.Core.Epub.Models;
 using EpubFixer.Core.Fix;
 using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Fix.Models;
+using EpubFixer.Core.Morphology;
+using EpubFixer.Core.Mutation.Models;
+using EpubFixer.Core.Ocr;
 using EpubFixer.TrMorph;
 
 namespace EpubFixer.Tests;
@@ -23,7 +28,7 @@ public sealed class EpubFixServiceTests
         try
         {
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
-            var result = new EpubFixService(analyzer).Fix(inputPath, outputPath);
+            var result = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer)).Fix(inputPath, outputPath);
 
             Assert.Equal(448, result.OriginalCandidateCount);
             Assert.Equal(148, result.OriginalAutoFixCandidateCount);
@@ -66,7 +71,7 @@ public sealed class EpubFixServiceTests
 
         using var analyzer = new FomaTurkishMorphologyAnalyzer();
         Assert.Throws<ArgumentException>(() =>
-            new EpubFixService(analyzer).Fix(epub.Path, epub.Path));
+            new EpubFixService(new BatchMorphologyOracleBuilder(analyzer)).Fix(epub.Path, epub.Path));
         Assert.Equal(inputHash, SHA256.HashData(File.ReadAllBytes(epub.Path)));
     }
 
@@ -83,13 +88,115 @@ public sealed class EpubFixServiceTests
         {
             using var analyzer = new FomaTurkishMorphologyAnalyzer();
             Assert.Throws<IOException>(() =>
-                new EpubFixService(analyzer).Fix(epub.Path, outputPath));
+                new EpubFixService(new BatchMorphologyOracleBuilder(analyzer)).Fix(epub.Path, outputPath));
             Assert.Equal("do not replace", File.ReadAllText(outputPath));
         }
         finally
         {
             File.Delete(outputPath);
         }
+    }
+
+    [Fact]
+    public void Fix_UsesInjectedOcrPlanner()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>text</p>"))],
+            [new TestSpineItem("chapter")]);
+        var outputPath = Path.Combine(Path.GetTempPath(), $"epubfixer-injected-planner-{Guid.NewGuid():N}.epub");
+        var planner = new RecordingOcrCorrectionPlanner();
+
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer), planner)
+                .Fix(epub.Path, outputPath, applyOcrCorrections: true);
+
+            Assert.True(planner.WasCalled);
+            Assert.NotNull(result.OcrMutation);
+            Assert.True(result.OcrMutation!.Succeeded);
+            Assert.Equal(0, result.OcrMutation.PlannedCount);
+            Assert.Equal(OcrCorrectionEngine.Lattice, result.OcrMutation.Engine);
+        }
+        finally
+        {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
+    public void Fix_DefaultsToLegacyPlanner()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>text</p>"))],
+            [new TestSpineItem("chapter")]);
+        var outputPath = Path.Combine(Path.GetTempPath(), $"epubfixer-default-planner-{Guid.NewGuid():N}.epub");
+
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(new BatchMorphologyOracleBuilder(analyzer))
+                .Fix(epub.Path, outputPath, applyOcrCorrections: true);
+
+            Assert.NotNull(result.OcrMutation);
+            Assert.Equal(OcrCorrectionEngine.Legacy, result.OcrMutation!.Engine);
+        }
+        finally
+        {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Slow")]
+    public void Fix_WithLatticeEngine_ProducesValidOutput()
+    {
+        var input = FindRepositoryFile(Path.Combine("test-data", "odun-kesmek", "input.epub"));
+        var output = Path.Combine(Path.GetTempPath(), $"epubfixer-lattice-{Guid.NewGuid():N}.epub");
+
+        try
+        {
+            using var analyzer = new FomaTurkishMorphologyAnalyzer();
+            var result = new EpubFixService(
+                    new BatchMorphologyOracleBuilder(analyzer),
+                    EpubFixer.Adapters.Ocr.LatticeOcrPlannerFactory.Create())
+                .Fix(input, output, applyOcrCorrections: true);
+
+            Assert.NotNull(result.OcrMutation);
+            Assert.Equal(OcrCorrectionEngine.Lattice, result.OcrMutation!.Engine);
+            Assert.True(result.OcrMutation.Succeeded);
+            Assert.True(result.Integrity.ResourceInventoryMatches);
+            Assert.True(result.Integrity.UntouchedResourcesMatch);
+            Assert.True(result.Integrity.MimetypePackagingValid);
+            Assert.True(result.Integrity.ReadBackValidated);
+        }
+        finally
+        {
+            if (File.Exists(output))
+            {
+                File.Delete(output);
+            }
+        }
+    }
+
+    private static string FindRepositoryFile(string relativePath)
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, relativePath);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new FileNotFoundException("Repository file was not found.", relativePath);
     }
 
     private static string Xhtml(string body)
@@ -102,5 +209,16 @@ public sealed class EpubFixServiceTests
               <body>{body}</body>
             </html>
             """;
+    }
+
+    private sealed class RecordingOcrCorrectionPlanner : IOcrCorrectionPlanner
+    {
+        public bool WasCalled { get; private set; }
+
+        public OcrCorrectionPlanResult CreatePlan(LogicalTextStream stream, EpubFixer.Core.Morphology.IMorphologyOracleBuilder oracleBuilder)
+        {
+            WasCalled = true;
+            return new(new OcrCorrectionMutationPlan(stream.Text, [], []), OcrCorrectionEngine.Lattice, []);
+        }
     }
 }

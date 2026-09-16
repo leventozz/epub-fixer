@@ -4,6 +4,7 @@ using EpubFixer.Core.Correction;
 using EpubFixer.Core.Detection;
 using EpubFixer.Core.Evidence;
 using EpubFixer.Core.Lexicon;
+using EpubFixer.Core.Mutation.Models;
 using EpubFixer.QualityBenchmarks.Models;
 using EpubFixer.QualityBenchmarks;
 
@@ -39,13 +40,17 @@ public sealed class QualityBenchmarkTests
 
         var result = new QualityBenchmarkRunner().Run(dataset);
 
-        Assert.Equal(148, result.KnownErrors);
-        Assert.Equal(148, result.Detected);
-        Assert.Equal(148, result.CorrectlyFixed);
-        Assert.Equal(0, result.WronglyFixed);
-        Assert.Equal(0, result.Deferred);
+        // R5.0d (docs/phase-5-plan.md@adc202d section 7.4) grew the ground truth's OCR arm from 12 to 112
+        // records (plus 28 new Hyphenation records), so these figures moved from the previous
+        // 160/148/0/12/9 baseline - re-measured directly against the real dataset (kural 4.3).
+        Assert.Equal(288, result.KnownErrors);
+        Assert.True(result.Detected > 250);
+        Assert.Equal(259, result.CorrectlyFixed);
+        Assert.Equal(3, result.WronglyFixed);
+        Assert.Equal(26, result.Deferred);
         Assert.Equal(9, result.ProtectedOccurrences);
         Assert.Equal(0, result.ProtectedChanged);
+        Assert.Contains(result.ClassBreakdowns, item => item.ErrorClass == OcrErrorClass.GarbageInsertion && item.Detected > 0);
     }
 
     [Fact]
@@ -69,6 +74,99 @@ public sealed class QualityBenchmarkTests
     }
 
     [Fact]
+    public void Tracker_ResyncKeepsLaterSpanAlignedAfterMultiCharacterOcrMutation()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>aaaaTARGET</p>"))],
+            [new TestSpineItem("chapter")]);
+        var package = new EpubPackageReader().Read(epub.Path);
+        var segment = package.LogicalText.Segments.Single(item => item.Text.Contains("TARGET", StringComparison.Ordinal));
+        var documentPath = segment.Source.DocumentPath;
+        var targetStart = segment.Source.Start + segment.Text.IndexOf("TARGET", StringComparison.Ordinal);
+        var tracker = Assert.Single(QualityBenchmarkOccurrenceTracker.CreateKnown(
+            [
+                new KnownErrorOccurrence(
+                    "known-1",
+                    documentPath,
+                    "TARGET",
+                    "TARGET",
+                    [new GroundTruthSourceSpan(documentPath, segment.Source.TextNodeIndex, targetStart, 6)])
+            ],
+            package.LogicalText));
+        var text = (AngleSharp.Dom.IText)package.SpineDocuments[0].Document.QuerySelector("p")!.FirstChild!;
+        var beforeOcrText = "aaaaTARGET";
+        text.TextContent = "bTARGET";
+        var mutation = new OcrCorrectionMutation(
+            documentPath,
+            0,
+            4,
+            "aaaa",
+            "b",
+            null!,
+            [new OcrMutationSourceSpan(documentPath, segment.Source.TextNodeIndex, segment.Source.Start, 4, "aaaa")]);
+
+        var beforeOcrTextByNode = new Dictionary<AngleSharp.Dom.IText, string>(ReferenceEqualityComparer.Instance)
+        {
+            [text] = beforeOcrText
+        };
+        var mutationNodesByLocation = new Dictionary<(string DocumentPath, int TextNodeIndex), AngleSharp.Dom.IText>
+        {
+            [(documentPath, segment.Source.TextNodeIndex)] = text
+        };
+        tracker.Resync(beforeOcrTextByNode, mutationNodesByLocation, [mutation]);
+
+        Assert.Equal("TARGET", tracker.ReadObservedText());
+    }
+
+    [Fact]
+    public void Tracker_ResyncedOverCorrectionIsReadExactlyNotMaskedAsExpected()
+    {
+        using var epub = TemporaryEpub.Create(
+            [new TestDocument("chapter", "chapter.xhtml", Xhtml("<p>XX</p>"))],
+            [new TestSpineItem("chapter")]);
+        var package = new EpubPackageReader().Read(epub.Path);
+        var segment = package.LogicalText.Segments.Single(item => item.Text.Contains("XX", StringComparison.Ordinal));
+        var documentPath = segment.Source.DocumentPath;
+        var tracker = Assert.Single(QualityBenchmarkOccurrenceTracker.CreateKnown(
+            [
+                new KnownErrorOccurrence(
+                    "known-1",
+                    documentPath,
+                    "XX",
+                    "ABC",
+                    [new GroundTruthSourceSpan(documentPath, segment.Source.TextNodeIndex, segment.Source.Start, 2)])
+            ],
+            package.LogicalText));
+        var text = (AngleSharp.Dom.IText)package.SpineDocuments[0].Document.QuerySelector("p")!.FirstChild!;
+        var beforeOcrText = "XX";
+        // The engine over-corrects: it writes one character more than Expected.
+        // "ABCD".StartsWith("ABC") would previously snap the read to "ABC" and hide
+        // the extra character (R1) - the resynced span is now exact, so the guard
+        // must not fire.
+        text.TextContent = "ABCD";
+        var mutation = new OcrCorrectionMutation(
+            documentPath,
+            0,
+            2,
+            "XX",
+            "ABCD",
+            null!,
+            [new OcrMutationSourceSpan(documentPath, segment.Source.TextNodeIndex, segment.Source.Start, 2, "XX")]);
+
+        var beforeOcrTextByNode = new Dictionary<AngleSharp.Dom.IText, string>(ReferenceEqualityComparer.Instance)
+        {
+            [text] = beforeOcrText
+        };
+        var mutationNodesByLocation = new Dictionary<(string DocumentPath, int TextNodeIndex), AngleSharp.Dom.IText>
+        {
+            [(documentPath, segment.Source.TextNodeIndex)] = text
+        };
+        tracker.Resync(beforeOcrTextByNode, mutationNodesByLocation, [mutation]);
+
+        Assert.Equal("ABCD", tracker.ReadObservedText());
+    }
+
+    [Fact]
     public void Integrity_ReportsUnexpectedTextAndAttributeMutation()
     {
         using var epub = TemporaryEpub.Create(
@@ -81,7 +179,11 @@ public sealed class QualityBenchmarkTests
         paragraph.SetAttribute("id", "changed");
         paragraph.TextContent = "unexpected";
 
-        var audit = evaluator.Audit(before, package.SpineDocuments, [], "inline");
+        var audit = evaluator.Audit(
+            before,
+            package.SpineDocuments,
+            Array.Empty<EpubFixer.Core.Correction.Models.HyphenationCorrectionPlan>(),
+            "inline");
 
         Assert.NotEmpty(audit.TextChanges);
         Assert.NotEmpty(audit.NonTextChanges);
@@ -152,6 +254,159 @@ public sealed class QualityBenchmarkTests
         Assert.Equal(2, occurrences.Count);
         Assert.Equal(["error-1", "error-2"], occurrences.Select(item => item.Id));
         Assert.Equal([480, 2104], occurrences.Select(item => item.SourceSpans[0].Start));
+    }
+
+    [Fact]
+    public void Loader_ReadsSchemaVersionOne_DefaultsErrorClassToUnclassified()
+    {
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(ValidGroundTruthJson);
+
+        var result = new QualityBenchmarkDatasetLoader().Load(dataset.Path);
+
+        Assert.Equal(OcrErrorClass.Unclassified, Assert.Single(result.GroundTruth.KnownErrors).ErrorClass);
+    }
+
+    [Fact]
+    public void Loader_ReadsSchemaVersionTwo()
+    {
+        const string json = """
+            {
+              "schemaVersion": 2,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "ge-^:cn",
+                  "expected": "geçen",
+                  "errorClass": "GarbageInsertion",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 79, "start": 1889, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var result = new QualityBenchmarkDatasetLoader().Load(dataset.Path);
+
+        Assert.Equal(OcrErrorClass.GarbageInsertion, Assert.Single(result.GroundTruth.KnownErrors).ErrorClass);
+    }
+
+    [Fact]
+    public void Loader_RejectsSchemaVersionTwoWithoutErrorClass()
+    {
+        const string json = """
+            {
+              "schemaVersion": 2,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "ge-^:cn",
+                  "expected": "geçen",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 79, "start": 1889, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var exception = Assert.Throws<InvalidDataException>(
+            () => new QualityBenchmarkDatasetLoader().Load(dataset.Path));
+
+        Assert.Contains("errorClass", exception.Message);
+    }
+
+    [Fact]
+    public void Loader_StillReadsSchemaVersionTwo_AfterSchemaVersionThreeWasIntroduced()
+    {
+        // R5.0d (docs/phase-5-plan.md@adc202d section 7.4): schemaVersion moved to 3 to carry
+        // verifiedBy/legacyProposal/source. The loader must keep reading a plain schemaVersion 2
+        // document - one written before those fields existed - without requiring any of them.
+        const string json = """
+            {
+              "schemaVersion": 2,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "ge-^:cn",
+                  "expected": "geçen",
+                  "errorClass": "GarbageInsertion",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 79, "start": 1889, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var occurrence = Assert.Single(new QualityBenchmarkDatasetLoader().Load(dataset.Path).GroundTruth.KnownErrors);
+
+        Assert.Equal(OcrErrorClass.GarbageInsertion, occurrence.ErrorClass);
+        Assert.Null(occurrence.VerifiedBy);
+        Assert.Null(occurrence.LegacyProposal);
+        Assert.Null(occurrence.Source);
+    }
+
+    [Fact]
+    public void Loader_ReadsSchemaVersionThree_WithVerificationMetadata()
+    {
+        const string json = """
+            {
+              "schemaVersion": 3,
+              "knownErrors": [
+                {
+                  "id": "error-1",
+                  "documentPath": "main-3.xhtml",
+                  "original": "olın",
+                  "expected": "John",
+                  "errorClass": "GlyphConfusion",
+                  "verifiedBy": "manual",
+                  "legacyProposal": "olan",
+                  "source": "engine-diff",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 180, "start": 580, "length": 4 }
+                  ]
+                },
+                {
+                  "id": "error-2",
+                  "documentPath": "main-3.xhtml",
+                  "original": "kü-^:ük",
+                  "expected": "küçük",
+                  "errorClass": "Mixed",
+                  "verifiedBy": "manual",
+                  "source": "engine-diff",
+                  "sourceSpans": [
+                    { "documentPath": "main-3.xhtml", "textNodeIndex": 96, "start": 1315, "length": 7 }
+                  ]
+                }
+              ],
+              "protectedOccurrences": []
+            }
+            """;
+        using var dataset = TemporaryQualityBenchmarkDataset.Create(json);
+
+        var occurrences = new QualityBenchmarkDatasetLoader().Load(dataset.Path).GroundTruth.KnownErrors;
+
+        var withLegacyProposal = occurrences.Single(item => item.Id == "error-1");
+        Assert.Equal("manual", withLegacyProposal.VerifiedBy);
+        Assert.Equal("olan", withLegacyProposal.LegacyProposal);
+        Assert.Equal("engine-diff", withLegacyProposal.Source);
+        Assert.Equal(OcrErrorClass.GlyphConfusion, withLegacyProposal.ErrorClass);
+
+        var withoutLegacyProposal = occurrences.Single(item => item.Id == "error-2");
+        Assert.Equal("manual", withoutLegacyProposal.VerifiedBy);
+        Assert.Null(withoutLegacyProposal.LegacyProposal);
+        Assert.Equal("engine-diff", withoutLegacyProposal.Source);
+        Assert.Equal(OcrErrorClass.Mixed, withoutLegacyProposal.ErrorClass);
     }
 
     [Fact]

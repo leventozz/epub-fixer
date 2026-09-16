@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EpubFixer.Adapters\EpubFixer.Adapters.csproj" />
     <ProjectReference Include="..\EpubFixer.Core\EpubFixer.Core.csproj" />
     <ProjectReference Include="..\EpubFixer.TrMorph\EpubFixer.TrMorph.csproj" />
   </ItemGroup>

@@ -1,0 +1,970 @@
+{
+  "dataset": "odun-kesmek",
+  "measuredOn": "2026-09-14",
+  "note": "R4.2c olcum kosusu. Varsayilan motor CEVRILMEDI (D60/D65); bu dosya yalnizca kanittir.",
+  "legacy": {
+    "appliedCount": 120
+  },
+  "lattice": {
+    "appliedCount": 10
+  },
+  "gain": {
+    "count": 9,
+    "items": [
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 32929,
+        "original": "kü-^:ük",
+        "replacement": "küçük"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 68637,
+        "original": "ıı<ıda",
+        "replacement": "yılda"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 74463,
+        "original": "entz",
+        "replacement": "Gentz"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 87365,
+        "original": "ohbet",
+        "replacement": "sohbet"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 87424,
+        "original": "koli ukta",
+        "replacement": "koltukta"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 135062,
+        "original": "bi-^:imde",
+        "replacement": "biçimde"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 218564,
+        "original": "Strind-berg",
+        "replacement": "Strindberg"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 264303,
+        "original": "Gert-rude",
+        "replacement": "Gertrude"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 281794,
+        "original": "Za-al'a",
+        "replacement": "Zaal'a"
+      }
+    ]
+  },
+  "loss": {
+    "count": 119,
+    "items": [
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 3707,
+        "original": "J3arış",
+        "replacement": "Barış",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 12159,
+        "original": "y1pranmışt1",
+        "replacement": "yıpranmıştı",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 29300,
+        "original": "liyatro",
+        "replacement": "tiyatro",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 31679,
+        "original": "^iddetli",
+        "replacement": "şiddetli",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 31797,
+        "original": "ilgi-1 iydi",
+        "replacement": "ilgiliydi",
+        "decisionRule": "AdjacentCompositeRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 32746,
+        "original": ";;aşılacak",
+        "replacement": "aşılacak",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 33861,
+        "original": "Soka-f^ı'nda",
+        "replacement": "Sokağı'nda",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 38407,
+        "original": "ıı",
+        "replacement": "ı",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 42986,
+        "original": "deği-^ik",
+        "replacement": "değişik",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 47215,
+        "original": "()yuncu",
+        "replacement": "oyuncu",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 50561,
+        "original": "angajma-ııa",
+        "replacement": "angajmana",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 51190,
+        "original": "ı ı ygun",
+        "replacement": "uygun",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 51253,
+        "original": ";;.amanda",
+        "replacement": "zamanda",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 51440,
+        "original": "Viya-ııa'da",
+        "replacement": "Viyana'da",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 51570,
+        "original": "l'l1",
+        "replacement": "l'li",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 51890,
+        "original": "Jo-;ına",
+        "replacement": "Joana",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 52138,
+        "original": "l<ilb'de",
+        "replacement": "Kilb'de",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 54414,
+        "original": "Avııstıırya'nın",
+        "replacement": "Avusturya'nın",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 54822,
+        "original": "ııttı",
+        "replacement": "attı",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 59573,
+        "original": "yolcu-1",
+        "replacement": "yolcu",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 60006,
+        "original": "dü-^ündüm",
+        "replacement": "düşündüm",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 60490,
+        "original": "pe-^inden",
+        "replacement": "peşinden",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 63783,
+        "original": "ya-ııi",
+        "replacement": "yani",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 64297,
+        "original": "c;",
+        "replacement": "c",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 65103,
+        "original": "<ıya",
+        "replacement": "ya",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 65352,
+        "original": "kada",
+        "replacement": "kadar",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 65980,
+        "original": ";rınatsal",
+        "replacement": "sanatsal",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 68505,
+        "original": "bul-ııı<ılarını",
+        "replacement": "bulduklarını",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 68958,
+        "original": "elleri-ıı",
+        "replacement": "ellerin",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 69032,
+        "original": "ııa'nın",
+        "replacement": "ma'nın",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 69426,
+        "original": "ııandığını",
+        "replacement": "inandığını",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 69485,
+        "original": "gu-1.ı",
+        "replacement": "gulaşı",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 69617,
+        "original": "ıı",
+        "replacement": "ı",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 69942,
+        "original": "ıı",
+        "replacement": "ı",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 70135,
+        "original": "y;ıvaş",
+        "replacement": "yavaş",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 70189,
+        "original": "ıııümkün",
+        "replacement": "mümkün",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 70380,
+        "original": "ıı",
+        "replacement": "ı",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 70508,
+        "original": "cena-1'",
+        "replacement": "cenaze",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 73040,
+        "original": "unu-1",
+        "replacement": "unu",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 73240,
+        "original": "ı;ıklaşıyorlar",
+        "replacement": "uğraşıyorlar",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 74067,
+        "original": "alkışla-ıı;ın",
+        "replacement": "alkışlanın",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 77632,
+        "original": "giderim1",
+        "replacement": "giderim",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 77682,
+        "original": ";itmem",
+        "replacement": "gitmem",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 78051,
+        "original": "önce1",
+        "replacement": "önce",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 78099,
+        "original": "düşündüm1",
+        "replacement": "düşündüm",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 78182,
+        "original": "değil1",
+        "replacement": "değil",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 78642,
+        "original": "y;ılanlar",
+        "replacement": "yılanlar",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 79423,
+        "original": "So-k;ığı'na",
+        "replacement": "Sokağı'na",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 79488,
+        "original": "So-k;ığı'na",
+        "replacement": "Sokağı'na",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 79730,
+        "original": "Aııersbergerler'e",
+        "replacement": "Auersbergerler'e",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 82341,
+        "original": "gele-11",
+        "replacement": "gelen",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 82539,
+        "original": ";;ilere",
+        "replacement": "ilere",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 82602,
+        "original": "v ı saklamıyorum",
+        "replacement": "saklamıyorum",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 83184,
+        "original": "kşam",
+        "replacement": "akşam",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 83313,
+        "original": "r;ıhatıma",
+        "replacement": "rahatıma",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 83820,
+        "original": "ıynı",
+        "replacement": "aynı",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 84137,
+        "original": "et-ıııiş",
+        "replacement": "etmiş",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 84393,
+        "original": "gö-1'",
+        "replacement": "gözle",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 84459,
+        "original": "l;ımamen",
+        "replacement": "tamamen",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 91605,
+        "original": "ııe",
+        "replacement": "ne",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 91909,
+        "original": "dü-^ündüm",
+        "replacement": "düşündüm",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 96317,
+        "original": "ııersberger'in",
+        "replacement": "Auersberger'in",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 96381,
+        "original": "ıı",
+        "replacement": "ı",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 96789,
+        "original": "sa-ııiyelik",
+        "replacement": "saniyelik",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 97775,
+        "original": "l ı değil",
+        "replacement": "değil",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 98489,
+        "original": "otu-ı;ırak",
+        "replacement": "oturarak",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 101029,
+        "original": "güru-1ıunun",
+        "replacement": "güruhunu",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 102290,
+        "original": "iğrenç-1 ikleri",
+        "replacement": "iğrençlikleri",
+        "decisionRule": "AdjacentCompositeRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 102739,
+        "original": "c;öylemek",
+        "replacement": "söylemek",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 112101,
+        "original": "anla-^ılıyordu",
+        "replacement": "anlaşılıyordu",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 116152,
+        "original": "Jo-<ma'nın",
+        "replacement": "Joana'nın",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 119546,
+        "original": ">izlik",
+        "replacement": "izlik",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 123925,
+        "original": ";ıreket",
+        "replacement": "hareket",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 124044,
+        "original": "gel-ıııeye",
+        "replacement": "gelinceye",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 124245,
+        "original": "<ıl",
+        "replacement": "yıl",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 124503,
+        "original": "olın",
+        "replacement": "olan",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 124691,
+        "original": "laha",
+        "replacement": "daha",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 124748,
+        "original": "et-ıııiş",
+        "replacement": "etmiş",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 128601,
+        "original": ";<'Y",
+        "replacement": "Y",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 128928,
+        "original": ";onra",
+        "replacement": "sonra",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 129370,
+        "original": "l<ilb'de",
+        "replacement": "Kilb'de",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 129690,
+        "original": "zaman-1.ır",
+        "replacement": "zamandır",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 130520,
+        "original": "Ala-ııı'nda",
+        "replacement": "Alanı'nda",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 133783,
+        "original": "oluvermiş-1",
+        "replacement": "oluvermiş",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 134109,
+        "original": "Se-lı;ıstian",
+        "replacement": "Sebastian",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 139165,
+        "original": "res-s;ım",
+        "replacement": "ressam",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 139299,
+        "original": "g i bir",
+        "replacement": "gibi",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 139487,
+        "original": "ulaş-1",
+        "replacement": "ulaş",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 142797,
+        "original": "c;okağı'nda",
+        "replacement": "Sokağı'nda",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 144617,
+        "original": "ak-^am",
+        "replacement": "akşam",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 147171,
+        "original": "i m berjer",
+        "replacement": "berjer",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 147351,
+        "original": "aristokra-^;isi",
+        "replacement": "aristokrasisi",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 149280,
+        "original": "^erefsiz",
+        "replacement": "şerefsiz",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 152087,
+        "original": "ı ı bırakmadan",
+        "replacement": "bırakmadan",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 152734,
+        "original": "ıtuz",
+        "replacement": "otuz",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 157253,
+        "original": "ya-^amlarını",
+        "replacement": "yaşamlarını",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 161177,
+        "original": "yöne-1",
+        "replacement": "yöne",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 170475,
+        "original": ";iiyledikleri",
+        "replacement": "söyledikleri",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 170532,
+        "original": "oldukları-ııı",
+        "replacement": "olduklarını",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 171107,
+        "original": "çoğu-ııu",
+        "replacement": "çoğunu",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 171170,
+        "original": "tanıdı-ı^ım",
+        "replacement": "tanıdığım",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 176819,
+        "original": "t>anatsal",
+        "replacement": "sanatsal",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 179717,
+        "original": "ta-ııımlanan",
+        "replacement": "tanımlanan",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 180157,
+        "original": ";erçekten",
+        "replacement": "gerçekten",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 180466,
+        "original": "-.;eslendiğini",
+        "replacement": "eslendiğini",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 189015,
+        "original": "dü-^ünülemeyeceğini",
+        "replacement": "düşünülemeyeceğini",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 202783,
+        "original": "<1rtık",
+        "replacement": "artık",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 207575,
+        "original": "Tiyatro-^aı'nun",
+        "replacement": "Tiyatrosu'nun",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 207639,
+        "original": "Tiyatro-^;u'na",
+        "replacement": "Tiyatrosu'na",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 207774,
+        "original": "lağanüstü",
+        "replacement": "olağanüstü",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 207963,
+        "original": "ola-r<ık",
+        "replacement": "olarak",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 208774,
+        "original": "ba-^arısız",
+        "replacement": "başarısız",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 221336,
+        "original": "zencileri-11in",
+        "replacement": "zencilerinin",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 275383,
+        "original": "^ine",
+        "replacement": "yine",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 282064,
+        "original": "yııtucusu",
+        "replacement": "yutucusu",
+        "decisionRule": "DirectStructuralRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 306859,
+        "original": "ınusıınuz",
+        "replacement": "musunuz",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 310713,
+        "original": "bıı",
+        "replacement": "bu",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 338389,
+        "original": "kop^",
+        "replacement": "kop",
+        "decisionRule": "StructuralLexiconRepair"
+      },
+      {
+        "documentPath": "main-4.xhtml",
+        "logicalStart": 338920,
+        "original": "nlar",
+        "replacement": "onlar",
+        "decisionRule": "EvidenceOnlyDominantLexicon"
+      }
+    ]
+  },
+  "conflict": {
+    "count": 1,
+    "items": [
+      {
+        "documentPath": "main-3.xhtml",
+        "logicalStart": 152467,
+        "legacyOriginal": "ıı",
+        "legacyReplacement": "ı",
+        "latticeOriginal": "kol-1 ıı kta",
+        "latticeReplacement": "koli nokta",
+        "sameReplacement": false
+      }
+    ]
+  },
+  "maxArcLength": {
+    "value": 11,
+    "source": "Faz 3 ham kosusu (odun-kesmek.lattice.md, 563 region) - uretim akisi hyphenation sonrasi oldugu icin yaklasik deger",
+    "regionsTotal": 563,
+    "regionsLongerThanMaxArcLength": 141,
+    "appliedRegionsLongerThanMaxArcLength": 0,
+    "note": "141/563 region MaxArcLength'i asiyor ve ham kosuda bunlarin HICBIRI Apply almiyor - yani uzun region'lar icin kapi ham kosuda fiilen kapali. Uretimde ise 12 karakterlik 'kol-1 ii kta' Apply aldi. Bu fark asagida rawVersusProduction altinda kayitlidir."
+  },
+  "rawVersusProduction": {
+    "finding": "Ayni parca iki kosuda farkli verdict aliyor; sebep olculmedi.",
+    "fragment": "kol-1 ıı kta",
+    "fragmentLength": 12,
+    "rawRun": {
+      "source": "docs/baselines/odun-kesmek.lattice.md (Faz 3, ham stream)",
+      "verdict": "Leave",
+      "reason": "TooManyOrdinaryEdits",
+      "replacement": null
+    },
+    "productionRun": {
+      "source": "docs/baselines/odun-kesmek.fix-lattice.json (hyphenation sonrasi stream)",
+      "verdict": "Apply",
+      "reason": "Accepted",
+      "replacement": "koli nokta"
+    },
+    "implication": "MaxArcLength (11 < 12) dogru cevabin 'koltukta' kafeste uretilmemesini acikliyor, ama kapinin ham kosuda reddettigi yolu uretimde KABUL etmesini aciklamiyor. Yanlis yazma icin iki kosul birlikte gerekti; yalnizca birincisi aciklandi. Muhtemel sebep: hazne ve dil modeli hyphenation sonrasi metinden kuruldugu icin secilen yol ve dolayisiyla OrdinaryEdits sayisi degisiyor. DOGRULANMADI.",
+    "sibling": {
+      "fragment": "koli ukta",
+      "fragmentLength": 9,
+      "rawRun": "Apply -> koltukta",
+      "productionRun": "Apply -> koltukta"
+    }
+  },
+  "bookHealth": {
+    "definition": "docs/baselines/README.md - book health definition v2 (measure komutu)",
+    "legacy": {
+      "totalTokens": 46663,
+      "unresolvableTokens": 2674,
+      "suspiciousTokens": 169,
+      "unresolvableRatePer1000": 57.3
+    },
+    "lattice": {
+      "totalTokens": 46732,
+      "unresolvableTokens": 2739,
+      "suspiciousTokens": 226,
+      "unresolvableRatePer1000": 58.61
+    },
+    "verdict": "Faz 4 kabul kriteri 5 SAGLANMIYOR: lattice ciktisi legacy'ye gore KOTULESIYOR (+65 unresolvable, +57 suspicious, oran 57.30 -> 58.61). Sebep dogrudan loss=119: legacy'nin duzelttigi 119 yeri lattice birakiyor."
+  }
+}

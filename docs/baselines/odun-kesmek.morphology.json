@@ -1,0 +1,38 @@
+{
+  "dataset": "odun-kesmek",
+  "measuredOn": "2026-09-12",
+  "sourceCommit": "dc3e157",
+  "machine": "local Windows development machine",
+  "scenario": "fix --apply-ocr-corrections",
+  "interpretation": "Phase 1 is a structural refactor, not a measured wall-clock speedup. Comparable hot Debug runs on the same machine were 27.59s before and 27.87s after.",
+  "before": {
+    "label": "pre-oracle hot Debug run",
+    "totalElapsedSeconds": 27.59,
+    "batchRequests": 13177,
+    "hits": 40224,
+    "note": "TRmorph round-trips were mostly absorbed by the existing in-process cache; morphology was not the wall-clock bottleneck."
+  },
+  "after": {
+    "label": "post-oracle hot Debug run",
+    "totalElapsedSeconds": 27.87,
+    "isValidWordCalls": 0,
+    "analyzeCalls": 0,
+    "analyzeBatchCalls": 4,
+    "batchRequests": 4,
+    "distinctWords": 13215,
+    "batchedWords": 13215,
+    "morphologyElapsedSeconds": 1.49,
+    "note": "Runtime hot path uses prefilled oracle lookups; remaining flookup work happens in four stage-level prefill batches."
+  },
+  "previousNonComparableMeasurement": {
+    "totalElapsedSeconds": 25.202,
+    "morphologyElapsedSeconds": 1.432,
+    "reasonNotComparable": "Captured under different run conditions; retained only to explain the earlier misleading baseline value."
+  },
+  "structuralOutcome": {
+    "hotLoopMorphologyIoRemoved": true,
+    "secondRunDiskCacheAvoidsFlookupStartup": true,
+    "wallClockSpeedupObserved": false
+  },
+  "goldenLogicalTextSha256": "37b72bc8508ceb6a06e9f8a5c7f41f65503e5bb99c9a436b82c37e960b2018be"
+}

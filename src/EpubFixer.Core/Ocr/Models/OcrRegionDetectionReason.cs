@@ -8,5 +8,6 @@ public enum OcrRegionDetectionReason
     SuspiciousPunctuation,
     EmbeddedGarbageGlyph,
     MalformedHyphenContinuation,
-    IsolatedOcrGlyph
+    IsolatedOcrGlyph,
+    FragmentedNeighbors
 }

@@ -2,7 +2,6 @@ using System.Security.Cryptography;
 using EpubFixer.Core.Correction;
 using EpubFixer.Core.Correction.Models;
 using EpubFixer.Core.Decision.Models;
-using EpubFixer.Core.Decision;
 using EpubFixer.Core.Detection.Models;
 using EpubFixer.Core.Epub;
 using EpubFixer.Core.Fix.Models;
@@ -15,12 +14,16 @@ namespace EpubFixer.Core.Fix;
 
 public sealed class EpubFixService
 {
-    private readonly ITurkishMorphologyAnalyzer morphologyAnalyzer;
+    private readonly IMorphologyOracleBuilder morphologyOracleBuilder;
+    private readonly IOcrCorrectionPlanner ocrCorrectionPlanner;
 
-    public EpubFixService(ITurkishMorphologyAnalyzer morphologyAnalyzer)
+    public EpubFixService(
+        IMorphologyOracleBuilder morphologyOracleBuilder,
+        IOcrCorrectionPlanner? ocrCorrectionPlanner = null)
     {
-        this.morphologyAnalyzer = morphologyAnalyzer
-            ?? throw new ArgumentNullException(nameof(morphologyAnalyzer));
+        this.morphologyOracleBuilder = morphologyOracleBuilder
+            ?? throw new ArgumentNullException(nameof(morphologyOracleBuilder));
+        this.ocrCorrectionPlanner = ocrCorrectionPlanner ?? new LegacyOcrCorrectionPlanner();
     }
 
     public EpubFixResult Fix(string inputPath, string outputPath, bool applyOcrCorrections = false)
@@ -77,7 +80,7 @@ public sealed class EpubFixService
             new CrossParagraphHyphenationCorrectionApplier().Apply(crossParagraphPlans);
 
         var afterV1Stream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-        var v2 = HyphenationPipeline.AnalyzeV2(afterV1Stream, morphologyAnalyzer);
+        var v2 = HyphenationPipeline.AnalyzeV2(afterV1Stream, morphologyOracleBuilder);
         var v2Auto = v2.Decisions.Where(d => d.DecisionKind == HyphenationDecisionKind.AutoFixCandidate).ToArray();
         var v2InlinePlans = v2.Plans.Where(p => p.CorrectionKind == HyphenationCorrectionKind.Inline).ToArray();
         var approvedV2Cross = v2.Plans
@@ -87,7 +90,7 @@ public sealed class EpubFixService
         var v2InlineResult = new HyphenationCorrectionApplier().Apply(v2InlinePlans);
 
         var afterV2Inline = LogicalTextStreamBuilder.Build(package.SpineDocuments);
-        var refreshedV2 = HyphenationPipeline.AnalyzeV2(afterV2Inline, morphologyAnalyzer);
+        var refreshedV2 = HyphenationPipeline.AnalyzeV2(afterV2Inline, morphologyOracleBuilder);
         var v2CrossPlans = refreshedV2.Plans
             .Where(p => p.CorrectionKind == HyphenationCorrectionKind.CrossParagraph)
             .Where(p => approvedV2Cross.Any(candidate =>
@@ -104,10 +107,8 @@ public sealed class EpubFixService
         OcrMutationResult? ocrMutation = null;
         if (applyOcrCorrections)
         {
-            var analysis = new OcrAnalysisService().AnalyzeCorrections(finalStream, morphologyAnalyzer);
-            var report = new OcrCorrectionDecisionEvaluator().Evaluate(analysis);
-            var plan = new OcrCorrectionMutationPlanner().Create(report.Decisions, finalStream);
-            ocrMutation = new OcrCorrectionMutationApplier().Apply(package, plan);
+            var planResult = ocrCorrectionPlanner.CreatePlan(finalStream, morphologyOracleBuilder);
+            ocrMutation = new OcrCorrectionMutationApplier().Apply(package, planResult.Plan) with { Engine = planResult.Engine };
             if (!ocrMutation.Succeeded)
                 throw new InvalidDataException("OCR mutation failed: " + string.Join(", ", ocrMutation.Failures.Select(item => item.Reason)));
             finalStream = LogicalTextStreamBuilder.Build(package.SpineDocuments);
@@ -137,7 +138,7 @@ public sealed class EpubFixService
                 package,
                 finalState,
                 writeResult,
-                morphologyAnalyzer);
+                morphologyOracleBuilder);
 
             File.Move(temporaryPath, fullOutputPath, overwrite: false);
 

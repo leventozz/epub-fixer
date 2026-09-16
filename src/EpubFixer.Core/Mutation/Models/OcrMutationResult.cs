@@ -12,6 +12,7 @@ public sealed record OcrMutationResult(
     int UnexpectedTextChanges)
 {
     public IReadOnlyList<OcrCorrectionMutation> AppliedMutations { get; init; } = [];
+    public OcrCorrectionEngine Engine { get; init; }
     public int ConflictCount => Failures.Count(item => item.Reason is OcrMutationFailureReason.OverlappingMutation or OcrMutationFailureReason.ConflictingMutation);
     public bool Succeeded => Failures.Count == 0 && AppliedCount == PlannedCount;
 }
